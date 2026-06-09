@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ely.kian.ui.components.KianButton
 import com.ely.kian.ui.components.KianChip
+import com.ely.kian.ui.components.KianInput
 import com.ely.kian.ui.theme.Ink
 import com.ely.kian.ui.theme.Line
 import com.ely.kian.ui.theme.Panel
