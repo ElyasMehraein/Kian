@@ -16,7 +16,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ely.kian.ui.theme.Accent
-import com.ely.kian.ui.theme.AccentSoft
 import com.ely.kian.ui.theme.Ink
 import com.ely.kian.ui.theme.Line
 import com.ely.kian.ui.theme.Panel
@@ -28,9 +27,8 @@ fun WalletScreen() {
             .fillMaxSize()
             .statusBarsPadding()
     ) {
-        // Header
         Text(
-            text = "Wallet",
+            text = "Assets",
             fontSize = 32.sp,
             fontWeight = FontWeight.Bold,
             color = Ink,
@@ -41,26 +39,23 @@ fun WalletScreen() {
             modifier = Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(bottom = 16.dp)
         ) {
-            // Token Balances
             item {
-                SectionHeader("Token Balances")
-                BalanceCard(balance = "1,250.00", symbol = "KIAN")
+                SectionHeader("Token Batches (UTXOs)")
+                BalanceCard(balance = "1250", symbol = "KG_SUGAR")
             }
 
-            // Spendable Entries
             item {
                 SectionHeader("Spendable Entries")
             }
-            items(listOf("Entry #123", "Entry #124")) { entry ->
-                EntryItem(name = entry, amount = "50.00")
+            items(listOf("Batch #123", "Batch #124")) { entry ->
+                EntryItem(name = entry, amount = "50")
             }
 
-            // Activity
             item {
-                SectionHeader("Activity")
+                SectionHeader("Recent Transfers")
             }
-            items(listOf("Sent to Alice", "Received from Bob", "Payment for Coffee")) { activity ->
-                ActivityItem(title = activity, date = "Oct 24, 2023", amount = "10.00")
+            items(listOf("Transferred to Alice", "Received from Bob", "Minted New Batch")) { activity ->
+                ActivityItem(title = activity, date = "Oct 24, 2023", amount = "10")
             }
         }
     }
@@ -87,7 +82,7 @@ fun BalanceCard(balance: String, symbol: String) {
         shape = RoundedCornerShape(24.dp)
     ) {
         Column(modifier = Modifier.padding(24.dp)) {
-            Text(text = "Total Balance", color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp)
+            Text(text = "Total Holding", color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp)
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(text = balance, color = Color.White, fontSize = 36.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.width(8.dp))
@@ -109,7 +104,7 @@ fun EntryItem(name: String, amount: String) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(text = name, fontWeight = FontWeight.Medium, color = Ink)
-        Text(text = "$amount KIAN", color = Ink)
+        Text(text = "$amount Units", color = Ink, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -127,7 +122,7 @@ fun ActivityItem(title: String, date: String, amount: String) {
                 Text(text = title, fontWeight = FontWeight.Medium, color = Ink)
                 Text(text = date, fontSize = 12.sp, color = Color.Gray)
             }
-            Text(text = "-$amount", fontWeight = FontWeight.Bold, color = Ink)
+            Text(text = amount, fontWeight = FontWeight.Bold, color = Ink)
         }
         HorizontalDivider(color = Line)
     }

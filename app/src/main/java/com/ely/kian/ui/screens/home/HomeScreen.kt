@@ -30,7 +30,7 @@ val mockMerchants = listOf(
 )
 
 @Composable
-fun HomeScreen() {
+fun HomeScreen(onMerchantClick: (String) -> Unit) {
     var selectedSort by remember { mutableStateOf("All") }
     val sortOptions = listOf("All", "Nearest", "Top Rated", "Verified")
 
@@ -73,7 +73,8 @@ fun HomeScreen() {
                     name = merchant.name,
                     bio = merchant.bio,
                     rating = merchant.rating,
-                    distance = merchant.distance
+                    distance = merchant.distance,
+                    onClick = { onMerchantClick(merchant.id) }
                 )
             }
         }

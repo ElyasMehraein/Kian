@@ -19,7 +19,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ely.kian.ui.components.KianButton
 import com.ely.kian.ui.components.KianChip
-import com.ely.kian.ui.components.KianInput
 import com.ely.kian.ui.theme.Ink
 import com.ely.kian.ui.theme.Line
 import com.ely.kian.ui.theme.Panel
@@ -32,10 +31,10 @@ data class Product(
 )
 
 val mockProducts = listOf(
-    Product("1", "Organic Honey", "15.00", "Food"),
-    Product("2", "Handmade Soap", "8.00", "Bath"),
-    Product("3", "Wool Socks", "12.00", "Clothing"),
-    Product("4", "Coffee Beans", "18.00", "Food"),
+    Product("1", "Organic Honey", "15", "Food"),
+    Product("2", "Handmade Soap", "8", "Bath"),
+    Product("3", "Wool Socks", "12", "Clothing"),
+    Product("4", "Coffee Beans", "18", "Food"),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -112,10 +111,9 @@ fun ProductManagerScreen() {
                 ) {
                     Text(text = "Add New Product", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Ink)
                     Spacer(modifier = Modifier.height(24.dp))
-                    // In a real app, we'd have KianInput here
                     Text(text = "Product Name Placeholder", color = Color.Gray)
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text(text = "Price Placeholder", color = Color.Gray)
+                    Text(text = "Required Asset Amount", color = Color.Gray)
                     Spacer(modifier = Modifier.height(24.dp))
                     KianButton(
                         text = "Create Product",
@@ -149,6 +147,6 @@ fun ProductItem(product: Product) {
             Text(text = product.name, fontWeight = FontWeight.Bold, color = Ink)
             Text(text = product.category, fontSize = 12.sp, color = Color.Gray)
         }
-        Text(text = "$${product.price}", fontWeight = FontWeight.Bold, color = Ink)
+        Text(text = "${product.price} Units", fontWeight = FontWeight.Bold, color = Ink)
     }
 }
