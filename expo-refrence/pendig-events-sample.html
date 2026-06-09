@@ -1,0 +1,829 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pending Events | Nostr Client</title>
+
+    <style>
+      /* System fonts for full offline support */
+      :root {
+        --bg-color: #f8fafc;
+        --surface-color: #ffffff;
+        --text-primary: #0f172a;
+        --text-secondary: #64748b;
+        --primary-color: #4f46e5;
+        --primary-hover: #4338ca;
+        --danger-color: #ef4444;
+        --warning-color: #f59e0b;
+        --success-color: #10b981;
+        --border-color: #e2e8f0;
+        --font-family:
+          system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          Helvetica, Arial, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: var(--font-family);
+      }
+
+      body {
+        background-color: var(--bg-color);
+        color: var(--text-primary);
+        line-height: 1.6;
+      }
+
+      /* SVG Icon styling */
+      svg {
+        width: 1.2rem;
+        height: 1.2rem;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      /* Header */
+      header {
+        background-color: var(--surface-color);
+        padding: 1.25rem 2rem;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+
+      .header-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 1.25rem;
+        font-weight: 700;
+      }
+
+      .offline-badge {
+        background-color: #fee2e2;
+        color: var(--danger-color);
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .offline-dot {
+        width: 8px;
+        height: 8px;
+        background-color: var(--danger-color);
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+        }
+        70% {
+          box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+        }
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+        border: none;
+      }
+
+      .btn-primary {
+        background-color: var(--primary-color);
+        color: white;
+      }
+
+      .btn-primary:hover:not(:disabled) {
+        background-color: var(--primary-hover);
+      }
+
+      .btn-primary:disabled {
+        background-color: #94a3b8;
+        cursor: not-allowed;
+      }
+
+      /* Main Container */
+      .container {
+        max-width: 900px;
+        margin: 2rem auto;
+        padding: 0 1.5rem;
+      }
+
+      .section-desc {
+        margin-bottom: 2rem;
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+      }
+
+      /* Grouping / Categories */
+      .category-section {
+        margin-bottom: 2.5rem;
+        animation: fadeIn 0.3s ease;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .category-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid var(--border-color);
+      }
+
+      .category-header h2 {
+        font-size: 1.2rem;
+        color: var(--text-primary);
+      }
+
+      .category-count {
+        background-color: #e2e8f0;
+        color: #475569;
+        padding: 2px 10px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 700;
+      }
+
+      /* Event Cards */
+      .event-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .event-card {
+        background-color: var(--surface-color);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 1.25rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s;
+        cursor: pointer;
+      }
+
+      .event-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        border-color: #cbd5e1;
+      }
+
+      .event-info {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        flex: 1;
+        min-width: 0; /* for text truncation */
+      }
+
+      .event-icon {
+        width: 45px;
+        height: 45px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .icon-kind-1 {
+        background: #e0e7ff;
+        color: #4f46e5;
+      } /* Notes */
+      .icon-kind-4 {
+        background: #dcfce7;
+        color: #16a34a;
+      } /* DMs */
+      .icon-kind-7 {
+        background: #fce7f3;
+        color: #db2777;
+      } /* Likes */
+
+      .event-details {
+        min-width: 0;
+        flex: 1;
+      }
+
+      .event-preview {
+        color: var(--text-primary);
+        font-size: 0.95rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 6px;
+        font-weight: 500;
+      }
+
+      .badges {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .badge {
+        font-size: 0.75rem;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+
+      .badge-high {
+        background: #fee2e2;
+        color: var(--danger-color);
+      }
+      .badge-medium {
+        background: #fef3c7;
+        color: var(--warning-color);
+      }
+      .badge-low {
+        background: #e0f2fe;
+        color: #0284c7;
+      }
+
+      .time-text {
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+      }
+
+      .event-actions {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        flex-shrink: 0;
+        margin-left: 1rem;
+      }
+
+      .btn-retry-single {
+        background: transparent;
+        color: var(--primary-color);
+        border: 1px solid var(--primary-color);
+        padding: 6px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .btn-retry-single:hover:not(:disabled) {
+        background: var(--primary-color);
+        color: white;
+      }
+
+      .btn-retry-single:disabled {
+        border-color: #94a3b8;
+        color: #94a3b8;
+        cursor: not-allowed;
+      }
+
+      .spin {
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Modal */
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(4px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.2s ease;
+      }
+
+      .modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .modal-content {
+        background: var(--surface-color);
+        width: 90%;
+        max-width: 650px;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        transform: scale(0.95);
+        transition: all 0.2s ease;
+      }
+
+      .modal-overlay.active .modal-content {
+        transform: scale(1);
+      }
+
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+      }
+
+      .close-btn {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+      }
+
+      .close-btn:hover {
+        background: #f1f5f9;
+        color: var(--danger-color);
+      }
+
+      .code-block-wrapper {
+        position: relative;
+        background: #1e293b;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-top: 1rem;
+      }
+
+      .code-block {
+        color: #e2e8f0;
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.85rem;
+        white-space: pre-wrap;
+        word-break: break-all;
+        max-height: 400px;
+        overflow-y: auto;
+      }
+
+      .btn-copy {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border: none;
+        padding: 6px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.8rem;
+        transition: background 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .btn-copy:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      /* Toast Notification */
+      .toast {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%) translateY(100px);
+        background: var(--text-primary);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 30px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .toast.show {
+        transform: translateX(-50%) translateY(0);
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 4rem 1rem;
+        color: var(--text-secondary);
+        display: none;
+      }
+
+      .empty-state svg {
+        width: 4rem;
+        height: 4rem;
+        stroke: var(--success-color);
+        margin-bottom: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Header -->
+    <header>
+      <div class="header-title">
+        <!-- Offline Cloud SVG -->
+        <svg viewBox="0 0 24 24">
+          <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
+          <line x1="22" y1="2" x2="2" y2="22" />
+        </svg>
+        Pending Events
+        <div class="offline-badge">
+          <div class="offline-dot"></div>
+          Offline Mode
+        </div>
+      </div>
+      <button class="btn btn-primary" id="retry-all-btn" onclick="retryAll()">
+        <!-- Refresh SVG -->
+        <svg viewBox="0 0 24 24">
+          <polyline points="23 4 23 10 17 10" />
+          <polyline points="1 20 1 14 7 14" />
+          <path
+            d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
+          />
+        </svg>
+        Retry All
+      </button>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container">
+      <p class="section-desc">
+        The following events could not be published due to network
+        disconnection. They are saved locally and grouped by type. You can retry
+        sending them individually or all at once.
+      </p>
+
+      <!-- Events Container -->
+      <div id="events-container">
+        <!-- Rendered via JS -->
+      </div>
+
+      <!-- Empty State -->
+      <div class="empty-state" id="empty-state">
+        <!-- Check Circle SVG -->
+        <svg viewBox="0 0 24 24">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+          <polyline points="22 4 12 14.01 9 11.01" />
+        </svg>
+        <h3>All Caught Up!</h3>
+        <p>There are no pending events waiting to be broadcasted.</p>
+      </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="event-modal">
+      <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <h3 id="modal-title">Event Details</h3>
+          <button class="close-btn" onclick="closeModal()">
+            <!-- X mark SVG -->
+            <svg viewBox="0 0 24 24">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+        <p style="font-size: 0.9rem; color: var(--text-secondary)">
+          Raw signed event data (JSON):
+        </p>
+        <div class="code-block-wrapper">
+          <button class="btn-copy" onclick="copyEventData()">
+            <!-- Copy SVG -->
+            <svg viewBox="0 0 24 24">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+              <path
+                d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+              />
+            </svg>
+            Copy JSON
+          </button>
+          <div class="code-block" id="modal-code"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">
+      <!-- Check SVG for toast -->
+      <svg viewBox="0 0 24 24" style="width: 1rem; height: 1rem">
+        <polyline points="20 6 9 17 4 12" />
+      </svg>
+      <span id="toast-text">Copied to clipboard!</span>
+    </div>
+
+    <script>
+      // Standard SVGs for the UI (Completely Offline)
+      const icons = {
+        post: '<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>',
+        dm: '<svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>',
+        like: '<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
+        refresh:
+          '<svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>',
+        spinner:
+          '<svg class="spin" viewBox="0 0 24 24"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="4.93" x2="19.07" y2="7.76"/></svg>',
+      };
+
+      // Sample Data representing Nostr Events
+      let pendingEvents = [
+        {
+          id: 'evt_1',
+          kind: 4,
+          categoryName: 'Direct Messages',
+          icon: icons.dm,
+          iconClass: 'icon-kind-4',
+          priority: 'high',
+          content: '?iv=xAq12Bz... (Encrypted Payload)',
+          time: '2 mins ago',
+          rawJson: JSON.stringify(
+            {
+              id: 'e5f6g7h8...',
+              pubkey: 'npub1...',
+              created_at: 1712489500,
+              kind: 4,
+              tags: [['p', 'npub2...']],
+              content: '?iv=xAq12Bz...encrypted_data...',
+              sig: 'sig2...',
+            },
+            null,
+            2,
+          ),
+        },
+        {
+          id: 'evt_2',
+          kind: 4,
+          categoryName: 'Direct Messages',
+          icon: icons.dm,
+          iconClass: 'icon-kind-4',
+          priority: 'high',
+          content: '?iv=bTy98Kx... (Encrypted Payload)',
+          time: '15 mins ago',
+          rawJson: JSON.stringify(
+            {
+              id: 'a1b2c3d4...',
+              pubkey: 'npub1...',
+              created_at: 1712488000,
+              kind: 4,
+              tags: [['p', 'npub3...']],
+              content: '?iv=bTy98Kx...encrypted_data...',
+              sig: 'sig1...',
+            },
+            null,
+            2,
+          ),
+        },
+        {
+          id: 'evt_3',
+          kind: 1,
+          categoryName: 'Text Notes (Posts)',
+          icon: icons.post,
+          iconClass: 'icon-kind-1',
+          priority: 'medium',
+          content:
+            'Just setting up my new Nostr client! Loving the decentralized web.',
+          time: '1 hour ago',
+          rawJson: JSON.stringify(
+            {
+              id: 'z9y8x7w6...',
+              pubkey: 'npub1...',
+              created_at: 1712485000,
+              kind: 1,
+              tags: [],
+              content:
+                'Just setting up my new Nostr client! Loving the decentralized web.',
+              sig: 'sig3...',
+            },
+            null,
+            2,
+          ),
+        },
+        {
+          id: 'evt_4',
+          kind: 7,
+          categoryName: 'Reactions',
+          icon: icons.like,
+          iconClass: 'icon-kind-7',
+          priority: 'low',
+          content: 'Liked a post by @satoshi',
+          time: '2 hours ago',
+          rawJson: JSON.stringify(
+            {
+              id: 'm5n6o7p8...',
+              pubkey: 'npub1...',
+              created_at: 1712480000,
+              kind: 7,
+              tags: [
+                ['e', 'event_id...'],
+                ['p', 'author_pubkey...'],
+              ],
+              content: '+',
+              sig: 'sig4...',
+            },
+            null,
+            2,
+          ),
+        },
+      ];
+
+      let currentSelectedJson = '';
+
+      // Group events by category
+      function groupEventsByCategory(events) {
+        return events.reduce((groups, event) => {
+          if (!groups[event.categoryName]) {
+            groups[event.categoryName] = [];
+          }
+          groups[event.categoryName].push(event);
+          return groups;
+        }, {});
+      }
+
+      // Render the UI
+      function renderEvents() {
+        const container = document.getElementById('events-container');
+        const emptyState = document.getElementById('empty-state');
+
+        container.innerHTML = '';
+
+        if (pendingEvents.length === 0) {
+          container.style.display = 'none';
+          emptyState.style.display = 'block';
+          document.getElementById('retry-all-btn').disabled = true;
+          return;
+        }
+
+        const groupedEvents = groupEventsByCategory(pendingEvents);
+
+        // Iterate over categories to build sections
+        for (const [categoryName, events] of Object.entries(groupedEvents)) {
+          const section = document.createElement('div');
+          section.className = 'category-section';
+
+          // Category Header
+          const header = document.createElement('div');
+          header.className = 'category-header';
+          header.innerHTML = `
+                    <h2>${categoryName}</h2>
+                    <span class="category-count">${events.length}</span>
+                `;
+          section.appendChild(header);
+
+          // Event List Container
+          const list = document.createElement('div');
+          list.className = 'event-list';
+
+          events.forEach((event) => {
+            const card = document.createElement('div');
+            card.className = 'event-card';
+            card.id = event.id;
+
+            card.onclick = (e) => {
+              if (!e.target.closest('.btn-retry-single')) {
+                openModal(event);
+              }
+            };
+
+            card.innerHTML = `
+                        <div class="event-info">
+                            <div class="event-icon ${event.iconClass}">
+                                ${event.icon}
+                            </div>
+                            <div class="event-details">
+                                <div class="event-preview">${event.content}</div>
+                                <div class="badges">
+                                    <span class="badge badge-${event.priority}">${event.priority}</span>
+                                    <span class="time-text">${event.time}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="event-actions">
+                            <button class="btn-retry-single" onclick="retrySingle('${event.id}', this)">
+                                ${icons.refresh} Retry
+                            </button>
+                        </div>
+                    `;
+            list.appendChild(card);
+          });
+
+          section.appendChild(list);
+          container.appendChild(section);
+        }
+      }
+
+      // Modal Functions
+      function openModal(eventData) {
+        document.getElementById('modal-title').innerText =
+          `Raw JSON (Kind ${eventData.kind})`;
+        document.getElementById('modal-code').innerText = eventData.rawJson;
+        currentSelectedJson = eventData.rawJson;
+        document.getElementById('event-modal').classList.add('active');
+      }
+
+      function closeModal() {
+        document.getElementById('event-modal').classList.remove('active');
+      }
+
+      document
+        .getElementById('event-modal')
+        .addEventListener('click', closeModal);
+
+      // Copy functionality
+      function copyEventData() {
+        navigator.clipboard
+          .writeText(currentSelectedJson)
+          .then(() => {
+            showToast('JSON Copied to clipboard!');
+          })
+          .catch((err) => {
+            console.error('Failed to copy: ', err);
+          });
+      }
+
+      // Toast Notification
+      function showToast(message) {
+        const toast = document.getElementById('toast');
+        document.getElementById('toast-text').innerText = message;
+        toast.classList.add('show');
+        setTimeout(() => {
+          toast.classList.remove('show');
+        }, 3000);
+      }
+
+      // Simulate single retry
+      function retrySingle(id, btnElement) {
+        btnElement.innerHTML = `${icons.spinner} Sending...`;
+        btnElement.disabled = true;
+
+        setTimeout(() => {
+          pendingEvents = pendingEvents.filter((e) => e.id !== id);
+          renderEvents();
+          showToast('Event broadcasted successfully!');
+        }, 800);
+      }
+
+      // Simulate retry all
+      function retryAll() {
+        const btn = document.getElementById('retry-all-btn');
+        btn.innerHTML = `${icons.spinner} Sending All...`;
+        btn.disabled = true;
+
+        setTimeout(() => {
+          pendingEvents = [];
+          renderEvents();
+          showToast('All pending events broadcasted!');
+        }, 1500);
+      }
+
+      // Initial render
+      renderEvents();
+    </script>
+  </body>
+</html>
