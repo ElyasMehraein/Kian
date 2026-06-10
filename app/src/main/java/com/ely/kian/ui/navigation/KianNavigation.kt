@@ -29,6 +29,8 @@ import com.ely.kian.ui.MainViewModel
 import com.ely.kian.ui.screens.chats.ChatsScreen
 import com.ely.kian.ui.screens.home.HomeScreen
 import com.ely.kian.ui.screens.products.ProductManagerScreen
+import com.ely.kian.ui.screens.products.ProductCategoriesScreen
+import com.ely.kian.ui.screens.products.ProductViewModel
 import com.ely.kian.ui.screens.wallet.WalletScreen
 import com.ely.kian.ui.screens.onboarding.OnboardingScreen
 import com.ely.kian.ui.screens.onboarding.PrivateKeyScreen
@@ -146,7 +148,30 @@ fun KianScaffold() {
                     }) 
                 }
                 composable(Screen.Wallet.route) { WalletScreen() }
-                composable(Screen.Products.route) { ProductManagerScreen() }
+                composable(Screen.Products.route) { 
+                    val productViewModel: ProductViewModel = viewModel(
+                        factory = ProductViewModel.provideFactory(
+                            app.container.productRepository, 
+                            app.container.secureStorage
+                        )
+                    )
+                    ProductManagerScreen(
+                        viewModel = productViewModel,
+                        onNavigateToCategories = { navController.navigate("product-categories") }
+                    ) 
+                }
+                composable("product-categories") {
+                    val productViewModel: ProductViewModel = viewModel(
+                        factory = ProductViewModel.provideFactory(
+                            app.container.productRepository, 
+                            app.container.secureStorage
+                        )
+                    )
+                    ProductCategoriesScreen(
+                        viewModel = productViewModel,
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
                 composable(Screen.Chats.route) {
                     val chatViewModel: ChatViewModel = viewModel(factory = ChatViewModel.provideFactory(app.container.chatRepository, app.container.userProfileDao))
                     ChatsScreen(

@@ -22,23 +22,25 @@ fun KianButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     type: ButtonType = ButtonType.Primary,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    backgroundColor: Color? = null,
+    contentColor: Color? = null
 ) {
     val kianColors = KianTheme.colors
     
-    val containerColor = when (type) {
+    val containerColor = backgroundColor ?: when (type) {
         ButtonType.Primary -> kianColors.ink
         ButtonType.Secondary -> kianColors.canvas
         ButtonType.Soft -> kianColors.accentSoft
     }
 
-    val contentColor = when (type) {
+    val finalContentColor = contentColor ?: when (type) {
         ButtonType.Primary -> kianColors.canvas
         ButtonType.Secondary -> kianColors.ink
         ButtonType.Soft -> kianColors.accent
     }
 
-    val border = if (type == ButtonType.Secondary) {
+    val border = if (type == ButtonType.Secondary && backgroundColor == null) {
         BorderStroke(1.dp, kianColors.line)
     } else {
         null
@@ -51,7 +53,7 @@ fun KianButton(
         shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = containerColor,
-            contentColor = contentColor,
+            contentColor = finalContentColor,
             disabledContainerColor = kianColors.line,
             disabledContentColor = Color.Gray
         ),

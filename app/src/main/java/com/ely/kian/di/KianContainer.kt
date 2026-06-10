@@ -7,6 +7,7 @@ import com.ely.kian.data.local.KianDatabase
 import com.ely.kian.data.remote.NostrSyncManager
 import com.ely.kian.data.remote.RelayPoolManager
 import com.ely.kian.data.repository.ChatRepository
+import com.ely.kian.data.repository.ProductRepository
 
 class KianContainer(context: Context) {
     val secureStorage = SecureStorage(context)
@@ -31,6 +32,10 @@ class KianContainer(context: Context) {
 
     val chatRepository: ChatRepository by lazy {
         ChatRepository(chatDao, relayPoolManager, secureStorage)
+    }
+
+    val productRepository: ProductRepository by lazy {
+        ProductRepository(productDao, relayPoolManager, secureStorage)
     }
 
     val nostrSyncManager by lazy {
