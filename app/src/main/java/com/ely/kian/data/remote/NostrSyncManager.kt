@@ -18,6 +18,8 @@ class NostrSyncManager(
     private val relayPool: RelayPoolManager,
     private val userProfileDao: UserProfileDao,
     private val chatRepository: com.ely.kian.data.repository.ChatRepository? = null,
+    private val productRepository: com.ely.kian.data.repository.ProductRepository? = null,
+    private val tokenRepository: com.ely.kian.data.repository.TokenRepository? = null,
     private val json: Json = Json { ignoreUnknownKeys = true }
 ) {
     private val TAG = "NostrSyncManager"
@@ -76,13 +78,45 @@ class NostrSyncManager(
     private fun handleEvent(event: NostrEvent) {
         when (event.kind) {
             0 -> handleMetadata(event)
-            4, 14, 1059, 20001, 20002 -> handleChatEvent(event)
+            3 -> handleFollowList(event)
+            4, 14, 1050, 1059, 15001, 20001, 20002 -> handleChatEvent(event)
+            30017, 30018 -> handleProductEvent(event)
+            31999 -> handleReviewEvent(event)
+            35001, 35002 -> handleTokenEvent(event)
         }
     }
 
     private fun handleChatEvent(event: NostrEvent) {
         syncScope.launch {
             chatRepository?.handleIncomingEvent(event)
+        }
+    }
+
+    private fun handleFollowList(event: NostrEvent) {
+        // TODO: Save followings to calculate Mutual Follows factor
+    }
+
+    private fun handleProductEvent(event: NostrEvent) {
+        syncScope.launch {
+            // productRepository?.handleProductEvent(event)
+        }
+    }
+
+    private fun handleReviewEvent(event: NostrEvent) {
+        // Kind 31999: All-in-One reviews
+        syncScope.launch {
+            try {
+                val reviewsJson = json.parseToJsonElement(event.content).jsonObject
+                // Parse each review and save to DB
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to parse reviews", e)
+            }
+        }
+    }
+
+    private fun handleTokenEvent(event: NostrEvent) {
+        syncScope.launch {
+            // tokenRepository?.handleTokenEvent(event)
         }
     }
 

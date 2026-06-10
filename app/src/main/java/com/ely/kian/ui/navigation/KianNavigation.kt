@@ -32,6 +32,7 @@ import com.ely.kian.ui.screens.products.ProductManagerScreen
 import com.ely.kian.ui.screens.products.ProductCategoriesScreen
 import com.ely.kian.ui.screens.products.ProductViewModel
 import com.ely.kian.ui.screens.wallet.WalletScreen
+import com.ely.kian.ui.screens.wallet.SendTokenScreen
 import com.ely.kian.ui.screens.onboarding.OnboardingScreen
 import com.ely.kian.ui.screens.onboarding.PrivateKeyScreen
 import com.ely.kian.ui.screens.merchant.MerchantProfileScreen
@@ -147,7 +148,15 @@ fun KianScaffold() {
                         navController.navigate("merchant/$pubkey")
                     }) 
                 }
-                composable(Screen.Wallet.route) { WalletScreen() }
+                composable(Screen.Wallet.route) { 
+                    WalletScreen(
+                        onSendToken = { navController.navigate("tokens/send") },
+                        onProducerClick = { pubkey -> navController.navigate("merchant/$pubkey") }
+                    )
+                }
+                composable("tokens/send") {
+                    SendTokenScreen(onBack = { navController.popBackStack() })
+                }
                 composable(Screen.Products.route) { 
                     val productViewModel: ProductViewModel = viewModel(
                         factory = ProductViewModel.provideFactory(

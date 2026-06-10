@@ -29,7 +29,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun WalletScreen() {
+fun WalletScreen(onSendToken: () -> Unit, onProducerClick: (String) -> Unit) {
     val context = LocalContext.current
     val app = context.applicationContext as KianApp
     val viewModel: WalletViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
@@ -86,7 +86,7 @@ fun WalletScreen() {
                 }
             } else {
                 items(balances) { item ->
-                    BalanceRow(item, onProducerClick = { /* Navigate to producer */ }, formatAssetRef = viewModel::formatAssetRef)
+                    BalanceRow(item, onProducerClick = onProducerClick, formatAssetRef = viewModel::formatAssetRef)
                     Spacer(modifier = Modifier.height(10.dp))
                 }
                 item { Spacer(modifier = Modifier.height(14.dp)) }
@@ -170,7 +170,7 @@ fun WalletScreen() {
         }
 
         ExtendedFloatingActionButton(
-            onClick = { /* Navigate to Send Token */ },
+            onClick = onSendToken,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(bottom = 24.dp, end = 20.dp),

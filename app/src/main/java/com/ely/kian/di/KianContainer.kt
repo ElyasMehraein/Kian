@@ -44,6 +44,12 @@ class KianContainer(context: Context) {
     }
 
     val nostrSyncManager by lazy {
-        NostrSyncManager(relayPoolManager, userProfileDao, chatRepository = chatRepository)
+        NostrSyncManager(
+            relayPool = relayPoolManager,
+            userProfileDao = userProfileDao,
+            chatRepository = chatRepository,
+            productRepository = productRepository,
+            tokenRepository = tokenRepository
+        )
     }
 }

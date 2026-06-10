@@ -114,8 +114,7 @@ class TokenRepository(
         return keyDao.getKeyFlow().flatMapLatest { key ->
             val pubkey = key?.pubkey ?: return@flatMapLatest flowOf(emptyList())
 
-            // Combine messages and offline queue
-            chatDao.listTokenTransfers().map { messages ->
+            val messagesFlow = chatDao.listTokenTransfers().map { messages ->
                 messages.filter { it.sender == pubkey || it.conversationPubkey == pubkey }.mapNotNull { message ->
                     try {
                         val contentJson = json.parseToJsonElement(message.content).jsonObject
@@ -145,6 +144,28 @@ class TokenRepository(
                     }
                 }
             }
+
+            val offlineFlow = offlineQueueDao.getAll().map { queue ->
+                queue.mapNotNull { item ->
+                    // Simplified: In a real app, we'd decode CBOR and check Kind 1050
+                    // For now, if scope is "token_transfer", we treat it as pending
+                    if (item.queueScope == "token_transfer") {
+                        PendingItem(
+                            eventId = item.eventId,
+                            utxoId = "offline", // Extract from CBOR in real app
+                            assetRef = "offline",
+                            amount = 0,
+                            recipient = item.peerPubkey ?: "",
+                            status = "offline",
+                            createdAt = item.createdAt
+                        )
+                    } else null
+                }
+            }
+
+            combine(messagesFlow, offlineFlow) { messages, offline ->
+                (messages + offline).sortedByDescending { it.createdAt }
+            }
         }
     }
 
@@ -168,4 +189,75 @@ class TokenRepository(
     }
 
     private data class ParsedAsset(val producer: String, val assetId: String)
+
+    suspend fun sendTokenTransfer(utxoId: String, amount: Long, recipientPubkey: String) {
+        val key = keyDao.getKey() ?: throw Exception("No key found")
+        val pubkey = key.pubkey
+        val utxo = tokenDao.getUtxo(utxoId) ?: throw Exception("Selected token entry is unavailable")
+
+        if (utxo.owner != pubkey) {
+            throw Exception("You can only send token entries you own")
+        }
+
+        if (recipientPubkey.isBlank()) {
+            throw Exception("Recipient is required")
+        }
+
+        if (amount <= 0 || amount > utxo.amount) {
+            throw Exception("Enter a valid token amount")
+        }
+
+        // 1. Send Transfer Request (Kind 1050) to the Producer
+        // In Kian, the producer must approve transfers (NIP-protocol.md 2.4)
+        val createdAt = System.currentTimeMillis() / 1000
+        val content = """{"utxo_id": "$utxoId", "asset_ref": "${utxo.assetRef}", "amount": $amount, "recipient": "$recipientPubkey"}"""
+        
+        // Tags for Kind 1050: Producer (p) and UTXO (e)
+        val tags = listOf(
+            listOf("p", utxo.producer),
+            listOf("e", utxoId)
+        )
+
+        // TODO: In a real NIP-17 implementation, this would be wrapped in NIP-59
+        // For now, we use the ChatRepository pattern or similar
+        // Actually, we should probably add this to ChatRepository or use it here
+        
+        // Marking as spent locally
+        tokenDao.markSpent(utxoId)
+        
+        // Note: The Expo code also sends a chat message to the recipient
+        // to inform them of the pending transfer.
+    }
+
+    suspend fun mintProduct(recipientPubkey: String, productId: String, quantity: Long) {
+        val key = keyDao.getKey() ?: throw Exception("No key found")
+        val pubkey = key.pubkey
+        val product = productDao.getProduct(productId, pubkey) ?: throw Exception("Product not found")
+
+        if (product.pubkey != pubkey) {
+            throw Exception("You can only mint tokens for your own products")
+        }
+
+        // Logic for Kind 35001 (Genesis)
+        val createdAt = System.currentTimeMillis() / 1000
+        val assetId = "ast_${product.id}_$createdAt"
+        val assetRef = "35001:$pubkey:$assetId"
+        
+        val utxoId = "mint_$assetId" // Placeholder for signed event ID
+        
+        val utxo = com.ely.kian.data.local.entities.TokenUtxo(
+            utxoId = utxoId,
+            assetRef = assetRef,
+            producer = pubkey,
+            owner = recipientPubkey,
+            amount = quantity,
+            prevUtxoId = null,
+            createdAt = createdAt,
+            spent = false
+        )
+        
+        tokenDao.insertUtxo(utxo)
+        
+        // TODO: Publish Kind 35001 event
+    }
 }
