@@ -4,9 +4,12 @@ import android.content.Context
 import androidx.room.Room
 import com.ely.kian.crypto.SecureStorage
 import com.ely.kian.data.local.KianDatabase
+import com.ely.kian.data.remote.NostrSyncManager
+import com.ely.kian.data.remote.RelayPoolManager
 
 class KianContainer(context: Context) {
     val secureStorage = SecureStorage(context)
+    val relayPoolManager = RelayPoolManager()
 
     val database: KianDatabase by lazy {
         Room.databaseBuilder(
@@ -24,4 +27,8 @@ class KianContainer(context: Context) {
     val reviewDao get() = database.reviewDao()
     val offlineQueueDao get() = database.offlineQueueDao()
     val relayDao get() = database.relayDao()
+
+    val nostrSyncManager by lazy {
+        NostrSyncManager(relayPoolManager, userProfileDao)
+    }
 }

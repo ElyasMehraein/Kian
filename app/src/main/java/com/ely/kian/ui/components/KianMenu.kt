@@ -51,6 +51,8 @@ fun AppMenuButton(
 @Composable
 fun AppMenuDialog(
     isOpen: Boolean,
+    accountMode: String,
+    onAccountModeChange: (String) -> Unit,
     onDismiss: () -> Unit,
     onNavigate: (String) -> Unit
 ) {
@@ -125,15 +127,15 @@ fun AppMenuDialog(
                     ) {
                         AccountModeButton(
                             label = "Business",
-                            selected = true,
+                            selected = accountMode == "business",
                             modifier = Modifier.weight(1f),
-                            onClick = {}
+                            onClick = { onAccountModeChange("business") }
                         )
                         AccountModeButton(
                             label = "Merchant",
-                            selected = false,
+                            selected = accountMode == "merchant",
                             modifier = Modifier.weight(1f),
-                            onClick = {}
+                            onClick = { onAccountModeChange("merchant") }
                         )
                     }
 

@@ -33,6 +33,7 @@ import com.ely.kian.ui.screens.wallet.WalletScreen
 import com.ely.kian.ui.screens.onboarding.OnboardingScreen
 import com.ely.kian.ui.screens.onboarding.PrivateKeyScreen
 import com.ely.kian.ui.screens.merchant.MerchantProfileScreen
+import com.ely.kian.ui.screens.profile.ProfileEditScreen
 import com.ely.kian.ui.screens.chat.ChatRoomScreen
 import com.ely.kian.ui.screens.cart.CartScreen
 import com.ely.kian.ui.screens.relays.RelayManagementScreen
@@ -61,7 +62,14 @@ val items = listOf(
 fun KianScaffold() {
     val context = LocalContext.current
     val app = context.applicationContext as KianApp
-    val viewModel: MainViewModel = viewModel(factory = MainViewModel.provideFactory(app.container.keyDao))
+    val viewModel: MainViewModel = viewModel(
+        factory = MainViewModel.provideFactory(
+            app.container.keyDao, 
+            app.container.userProfileDao,
+            app.container.nostrSyncManager,
+            app.container.secureStorage
+        )
+    )
 
     val navController = rememberNavController()
     var isMenuOpen by remember { mutableStateOf(false) }
@@ -140,7 +148,19 @@ fun KianScaffold() {
                 composable(Screen.Products.route) { ProductManagerScreen() }
                 composable(Screen.Chats.route) { ChatsScreen() }
                 
-                composable("profile") { PlaceholderScreen("My Profile Screen") }
+                composable("profile") { 
+                    MerchantProfileScreen(
+                        pubkey = viewModel.ownPubkey ?: "",
+                        ownPubkey = viewModel.ownPubkey,
+                        onBack = { navController.popBackStack() },
+                        onChat = { /* N/A for own profile */ },
+                        onCart = { navController.navigate("cart") },
+                        onEdit = { navController.navigate("profile/edit") }
+                    ) 
+                }
+                composable("profile/edit") {
+                    ProfileEditScreen(onBack = { navController.popBackStack() })
+                }
                 composable("relays") { RelayManagementScreen() }
                 composable("pending") { PlaceholderScreen("Pending Events Screen") }
                 composable("private-key") {
@@ -163,9 +183,11 @@ fun KianScaffold() {
                     val pubkey = backStackEntry.arguments?.getString("pubkey") ?: ""
                     MerchantProfileScreen(
                         pubkey = pubkey,
+                        ownPubkey = viewModel.ownPubkey,
                         onBack = { navController.popBackStack() },
                         onChat = { navController.navigate("chat/$pubkey") },
-                        onCart = { navController.navigate("cart") }
+                        onCart = { navController.navigate("cart") },
+                        onEdit = { navController.navigate("profile/edit") }
                     )
                 }
                 
@@ -199,6 +221,8 @@ fun KianScaffold() {
 
         AppMenuDialog(
             isOpen = isMenuOpen,
+            accountMode = viewModel.accountMode,
+            onAccountModeChange = { mode -> viewModel.updateAccountMode(mode) },
             onDismiss = { isMenuOpen = false },
             onNavigate = { route ->
                 if (route == "logout") {

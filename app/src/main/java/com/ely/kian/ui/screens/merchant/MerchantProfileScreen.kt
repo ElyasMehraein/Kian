@@ -17,9 +17,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ely.kian.KianApp
 import com.ely.kian.ui.components.InitialAvatar
 import com.ely.kian.ui.components.KianButton
 import com.ely.kian.ui.theme.KianTheme
@@ -44,17 +47,24 @@ fun MerchantProfileScreen(
     pubkey: String,
     onBack: () -> Unit,
     onChat: () -> Unit,
-    onCart: () -> Unit
+    onCart: () -> Unit,
+    onEdit: () -> Unit = {},
+    ownPubkey: String? = null,
+    viewModel: MerchantProfileViewModel = viewModel(
+        factory = MerchantProfileViewModel.provideFactory(
+            pubkey,
+            ownPubkey,
+            (LocalContext.current.applicationContext as KianApp).container.userProfileDao
+        )
+    )
 ) {
     val kianColors = KianTheme.colors
-    val mockProducts = listOf(
-        ProductInfo("1", "Organic Honey", "Pure, raw honey from local bees.", "15 Units"),
-        ProductInfo("2", "Beeswax Candle", "Hand-rolled natural beeswax.", "10 Units")
-    )
-    val mockReviews = listOf(
-        ReviewInfo("Alice", 5, "Great honey, fast delivery!"),
-        ReviewInfo("Bob", 4, "Really good quality.")
-    )
+    val profile by viewModel.profile.collectAsState()
+    val isOwnProfile = viewModel.isOwnProfile
+    
+    // For now keeping empty lists if not fetching from DB yet
+    val products = emptyList<ProductInfo>()
+    val reviews = emptyList<ReviewInfo>()
 
     Scaffold(
         containerColor = kianColors.canvas,
@@ -88,25 +98,34 @@ fun MerchantProfileScreen(
             contentPadding = PaddingValues(20.dp)
         ) {
             item {
-                InitialAvatar(name = "Merchant", size = 88.dp)
+                val name = profile?.displayName ?: profile?.name ?: "Merchant"
+                InitialAvatar(name = name, size = 88.dp)
                 Spacer(modifier = Modifier.height(12.dp))
-                Text(text = "Merchant Name", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = kianColors.ink)
+                Text(text = name, fontSize = 28.sp, fontWeight = FontWeight.Bold, color = kianColors.ink)
                 Text(text = pubkey.take(16) + "...", fontSize = 13.sp, color = kianColors.ink.copy(alpha = 0.5f))
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "Providing the best local organic products in the region.", 
+                    text = profile?.about ?: "No bio yet.", 
                     fontSize = 15.sp, 
                     lineHeight = 24.sp, 
                     color = kianColors.ink
                 )
                 
                 Row(modifier = Modifier.padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    KianButton(text = "Start messaging", onClick = onChat)
-                    KianButton(
-                        text = "Write review", 
-                        onClick = {}, 
-                        type = com.ely.kian.ui.components.ButtonType.Secondary
-                    )
+                    if (isOwnProfile) {
+                        KianButton(
+                            text = "Edit profile",
+                            onClick = onEdit,
+                            type = com.ely.kian.ui.components.ButtonType.Soft
+                        )
+                    } else {
+                        KianButton(text = "Start messaging", onClick = onChat)
+                        KianButton(
+                            text = "Write review",
+                            onClick = {},
+                            type = com.ely.kian.ui.components.ButtonType.Secondary
+                        )
+                    }
                 }
                 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -121,9 +140,15 @@ fun MerchantProfileScreen(
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
-            items(mockProducts) { product ->
-                ProductCard(product)
-                Spacer(modifier = Modifier.height(10.dp))
+            if (products.isEmpty()) {
+                item {
+                    Text(text = "No products found", color = kianColors.ink.copy(alpha = 0.5f))
+                }
+            } else {
+                items(products) { product ->
+                    ProductCard(product)
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
             }
 
             item {
@@ -132,9 +157,15 @@ fun MerchantProfileScreen(
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
-            items(mockReviews) { review ->
-                ReviewCard(review)
-                Spacer(modifier = Modifier.height(10.dp))
+            if (reviews.isEmpty()) {
+                item {
+                    Text(text = "No reviews yet", color = kianColors.ink.copy(alpha = 0.5f))
+                }
+            } else {
+                items(reviews) { review ->
+                    ReviewCard(review)
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
             }
         }
     }

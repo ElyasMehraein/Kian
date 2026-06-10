@@ -14,6 +14,7 @@ data class Profile(
     val nip05: String?,
     val geohash: String?,
     val rawJson: String,
+    val isTrader: Boolean = false,
     val createdAt: Long,
     val updatedAt: Long
 )

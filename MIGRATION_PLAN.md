@@ -79,6 +79,7 @@ Implement the core logic following `expo-refrence/src/db/schema.ts` and `expo-re
 ---
 
 ## Instructions for AI
+- **Database Versioning**: Pre-Alpha phase. **DO NOT increment Room version**. Keep it at `1`. Rely on destructive migration/app reinstall for schema changes.
 - Focus on Phase 1 & 2 first to verify the UI.
 - Use `MockData` for ViewModels during UI development.
 - Always check `expo-refrence/tailwind.config.js` for styling details.

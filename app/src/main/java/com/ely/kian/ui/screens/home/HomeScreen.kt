@@ -4,34 +4,34 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ely.kian.KianApp
 import com.ely.kian.ui.components.KianChip
 import com.ely.kian.ui.components.MerchantCard
 import com.ely.kian.ui.theme.KianTheme
 
-data class Merchant(
-    val id: String,
-    val name: String,
-    val bio: String,
-    val rating: String,
-    val distance: String
-)
-
-val mockMerchants = listOf(
-    Merchant("1", "Alice's Organics", "Fresh fruits and vegetables from local farms.", "4.9", "0.5 km"),
-    Merchant("2", "Bob's Bakery", "Best sourdough in town. Open since 1995.", "4.7", "1.2 km"),
-    Merchant("3", "Charlie's Coffee", "Specialty beans and cozy atmosphere.", "4.8", "0.8 km"),
-    Merchant("4", "David's Deli", "Authentic sandwiches and cured meats.", "4.6", "2.5 km"),
-)
-
 @Composable
-fun HomeScreen(onMerchantClick: (String) -> Unit) {
+fun HomeScreen(
+    onMerchantClick: (String) -> Unit,
+    viewModel: HomeViewModel = viewModel(
+        factory = HomeViewModel.provideFactory(
+            (LocalContext.current.applicationContext as KianApp).container.userProfileDao
+        )
+    )
+) {
     val kianColors = KianTheme.colors
+    val merchants by viewModel.merchants.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    
     var selectedSort by remember { mutableStateOf("All") }
     val sortOptions = listOf("All", "Nearest", "Top Rated", "Verified")
 
@@ -64,19 +64,29 @@ fun HomeScreen(onMerchantClick: (String) -> Unit) {
             }
         }
 
-        // Merchant List
-        LazyColumn(
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(mockMerchants) { merchant ->
-                MerchantCard(
-                    name = merchant.name,
-                    bio = merchant.bio,
-                    rating = merchant.rating,
-                    distance = merchant.distance,
-                    onClick = { onMerchantClick(merchant.id) }
-                )
+        if (isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = kianColors.accent)
+            }
+        } else if (merchants.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(text = "No merchants discovered yet.", color = kianColors.ink.copy(alpha = 0.5f))
+            }
+        } else {
+            // Merchant List
+            LazyColumn(
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(merchants) { merchant ->
+                    MerchantCard(
+                        name = merchant.profile.displayName ?: merchant.profile.name ?: "Unknown",
+                        bio = merchant.profile.about ?: "No bio yet.",
+                        rating = "${merchant.title} (${merchant.socialRating})",
+                        distance = if (merchant.distanceKm != null) "${merchant.distanceKm} km" else "Distance unknown",
+                        onClick = { onMerchantClick(merchant.pubkey) }
+                    )
+                }
             }
         }
     }

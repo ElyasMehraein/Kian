@@ -3,7 +3,8 @@
 ## Goal
 Migrating an **Offline-First**, Nostr-based e-commerce and chat application from Expo (React Native) to Native Android (Kotlin + Compose).
 
-## Core Philosophy
+## Development Rules (IMPORTANT)
+- **Database Versioning**: During the development phase (Pre-Alpha), **NEVER increment the Room database version**. Keep it at `version = 1`. The project is configured with `fallbackToDestructiveMigration()`, so any schema changes should be handled by clearing the app data or uninstalling the app on the test device.
 - **UI Fidelity**: The Android app must look and feel identical to the Expo version (Tailwind/NativeWind style).
 - **Offline-First**: Local Room DB is the source of truth. All logic assumes zero-internet availability as a primary state.
 - **Privacy (Gift Wrap)**: Uses NIP-59 (Gift Wrap) and NIP-44 for all communications.
