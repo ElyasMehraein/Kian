@@ -43,6 +43,9 @@ interface ChatDao {
     @Query("SELECT * FROM messages WHERE messageType = :messageType ORDER BY createdAt ASC")
     fun getMessagesByType(messageType: String): Flow<List<Message>>
 
+    @Query("SELECT * FROM messages WHERE messageType = 'token_transfer' ORDER BY createdAt DESC")
+    fun listTokenTransfers(): Flow<List<Message>>
+
     @Query("DELETE FROM messages WHERE conversationPubkey = :peerPubkey AND createdAt <= :createdAt")
     suspend fun deleteMessagesThrough(peerPubkey: String, createdAt: Long)
 

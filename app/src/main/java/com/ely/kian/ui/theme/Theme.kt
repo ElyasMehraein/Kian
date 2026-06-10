@@ -23,7 +23,13 @@ data class KianColors(
     val panel: Color,
     val accent: Color,
     val accentSoft: Color,
-    val danger: Color
+    val danger: Color,
+    val success: Color,
+    val successSoft: Color,
+    val warning: Color,
+    val warningSoft: Color,
+    val info: Color,
+    val infoSoft: Color
 )
 
 val LocalKianColors = staticCompositionLocalOf<KianColors> {
@@ -38,7 +44,13 @@ private val LightKianColors = KianColors(
     panel = Color(0xFFF8FAFC),
     accent = Color(0xFF2563EB),
     accentSoft = Color(0xFFDBEAFE),
-    danger = Color(0xFFB91C1C)
+    danger = Color(0xFFB91C1C),
+    success = Color(0xFF10B981),
+    successSoft = Color(0xFFECFDF5),
+    warning = Color(0xFFF59E0B),
+    warningSoft = Color(0xFFFFFBEB),
+    info = Color(0xFF3B82F6),
+    infoSoft = Color(0xFFEFF6FF)
 )
 
 private val DarkKianColors = KianColors(
@@ -49,7 +61,13 @@ private val DarkKianColors = KianColors(
     panel = Color(0xFF1F2937),
     accent = Color(0xFF3B82F6),
     accentSoft = Color(0xFF1E3A8A),
-    danger = Color(0xFFEF4444)
+    danger = Color(0xFFEF4444),
+    success = Color(0xFF10B981),
+    successSoft = Color(0xFF064E3B),
+    warning = Color(0xFFF59E0B),
+    warningSoft = Color(0xFF451A03),
+    info = Color(0xFF3B82F6),
+    infoSoft = Color(0xFF172554)
 )
 
 private val DarkColorScheme = darkColorScheme(

@@ -110,7 +110,7 @@ class ChatRepository(
 
     suspend fun handleIncomingEvent(event: NostrEvent) {
         when (event.kind) {
-            4, 14 -> handleMessageEvent(event)
+            4, 14, 1050 -> handleMessageEvent(event)
             1059 -> handleGiftWrap(event)
             20001 -> handleReceipt(event, "delivered")
             20002 -> handleReceipt(event, "read")
@@ -214,11 +214,17 @@ class ChatRepository(
             return
         }
 
+        val messageType = when (event.kind) {
+            1050 -> "token_transfer"
+            else -> "text"
+        }
+
         val message = Message(
             id = event.id,
             conversationPubkey = peerPubkey,
             sender = event.pubkey,
             content = event.content,
+            messageType = messageType,
             createdAt = event.createdAt,
             status = if (event.pubkey == myPubKey) "sent" else "received",
             rawJson = json.encodeToString(NostrEvent.serializer(), event)
