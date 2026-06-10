@@ -66,6 +66,12 @@ class ChatViewModel(
         }
     }
 
+    fun markMessageAsRead(peerPubkey: String, messageId: String) {
+        viewModelScope.launch {
+            chatRepository.markMessageRead(peerPubkey, messageId)
+        }
+    }
+
     companion object {
         fun provideFactory(chatRepository: ChatRepository, userProfileDao: UserProfileDao): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")

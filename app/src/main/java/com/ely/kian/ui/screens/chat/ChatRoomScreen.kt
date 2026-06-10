@@ -97,12 +97,20 @@ fun ChatRoomScreen(
                 .padding(paddingValues),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
-            reverseLayout = false // Or true if we want typical chat behavior
+            reverseLayout = false
         ) {
             items(messages) { message ->
+                // Mark incoming messages as read when they appear
+                if (message.sender == peerPubkey && message.status != "read") {
+                    LaunchedEffect(message.id) {
+                        viewModel.markMessageAsRead(peerPubkey, message.id)
+                    }
+                }
+
                 MessageBubble(
                     content = message.content,
-                    isMine = message.status == "sent" || message.status == "sending"
+                    isMine = message.sender != peerPubkey,
+                    status = message.status
                 )
             }
         }
@@ -110,30 +118,52 @@ fun ChatRoomScreen(
 }
 
 @Composable
-fun MessageBubble(content: String, isMine: Boolean) {
+fun MessageBubble(content: String, isMine: Boolean, status: String) {
     val kianColors = KianTheme.colors
     Box(
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = if (isMine) Alignment.CenterEnd else Alignment.CenterStart
     ) {
         Column(
-            modifier = Modifier
-                .widthIn(max = 280.dp)
-                .clip(RoundedCornerShape(
-                    topStart = 16.dp,
-                    topEnd = 16.dp,
-                    bottomStart = if (isMine) 16.dp else 4.dp,
-                    bottomEnd = if (isMine) 4.dp else 16.dp
-                ))
-                .background(if (isMine) kianColors.ink else kianColors.panel)
-                .padding(horizontal = 16.dp, vertical = 10.dp)
+            modifier = Modifier.widthIn(max = 280.dp),
+            horizontalAlignment = if (isMine) Alignment.End else Alignment.Start
         ) {
-            Text(
-                text = content,
-                color = if (isMine) kianColors.canvas else kianColors.ink,
-                fontSize = 15.sp,
-                lineHeight = 22.sp
-            )
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(
+                        topStart = 16.dp,
+                        topEnd = 16.dp,
+                        bottomStart = if (isMine) 16.dp else 4.dp,
+                        bottomEnd = if (isMine) 4.dp else 16.dp
+                    ))
+                    .background(if (isMine) kianColors.ink else kianColors.panel)
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
+            ) {
+                Text(
+                    text = content,
+                    color = if (isMine) kianColors.canvas else kianColors.ink,
+                    fontSize = 15.sp,
+                    lineHeight = 22.sp
+                )
+            }
+            
+            if (isMine) {
+                val statusIcon = when (status) {
+                    "sending" -> Icons.Default.Schedule
+                    "sent" -> Icons.Default.Check
+                    "delivered" -> Icons.Default.DoneAll
+                    "read" -> Icons.Default.DoneAll
+                    else -> Icons.Default.Check
+                }
+                val statusColor = if (status == "read") kianColors.accent else kianColors.ink.copy(alpha = 0.4f)
+                
+                Icon(
+                    imageVector = statusIcon,
+                    contentDescription = status,
+                    modifier = Modifier.size(12.dp).padding(top = 2.dp),
+                    tint = statusColor
+                )
+            }
         }
     }
 }

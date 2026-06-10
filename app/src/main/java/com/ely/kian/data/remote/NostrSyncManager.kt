@@ -38,10 +38,10 @@ class NostrSyncManager(
                     relayPool.subscribe(url, "trader_sync", traderFilter)
                     
                     if (myPubkey != null) {
-                        val dmFilter = """{"kinds": [4], "#p": ["$myPubkey"], "limit": 50}"""
+                        val dmFilter = """{"kinds": [4, 14, 20001, 20002], "#p": ["$myPubkey"], "limit": 50}"""
                         relayPool.subscribe(url, "dm_recv_sync", dmFilter)
                         
-                        val dmSentFilter = """{"kinds": [4], "authors": ["$myPubkey"], "limit": 50}"""
+                        val dmSentFilter = """{"kinds": [4, 14, 20001, 20002], "authors": ["$myPubkey"], "limit": 50}"""
                         relayPool.subscribe(url, "dm_sent_sync", dmSentFilter)
                     }
                 }
@@ -76,11 +76,11 @@ class NostrSyncManager(
     private fun handleEvent(event: NostrEvent) {
         when (event.kind) {
             0 -> handleMetadata(event)
-            4 -> handleDirectMessage(event)
+            4, 14, 20001, 20002 -> handleChatEvent(event)
         }
     }
 
-    private fun handleDirectMessage(event: NostrEvent) {
+    private fun handleChatEvent(event: NostrEvent) {
         syncScope.launch {
             chatRepository?.handleIncomingEvent(event)
         }
