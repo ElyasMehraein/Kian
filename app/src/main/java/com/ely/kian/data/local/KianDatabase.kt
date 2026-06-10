@@ -7,20 +7,20 @@ import com.ely.kian.data.local.entities.*
 
 @Database(
     entities = [
-        Key::class,
-        Profile::class,
-        UserFollow::class,
-        Product::class,
-        ProductCategory::class,
-        TokenDefinition::class,
-        TokenUtxo::class,
-        Conversation::class,
-        Message::class,
-        MessageReceipt::class,
-        Review::class,
-        OfflineQueue::class,
-        Relay::class,
-        DmInboxRelay::class
+        com.ely.kian.data.local.entities.Key::class,
+        com.ely.kian.data.local.entities.Profile::class,
+        com.ely.kian.data.local.entities.UserFollow::class,
+        com.ely.kian.data.local.entities.Product::class,
+        com.ely.kian.data.local.entities.ProductCategory::class,
+        com.ely.kian.data.local.entities.TokenDefinition::class,
+        com.ely.kian.data.local.entities.TokenUtxo::class,
+        com.ely.kian.data.local.entities.Conversation::class,
+        com.ely.kian.data.local.entities.Message::class,
+        com.ely.kian.data.local.entities.MessageReceipt::class,
+        com.ely.kian.data.local.entities.Review::class,
+        com.ely.kian.data.local.entities.OfflineQueue::class,
+        com.ely.kian.data.local.entities.Relay::class,
+        com.ely.kian.data.local.entities.DmInboxRelay::class
     ],
     version = 1,
     exportSchema = false

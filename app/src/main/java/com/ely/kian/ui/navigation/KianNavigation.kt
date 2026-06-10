@@ -11,7 +11,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ely.kian.ui.screens.onboarding.OnboardingViewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -20,6 +23,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.ely.kian.ui.components.AppMenuButton
 import com.ely.kian.ui.components.AppMenuDialog
+import com.ely.kian.KianApp
+import com.ely.kian.ui.MainViewModel
 import com.ely.kian.ui.screens.chats.ChatsScreen
 import com.ely.kian.ui.screens.home.HomeScreen
 import com.ely.kian.ui.screens.products.ProductManagerScreen
@@ -53,6 +58,10 @@ val items = listOf(
 
 @Composable
 fun KianScaffold() {
+    val context = LocalContext.current
+    val app = context.applicationContext as KianApp
+    val viewModel: MainViewModel = viewModel(factory = MainViewModel.provideFactory(app.container.keyDao))
+
     val navController = rememberNavController()
     var isMenuOpen by remember { mutableStateOf(false) }
     val kianColors = KianTheme.colors
@@ -61,6 +70,23 @@ fun KianScaffold() {
     val currentRoute = navBackStackEntry?.destination?.route
     
     val showBottomBar = items.any { it.route == currentRoute }
+
+    val isLoggedIn = viewModel.isLoggedIn
+
+    LaunchedEffect(isLoggedIn) {
+        if (isLoggedIn == false) {
+            navController.navigate("onboarding") {
+                popUpTo(0) { inclusive = true }
+            }
+        }
+    }
+
+    if (isLoggedIn == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = kianColors.accent)
+        }
+        return
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
@@ -118,26 +144,15 @@ fun KianScaffold() {
                 composable("pending") { PlaceholderScreen("Pending Events Screen") }
                 composable("private-key") { PrivateKeyScreen(privateKey = "nsec1...", onContinue = { navController.popBackStack() }) }
                 composable("onboarding") {
+                    val onboardingViewModel: OnboardingViewModel = viewModel(factory = OnboardingViewModel.provideFactory(app.container.keyDao))
                     OnboardingScreen(
-                        onCreateNew = { 
+                        onSuccess = {
                             navController.navigate(Screen.Home.route) {
                                 popUpTo("onboarding") { inclusive = true }
                             }
                         },
-                        onImport = { 
-                            navController.navigate(Screen.Home.route) {
-                                popUpTo("onboarding") { inclusive = true }
-                            }
-                        }
+                        viewModel = onboardingViewModel
                     )
-                }
-                
-                composable("logout") {
-                    LaunchedEffect(Unit) {
-                        navController.navigate("onboarding") {
-                            popUpTo(0) { inclusive = true }
-                        }
-                    }
                 }
                 
                 composable(Screen.MerchantProfile.route) { backStackEntry ->
@@ -182,7 +197,11 @@ fun KianScaffold() {
             isOpen = isMenuOpen,
             onDismiss = { isMenuOpen = false },
             onNavigate = { route ->
-                navController.navigate(route)
+                if (route == "logout") {
+                    viewModel.logout()
+                } else {
+                    navController.navigate(route)
+                }
             }
         )
     }

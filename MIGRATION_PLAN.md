@@ -41,7 +41,9 @@ Create the screens and ensure the layout matches the original Expo screens.
   - Port `chats.tsx` (Conversation list).
   - Port `chat/[pubkey].tsx` (Chat room with message bubbles and status icons).
 - [x] **Task 2.5: Onboarding & Identity**
-  - Port `onboarding.tsx` and `private-key.tsx`.
+  - Ported `onboarding.tsx`. Implemented `OnboardingViewModel` (Generate, Restore, Log-in).
+  - Matches Expo UI fidelity with `OnboardingCard` and reactive state.
+  - [ ] Port `private-key.tsx`.
 
 ---
 
