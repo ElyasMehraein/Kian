@@ -128,24 +128,42 @@ class MainViewModel(
         }
     }
 
-    fun logout() {
+    fun logout(onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             try {
                 // 0. Stop Nostr syncing
-                nostrSyncManager.stopSyncing()
+                try {
+                    nostrSyncManager.stopSyncing()
+                } catch (e: Exception) {
+                    Log.e("MainViewModel", "Failed to stop syncing", e)
+                }
 
                 // 1. Wipe all user-specific data from local database
-                database.clearAllTables()
+                try {
+                    database.clearAllTables()
+                } catch (e: Exception) {
+                    Log.e("MainViewModel", "Failed to clear database", e)
+                }
                 
                 // 2. Clear sensitive data from SecureStorage (Private Key, Mnemonic)
-                secureStorage.clearAll()
+                try {
+                    secureStorage.clearAll()
+                } catch (e: Exception) {
+                    Log.e("MainViewModel", "Failed to clear secure storage", e)
+                }
                 
                 // 3. Clear Nostr keys from DB (This triggers isLoggedIn = false)
-                keyDao.clearKeys()
+                try {
+                    keyDao.clearKeys()
+                } catch (e: Exception) {
+                    Log.e("MainViewModel", "Failed to clear keys", e)
+                }
                 
                 Log.d("MainViewModel", "User logged out and local data wiped.")
             } catch (e: Exception) {
-                Log.e("MainViewModel", "Error during logout", e)
+                Log.e("MainViewModel", "Unexpected error during logout", e)
+            } finally {
+                onComplete()
             }
         }
     }
@@ -163,9 +181,10 @@ class MainViewModel(
                     }
                     
                     // Trigger share intent
+                    val authority = "${context.packageName}.fileprovider"
                     val uri = androidx.core.content.FileProvider.getUriForFile(
                         context,
-                        "${context.packageName}.fileprovider",
+                        authority,
                         backupFile
                     )
                     
@@ -173,6 +192,7 @@ class MainViewModel(
                         type = "application/octet-stream"
                         putExtra(android.content.Intent.EXTRA_STREAM, uri)
                         addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        clipData = android.content.ClipData.newRawUri("", uri)
                     }
                     
                     context.startActivity(android.content.Intent.createChooser(intent, "Share Backup"))

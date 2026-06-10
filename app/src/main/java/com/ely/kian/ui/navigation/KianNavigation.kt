@@ -290,7 +290,8 @@ fun KianScaffold() {
                     viewModel.logout()
                 },
                 onBackup = {
-                    viewModel.backupDatabase(context)
+                    isLogoutDialogOpen = false
+                    navController.navigate(Screen.Backups.route)
                 }
             )
         }

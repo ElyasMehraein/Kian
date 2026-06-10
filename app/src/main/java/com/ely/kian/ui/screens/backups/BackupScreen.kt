@@ -228,13 +228,15 @@ fun BackupScreen(onBack: () -> Unit) {
                         },
                         onShare = {
                             try {
-                                val authority = "com.ely.kian.fileprovider"
+                                val authority = "${context.packageName}.fileprovider"
                                 val uri = FileProvider.getUriForFile(context, authority, backup.file)
                                 
                                 val intent = Intent(Intent.ACTION_SEND).apply {
                                     type = "application/octet-stream"
                                     putExtra(Intent.EXTRA_STREAM, uri)
                                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    // For better compatibility on Android 10+
+                                    clipData = android.content.ClipData.newRawUri("", uri)
                                 }
                                 
                                 val chooser = Intent.createChooser(intent, "Share Backup")
