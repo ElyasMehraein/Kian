@@ -13,6 +13,7 @@ import com.ely.kian.data.remote.NostrSyncManager
 import com.ely.kian.data.remote.model.NostrEvent
 import com.ely.kian.crypto.KianKeys
 import com.ely.kian.crypto.SecureStorage
+import android.util.Log
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -20,7 +21,8 @@ class MainViewModel(
     private val keyDao: KeyDao,
     private val userProfileDao: UserProfileDao,
     private val nostrSyncManager: NostrSyncManager,
-    private val secureStorage: SecureStorage
+    private val secureStorage: SecureStorage,
+    private val database: com.ely.kian.data.local.KianDatabase
 ) : ViewModel() {
 
     companion object {
@@ -28,11 +30,12 @@ class MainViewModel(
             keyDao: KeyDao, 
             userProfileDao: UserProfileDao, 
             nostrSyncManager: NostrSyncManager,
-            secureStorage: SecureStorage
+            secureStorage: SecureStorage,
+            database: com.ely.kian.data.local.KianDatabase
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return MainViewModel(keyDao, userProfileDao, nostrSyncManager, secureStorage) as T
+                return MainViewModel(keyDao, userProfileDao, nostrSyncManager, secureStorage, database) as T
             }
         }
     }
@@ -127,7 +130,56 @@ class MainViewModel(
 
     fun logout() {
         viewModelScope.launch {
-            keyDao.clearKeys()
+            try {
+                // 0. Stop Nostr syncing
+                nostrSyncManager.stopSyncing()
+
+                // 1. Wipe all user-specific data from local database
+                database.clearAllTables()
+                
+                // 2. Clear sensitive data from SecureStorage (Private Key, Mnemonic)
+                secureStorage.clearAll()
+                
+                // 3. Clear Nostr keys from DB (This triggers isLoggedIn = false)
+                keyDao.clearKeys()
+                
+                Log.d("MainViewModel", "User logged out and local data wiped.")
+            } catch (e: Exception) {
+                Log.e("MainViewModel", "Error during logout", e)
+            }
+        }
+    }
+
+    fun backupDatabase(context: android.content.Context) {
+        viewModelScope.launch {
+            try {
+                val dbFile = context.getDatabasePath("kian_db")
+                if (dbFile.exists()) {
+                    val backupFile = java.io.File(context.cacheDir, "kian_backup_${System.currentTimeMillis()}.db")
+                    dbFile.inputStream().use { input ->
+                        backupFile.outputStream().use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                    
+                    // Trigger share intent
+                    val uri = androidx.core.content.FileProvider.getUriForFile(
+                        context,
+                        "${context.packageName}.fileprovider",
+                        backupFile
+                    )
+                    
+                    val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                        type = "application/octet-stream"
+                        putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                        addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    
+                    context.startActivity(android.content.Intent.createChooser(intent, "Share Backup"))
+                }
+            } catch (e: Exception) {
+                Log.e("MainViewModel", "Backup failed", e)
+            }
         }
     }
 }

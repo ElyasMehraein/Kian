@@ -2,6 +2,7 @@ package com.ely.kian.data.repository
 
 import com.ely.kian.data.local.dao.*
 import com.ely.kian.data.local.entities.TokenUtxo
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.json.*
 
@@ -35,6 +36,7 @@ class TokenRepository(
 ) {
     private val json = Json { ignoreUnknownKeys = true }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun getBalances(): Flow<List<BalanceItem>> {
         return keyDao.getKeyFlow().flatMapLatest { key ->
             val pubkey = key?.pubkey ?: return@flatMapLatest flowOf(emptyList())
@@ -102,6 +104,7 @@ class TokenRepository(
         }
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun getUtxos(): Flow<List<TokenUtxo>> {
         return keyDao.getKeyFlow().flatMapLatest { key ->
             val pubkey = key?.pubkey ?: return@flatMapLatest flowOf(emptyList())
@@ -245,7 +248,7 @@ class TokenRepository(
         
         val utxoId = "mint_$assetId" // Placeholder for signed event ID
         
-        val utxo = com.ely.kian.data.local.entities.TokenUtxo(
+        val utxo = TokenUtxo(
             utxoId = utxoId,
             assetRef = assetRef,
             producer = pubkey,
@@ -259,5 +262,68 @@ class TokenRepository(
         tokenDao.insertUtxo(utxo)
         
         // TODO: Publish Kind 35001 event
+    }
+
+    suspend fun handleTokenEvent(event: com.ely.kian.data.remote.model.NostrEvent) {
+        when (event.kind) {
+            35001 -> handleGenesis(event)
+            35002 -> handleRemint(event)
+        }
+    }
+
+    private suspend fun handleGenesis(event: com.ely.kian.data.remote.model.NostrEvent) {
+        val dTag = event.tags.find { it.size >= 2 && it[0] == "d" }?.get(1) ?: return
+        val assetRef = "35001:${event.pubkey}:$dTag"
+        
+        try {
+            val content = json.parseToJsonElement(event.content).jsonObject
+            val amount = content["amount"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
+            // In Genesis, the producer usually gives it to themselves or a specific recipient
+            // For simplicity, we assume the producer is the initial owner if no other info
+            val recipient = event.pubkey // In NIP-15/Kian, producer might name a recipient in tags
+            
+            val utxo = TokenUtxo(
+                utxoId = event.id,
+                assetRef = assetRef,
+                producer = event.pubkey,
+                owner = recipient,
+                amount = amount,
+                prevUtxoId = null,
+                createdAt = event.createdAt,
+                spent = false
+            )
+            tokenDao.insertUtxo(utxo)
+        } catch (e: Exception) {
+            // Log error
+        }
+    }
+
+    private suspend fun handleRemint(event: com.ely.kian.data.remote.model.NostrEvent) {
+        val aTag = event.tags.find { it.size >= 2 && it[0] == "a" }?.get(1) ?: return
+        val pTag = event.tags.find { it.size >= 2 && it[0] == "p" }?.get(1) ?: return
+        
+        try {
+            val content = json.parseToJsonElement(event.content).jsonObject
+            val prevUtxoId = content["previous_utxo"]?.jsonPrimitive?.content
+            val amount = content["amount"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
+            
+            if (prevUtxoId != null) {
+                tokenDao.markSpent(prevUtxoId)
+            }
+            
+            val utxo = TokenUtxo(
+                utxoId = event.id,
+                assetRef = aTag,
+                producer = event.pubkey,
+                owner = pTag,
+                amount = amount,
+                prevUtxoId = prevUtxoId,
+                createdAt = event.createdAt,
+                spent = false
+            )
+            tokenDao.insertUtxo(utxo)
+        } catch (e: Exception) {
+            // Log error
+        }
     }
 }

@@ -9,11 +9,7 @@ import com.ely.kian.data.remote.RelayPoolManager
 import com.ely.kian.data.remote.model.NostrEvent
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
-import kotlinx.serialization.json.putJsonArray
+import kotlinx.serialization.json.*
 
 class ProductRepository(
     private val productDao: ProductDao,
@@ -137,6 +133,30 @@ class ProductRepository(
         val relayMessage = "[\"EVENT\", $eventJson]"
         defaultRelays.forEach { url ->
             relayPool.publish(url, relayMessage)
+        }
+    }
+
+    suspend fun handleProductEvent(event: NostrEvent) {
+        if (event.kind != 30018) return
+        
+        try {
+            val dTag = event.tags.find { it.size >= 2 && it[0] == "d" }?.get(1) ?: event.id
+            val content = json.parseToJsonElement(event.content).jsonObject
+            
+            val product = Product(
+                id = dTag,
+                pubkey = event.pubkey,
+                name = content["name"]?.jsonPrimitive?.content ?: "Unknown Product",
+                description = content["description"]?.jsonPrimitive?.content ?: "",
+                images = content["images"]?.toString() ?: "[]",
+                categories = content["categories"]?.toString() ?: "[]",
+                geohash = null,
+                eventId = event.id,
+                createdAt = event.createdAt
+            )
+            productDao.upsertProduct(product)
+        } catch (e: Exception) {
+            // Log error
         }
     }
 }

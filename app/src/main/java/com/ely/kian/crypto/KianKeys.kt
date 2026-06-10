@@ -24,6 +24,12 @@ object KianKeys {
         return seed.take(32).toByteArray()
     }
 
+    fun generateKeyPair(): Pair<ByteArray, ByteArray> {
+        val privKey = ByteArray(32)
+        SecureRandom().nextBytes(privKey)
+        return privKey to getPubKey(privKey)
+    }
+
     fun getPubKey(privKey: ByteArray): ByteArray {
         return secp256k1.pubkeyCreate(privKey).sliceArray(1..32) // Nostr uses x-only 32-byte pubkeys
     }

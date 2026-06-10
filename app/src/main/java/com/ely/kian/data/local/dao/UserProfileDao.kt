@@ -45,4 +45,13 @@ interface UserProfileDao {
 
     @Query("DELETE FROM user_follows WHERE pubkey = :pubkey AND followsPubkey = :targetPubkey")
     suspend fun deleteFollow(pubkey: String, targetPubkey: String)
+
+    @Query("DELETE FROM user_follows WHERE pubkey = :pubkey")
+    suspend fun clearFollows(pubkey: String)
+
+    @Transaction
+    suspend fun replaceFollows(pubkey: String, follows: List<UserFollow>) {
+        clearFollows(pubkey)
+        follows.forEach { upsertFollow(it) }
+    }
 }

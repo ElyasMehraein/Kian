@@ -35,6 +35,9 @@ interface RelayDao {
     @Query("SELECT * FROM dm_inbox_relays WHERE pubkey = :pubkey ORDER BY relayUrl ASC")
     fun getDmInboxRelays(pubkey: String): Flow<List<DmInboxRelay>>
 
+    @Query("SELECT relayUrl FROM dm_inbox_relays WHERE pubkey = :pubkey")
+    suspend fun getDmInboxRelayUrls(pubkey: String): List<String>
+
     @Query("SELECT * FROM dm_inbox_relays ORDER BY pubkey ASC, relayUrl ASC")
     fun getAllDmInboxRelays(): Flow<List<DmInboxRelay>>
 }

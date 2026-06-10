@@ -24,6 +24,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.ely.kian.ui.components.AppMenuButton
 import com.ely.kian.ui.components.AppMenuDialog
+import com.ely.kian.ui.components.LogoutConfirmationDialog
 import com.ely.kian.KianApp
 import com.ely.kian.ui.MainViewModel
 import com.ely.kian.ui.screens.chats.ChatsScreen
@@ -33,6 +34,7 @@ import com.ely.kian.ui.screens.products.ProductCategoriesScreen
 import com.ely.kian.ui.screens.products.ProductViewModel
 import com.ely.kian.ui.screens.wallet.WalletScreen
 import com.ely.kian.ui.screens.wallet.SendTokenScreen
+import com.ely.kian.ui.screens.backups.BackupScreen
 import com.ely.kian.ui.screens.onboarding.OnboardingScreen
 import com.ely.kian.ui.screens.onboarding.PrivateKeyScreen
 import com.ely.kian.ui.screens.merchant.MerchantProfileScreen
@@ -53,6 +55,7 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     object MerchantProfile : Screen("merchant/{pubkey}", "Merchant", Icons.Default.Person)
     object ChatRoom : Screen("chat/{pubkey}", "Chat", Icons.Default.Chat)
     object Cart : Screen("cart", "Cart", Icons.Default.ShoppingCart)
+    object Backups : Screen("backups", "Backups", Icons.Default.Backup)
 }
 
 val items = listOf(
@@ -71,12 +74,14 @@ fun KianScaffold() {
             app.container.keyDao, 
             app.container.userProfileDao,
             app.container.nostrSyncManager,
-            app.container.secureStorage
+            app.container.secureStorage,
+            app.container.database
         )
     )
 
     val navController = rememberNavController()
     var isMenuOpen by remember { mutableStateOf(false) }
+    var isLogoutDialogOpen by remember { mutableStateOf(false) }
     val kianColors = KianTheme.colors
     
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -203,6 +208,7 @@ fun KianScaffold() {
                     ProfileEditScreen(onBack = { navController.popBackStack() })
                 }
                 composable("relays") { RelayManagementScreen() }
+                composable("backups") { BackupScreen(onBack = { navController.popBackStack() }) }
                 composable("pending") { PlaceholderScreen("Pending Events Screen") }
                 composable("private-key") {
                     val privateKeyViewModel: PrivateKeyViewModel = viewModel(factory = PrivateKeyViewModel.provideFactory(app.container.keyDao, app.container.secureStorage))
@@ -269,12 +275,25 @@ fun KianScaffold() {
             onDismiss = { isMenuOpen = false },
             onNavigate = { route ->
                 if (route == "logout") {
-                    viewModel.logout()
+                    isLogoutDialogOpen = true
                 } else {
                     navController.navigate(route)
                 }
             }
         )
+
+        if (isLogoutDialogOpen) {
+            LogoutConfirmationDialog(
+                onDismiss = { isLogoutDialogOpen = false },
+                onConfirm = {
+                    isLogoutDialogOpen = false
+                    viewModel.logout()
+                },
+                onBackup = {
+                    viewModel.backupDatabase(context)
+                }
+            )
+        }
     }
 }
 

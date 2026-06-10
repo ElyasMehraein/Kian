@@ -17,6 +17,7 @@ import okhttp3.WebSocketListener
 class NostrSyncManager(
     private val relayPool: RelayPoolManager,
     private val userProfileDao: UserProfileDao,
+    private val relayDao: com.ely.kian.data.local.dao.RelayDao? = null,
     private val chatRepository: com.ely.kian.data.repository.ChatRepository? = null,
     private val productRepository: com.ely.kian.data.repository.ProductRepository? = null,
     private val tokenRepository: com.ely.kian.data.repository.TokenRepository? = null,
@@ -36,7 +37,7 @@ class NostrSyncManager(
             relayPool.connect(url, object : WebSocketListener() {
                 override fun onOpen(webSocket: WebSocket, response: Response) {
                     Log.d(TAG, "Connected to $url")
-                    val traderFilter = """{"kinds": [0], "#t": ["trader"], "limit": 100}"""
+                    val traderFilter = """{"kinds": [0, 10050], "#t": ["trader"], "limit": 100}"""
                     relayPool.subscribe(url, "trader_sync", traderFilter)
                     
                     if (myPubkey != null) {
@@ -45,6 +46,9 @@ class NostrSyncManager(
                         
                         val dmSentFilter = """{"kinds": [4, 14, 1059, 20001, 20002], "authors": ["$myPubkey"], "limit": 50}"""
                         relayPool.subscribe(url, "dm_sent_sync", dmSentFilter)
+                        
+                        val inboxRelayFilter = """{"kinds": [10050], "authors": ["$myPubkey"], "limit": 1}"""
+                        relayPool.subscribe(url, "my_inbox_relays", inboxRelayFilter)
                     }
                 }
 
@@ -57,6 +61,13 @@ class NostrSyncManager(
                 }
             })
         }
+    }
+
+    fun stopSyncing() {
+        defaultRelays.forEach { url ->
+            relayPool.disconnect(url)
+        }
+        Log.d(TAG, "Syncing stopped")
     }
 
     private fun handleMessage(message: String) {
@@ -79,10 +90,28 @@ class NostrSyncManager(
         when (event.kind) {
             0 -> handleMetadata(event)
             3 -> handleFollowList(event)
+            10050 -> handleInboxRelays(event)
             4, 14, 1050, 1059, 15001, 20001, 20002 -> handleChatEvent(event)
             30017, 30018 -> handleProductEvent(event)
             31999 -> handleReviewEvent(event)
             35001, 35002 -> handleTokenEvent(event)
+        }
+    }
+
+    private fun handleInboxRelays(event: NostrEvent) {
+        val relayUrls = event.tags.filter { it.size >= 2 && it[0] == "relay" }.map { it[1] }
+        if (relayUrls.isNotEmpty()) {
+            syncScope.launch {
+                val dmInboxRelays = relayUrls.map { url ->
+                    com.ely.kian.data.local.entities.DmInboxRelay(
+                        pubkey = event.pubkey,
+                        relayUrl = url,
+                        createdAt = event.createdAt
+                    )
+                }
+                relayDao?.replaceDmInboxRelays(event.pubkey, dmInboxRelays)
+                Log.d(TAG, "Saved ${relayUrls.size} inbox relays for ${event.pubkey}")
+            }
         }
     }
 
@@ -93,12 +122,24 @@ class NostrSyncManager(
     }
 
     private fun handleFollowList(event: NostrEvent) {
-        // TODO: Save followings to calculate Mutual Follows factor
+        val follows = event.tags.filter { it.size >= 2 && it[0] == "p" }.map { tag ->
+            com.ely.kian.data.local.entities.UserFollow(
+                pubkey = event.pubkey,
+                followsPubkey = tag[1],
+                petName = if (tag.size >= 4) tag[3] else null,
+                relayHint = if (tag.size >= 3) tag[2] else null,
+                createdAt = event.createdAt
+            )
+        }
+        syncScope.launch {
+            userProfileDao.replaceFollows(event.pubkey, follows)
+            Log.d(TAG, "Saved ${follows.size} followings for ${event.pubkey}")
+        }
     }
 
     private fun handleProductEvent(event: NostrEvent) {
         syncScope.launch {
-            // productRepository?.handleProductEvent(event)
+            productRepository?.handleProductEvent(event)
         }
     }
 
@@ -107,7 +148,7 @@ class NostrSyncManager(
         syncScope.launch {
             try {
                 val reviewsJson = json.parseToJsonElement(event.content).jsonObject
-                // Parse each review and save to DB
+                // TODO: Implement parsing and saving reviews to reviewDao
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to parse reviews", e)
             }
@@ -116,7 +157,7 @@ class NostrSyncManager(
 
     private fun handleTokenEvent(event: NostrEvent) {
         syncScope.launch {
-            // tokenRepository?.handleTokenEvent(event)
+            tokenRepository?.handleTokenEvent(event)
         }
     }
 

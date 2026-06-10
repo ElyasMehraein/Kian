@@ -107,6 +107,11 @@ fun AppMenuDialog(
                         label = "Private Key Management",
                         onClick = { onNavigate("private-key"); onDismiss() }
                     )
+                    MenuItem(
+                        icon = Icons.Default.Backup,
+                        label = "Backups",
+                        onClick = { onNavigate("backups"); onDismiss() }
+                    )
                     
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = kianColors.line)
                     

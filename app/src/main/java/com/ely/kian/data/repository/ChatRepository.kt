@@ -1,6 +1,8 @@
 package com.ely.kian.data.repository
 
 import com.ely.kian.crypto.KianKeys
+import com.ely.kian.crypto.Nip44
+import com.ely.kian.crypto.Nip59
 import com.ely.kian.crypto.SecureStorage
 import com.ely.kian.data.local.dao.ChatDao
 import com.ely.kian.data.local.entities.Conversation
@@ -8,11 +10,13 @@ import com.ely.kian.data.local.entities.Message
 import com.ely.kian.data.remote.RelayPoolManager
 import com.ely.kian.data.remote.model.NostrEvent
 import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.util.UUID
 
 class ChatRepository(
     private val chatDao: ChatDao,
+    private val relayDao: com.ely.kian.data.local.dao.RelayDao,
     private val relayPool: RelayPoolManager,
     private val secureStorage: SecureStorage,
     private val json: Json = Json { ignoreUnknownKeys = true }
@@ -30,80 +34,71 @@ class ChatRepository(
     suspend fun sendMessage(peerPubkey: String, content: String) {
         val privKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: return
         val privKey = KianKeys.hexToBytes(privKeyHex)
-        val pubKey = KianKeys.getPubKey(privKey)
-        val pubKeyHex = KianKeys.bytesToHex(pubKey)
+        val pubKeyHex = KianKeys.bytesToHex(KianKeys.getPubKey(privKey))
         
         val createdAt = System.currentTimeMillis() / 1000
         
-        // For now, we use Kind 4 but without real encryption (just for demo/functional skeleton)
-        // In a real app, we would use NIP-04 or NIP-44 encryption here
-        val tags = listOf(listOf("p", peerPubkey))
+        // 1. Build the Rumor (Unsigned Kind 14)
+        val rumorTags = listOf(listOf("p", peerPubkey))
+        val rumorJson = """{
+            "pubkey": "$pubKeyHex",
+            "created_at": $createdAt,
+            "kind": 14,
+            "tags": [["p", "$peerPubkey"]],
+            "content": ${json.encodeToString(content)}
+        }"""
         
-        val eventId = KianKeys.computeEventId(
-            pubkey = pubKeyHex,
-            createdAt = createdAt,
-            kind = 4,
-            tags = tags,
-            content = content
-        )
-        
-        val sig = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(eventId), privKey))
-        
-        val event = NostrEvent(
-            id = eventId,
-            pubkey = pubKeyHex,
-            createdAt = createdAt,
-            kind = 4,
-            tags = tags,
-            content = content,
-            sig = sig
+        // 2. Wrap it for the recipient
+        val recipientWrap = Nip59.giftWrap(
+            innerEventJson = rumorJson,
+            senderPrivKey = privKey,
+            recipientPubKey = KianKeys.hexToBytes(peerPubkey),
+            innerEventPubkey = pubKeyHex
         )
 
-        // Save locally first
+        // Save locally first (using a Kind 14 structure for our DB)
         val message = Message(
-            id = event.id,
+            id = recipientWrap.id, // Using the wrap ID or we could compute a rumor ID
             conversationPubkey = peerPubkey,
             sender = pubKeyHex,
             content = content,
+            messageType = "text",
             createdAt = createdAt,
             status = "sent",
-            rawJson = json.encodeToString(NostrEvent.serializer(), event)
+            rawJson = json.encodeToString(NostrEvent.serializer(), recipientWrap)
         )
         
         chatDao.insertConversationIgnore(Conversation(peerPubkey, content, createdAt))
         chatDao.insertMessage(message)
         chatDao.updateLastMessage(peerPubkey, content, createdAt)
 
-        // Publish to recipient
-        publishEvent(event)
+        // 3. Publish to recipient's relays
+        publishEventToRecipient(recipientWrap, peerPubkey)
         
-        // Option 5: Multi-device sync (Self-Copy)
-        // We publish a second event addressed to ourselves so our other devices can sync it
+        // 4. Self-Copy for multi-device sync
         if (peerPubkey != pubKeyHex) {
-            val selfCopyTags = listOf(
-                listOf("p", pubKeyHex), 
-                listOf("original_p", peerPubkey),
-                listOf("e", event.id) // Reference the original event ID
+            val selfWrap = Nip59.giftWrap(
+                innerEventJson = rumorJson,
+                senderPrivKey = privKey,
+                recipientPubKey = KianKeys.getPubKey(privKey),
+                innerEventPubkey = pubKeyHex
             )
-            val selfCopyEventId = KianKeys.computeEventId(pubKeyHex, createdAt + 1, 4, selfCopyTags, content)
-            val selfCopySig = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(selfCopyEventId), privKey))
-            val selfCopyEvent = NostrEvent(
-                id = selfCopyEventId,
-                pubkey = pubKeyHex,
-                createdAt = createdAt + 1,
-                kind = 4,
-                tags = selfCopyTags,
-                content = content,
-                sig = selfCopySig
-            )
-            publishEvent(selfCopyEvent)
+            publishEventToRecipient(selfWrap, pubKeyHex)
         }
     }
 
-    private fun publishEvent(event: NostrEvent) {
+    private suspend fun publishEventToRecipient(event: NostrEvent, recipientPubkey: String) {
+        val inboxRelays = try {
+            relayDao.getDmInboxRelayUrls(recipientPubkey)
+        } catch (e: Exception) {
+            emptyList<String>()
+        }
+        
+        val targetRelays = if (inboxRelays.isNotEmpty()) inboxRelays else defaultRelays
         val eventJson = json.encodeToString(NostrEvent.serializer(), event)
         val relayMessage = "[\"EVENT\", $eventJson]"
-        defaultRelays.forEach { url ->
+        
+        targetRelays.forEach { url ->
             relayPool.publish(url, relayMessage)
         }
     }
@@ -123,30 +118,13 @@ class ChatRepository(
         val privKey = KianKeys.hexToBytes(privKeyHex)
         
         try {
-            // 1. Decrypt the Wrap to get the Seal (Kind 13)
-            // For now, using Kind 4 encryption logic as a fallback for NIP-44 
-            // since NIP-44 implementation is complex. 
-            // In a real app, you'd call a NIP-44 decrypt function here.
-            val sealJson = decryptSimplified(wrap.content, privKey, KianKeys.hexToBytes(wrap.pubkey))
-            val seal = json.decodeFromString<NostrEvent>(sealJson)
-            
-            if (seal.kind != 13) return
-            
-            // 2. Decrypt the Seal to get the Rumor (the actual message)
-            val rumorJson = decryptSimplified(seal.content, privKey, KianKeys.hexToBytes(seal.pubkey))
-            val rumor = json.decodeFromString<NostrEvent>(rumorJson)
-            
-            // 3. Process the inner rumor as a normal message
-            handleMessageEvent(rumor)
+            val rumor = Nip59.unwrap(wrap, privKey)
+            if (rumor != null) {
+                handleMessageEvent(rumor)
+            }
         } catch (e: Exception) {
             android.util.Log.e("ChatRepository", "Failed to unwrap gift", e)
         }
-    }
-    
-    private fun decryptSimplified(content: String, privKey: ByteArray, pubKey: ByteArray): String {
-        // This is a placeholder for real NIP-44/NIP-04 decryption.
-        // For the sake of this task, we assume the content is JSON for the demo.
-        return content
     }
 
     private suspend fun handleConversationDelete(event: NostrEvent) {
@@ -187,7 +165,7 @@ class ChatRepository(
             sig = sig
         )
         
-        publishEvent(event)
+        publishEventToRecipient(event, peerPubkey)
         deleteConversationLocally(peerPubkey)
     }
 
@@ -264,25 +242,29 @@ class ChatRepository(
         val pubKeyHex = KianKeys.bytesToHex(KianKeys.getPubKey(privKey))
         
         val createdAt = System.currentTimeMillis() / 1000
-        val tags = listOf(
+        
+        // Build receipt rumor (unsigned)
+        val rumorTags = listOf(
             listOf("p", peerPubkey),
             listOf("e", messageId)
         )
+        val rumorJson = """{
+            "pubkey": "$pubKeyHex",
+            "created_at": $createdAt,
+            "kind": $kind,
+            "tags": [["p", "$peerPubkey"], ["e", "$messageId"]],
+            "content": "$messageId"
+        }"""
         
-        val eventId = KianKeys.computeEventId(pubKeyHex, createdAt, kind, tags, messageId)
-        val sig = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(eventId), privKey))
-        
-        val event = NostrEvent(
-            id = eventId,
-            pubkey = pubKeyHex,
-            createdAt = createdAt,
-            kind = kind,
-            tags = tags,
-            content = messageId,
-            sig = sig
+        // Wrap for recipient
+        val wrappedReceipt = Nip59.giftWrap(
+            innerEventJson = rumorJson,
+            senderPrivKey = privKey,
+            recipientPubKey = KianKeys.hexToBytes(peerPubkey),
+            innerEventPubkey = pubKeyHex
         )
         
-        publishEvent(event)
+        publishEventToRecipient(wrappedReceipt, peerPubkey)
     }
 
     suspend fun markAsRead(peerPubkey: String) {
