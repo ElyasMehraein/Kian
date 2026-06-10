@@ -3,6 +3,7 @@ package com.ely.kian.ui.navigation
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -147,6 +148,7 @@ fun KianScaffold() {
             AppMenuButton(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
+                    .statusBarsPadding()
                     .padding(top = 18.dp, end = 20.dp),
                 onOpenMenu = { isMenuOpen = true }
             )
