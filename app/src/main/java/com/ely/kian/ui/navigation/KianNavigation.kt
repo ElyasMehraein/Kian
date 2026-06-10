@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ely.kian.ui.screens.onboarding.OnboardingViewModel
+import com.ely.kian.ui.screens.onboarding.PrivateKeyViewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -142,9 +143,12 @@ fun KianScaffold() {
                 composable("profile") { PlaceholderScreen("My Profile Screen") }
                 composable("relays") { RelayManagementScreen() }
                 composable("pending") { PlaceholderScreen("Pending Events Screen") }
-                composable("private-key") { PrivateKeyScreen(privateKey = "nsec1...", onContinue = { navController.popBackStack() }) }
+                composable("private-key") {
+                    val privateKeyViewModel: PrivateKeyViewModel = viewModel(factory = PrivateKeyViewModel.provideFactory(app.container.keyDao, app.container.secureStorage))
+                    PrivateKeyScreen(viewModel = privateKeyViewModel, onContinue = { navController.popBackStack() })
+                }
                 composable("onboarding") {
-                    val onboardingViewModel: OnboardingViewModel = viewModel(factory = OnboardingViewModel.provideFactory(app.container.keyDao))
+                    val onboardingViewModel: OnboardingViewModel = viewModel(factory = OnboardingViewModel.provideFactory(app.container.keyDao, app.container.secureStorage))
                     OnboardingScreen(
                         onSuccess = {
                             navController.navigate(Screen.Home.route) {

@@ -2,9 +2,12 @@ package com.ely.kian.di
 
 import android.content.Context
 import androidx.room.Room
+import com.ely.kian.crypto.SecureStorage
 import com.ely.kian.data.local.KianDatabase
 
 class KianContainer(context: Context) {
+    val secureStorage = SecureStorage(context)
+
     val database: KianDatabase by lazy {
         Room.databaseBuilder(
             context,

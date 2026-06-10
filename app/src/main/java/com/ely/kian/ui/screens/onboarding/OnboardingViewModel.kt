@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.ely.kian.crypto.KianKeys
+import com.ely.kian.crypto.SecureStorage
 import com.ely.kian.data.local.dao.KeyDao
 import com.ely.kian.data.local.entities.Key
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -15,19 +16,22 @@ import kotlinx.coroutines.launch
 
 data class GeneratedKeys(
     val mnemonic: String,
-    val pubkey: String,
+    val pubkey: String, // Hex
+    val npub: String,   // npub1...
+    val nsec: String,   // nsec1...
     val privKey: ByteArray
 )
 
 class OnboardingViewModel(
-    private val keyDao: KeyDao
+    private val keyDao: KeyDao,
+    private val secureStorage: SecureStorage
 ) : ViewModel() {
 
     companion object {
-        fun provideFactory(keyDao: KeyDao): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+        fun provideFactory(keyDao: KeyDao, secureStorage: SecureStorage): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return OnboardingViewModel(keyDao) as T
+                return OnboardingViewModel(keyDao, secureStorage) as T
             }
         }
     }
@@ -57,10 +61,14 @@ class OnboardingViewModel(
             try {
                 val mnemonic = KianKeys.generateMnemonic()
                 val privKey = KianKeys.derivePrivKey(mnemonic)
-                val pubkey = KianKeys.getPubKey(privKey)
+                val pubkeyBytes = KianKeys.getPubKey(privKey)
+                val pubkeyHex = KianKeys.bytesToHex(pubkeyBytes)
+                
                 generatedKeys = GeneratedKeys(
                     mnemonic = mnemonic,
-                    pubkey = KianKeys.bytesToHex(pubkey),
+                    pubkey = pubkeyHex,
+                    npub = KianKeys.toNpub(pubkeyBytes),
+                    nsec = KianKeys.toNsec(privKey),
                     privKey = privKey
                 )
                 mnemonicInput = ""
@@ -77,8 +85,11 @@ class OnboardingViewModel(
         viewModelScope.launch {
             try {
                 val privKey = KianKeys.derivePrivKey(trimmed)
-                val pubkey = KianKeys.getPubKey(privKey)
-                val pubkeyHex = KianKeys.bytesToHex(pubkey)
+                val pubkeyBytes = KianKeys.getPubKey(privKey)
+                val pubkeyHex = KianKeys.bytesToHex(pubkeyBytes)
+                
+                secureStorage.saveSecret(SecureStorage.MNEMONIC, trimmed)
+                secureStorage.saveSecret(SecureStorage.PRIVATE_KEY, KianKeys.bytesToHex(privKey))
                 
                 persistKeyPair(pubkeyHex, "Your wallet was restored securely.")
             } catch (e: Exception) {
@@ -99,16 +110,21 @@ class OnboardingViewModel(
     fun saveGeneratedKeys() {
         val keys = generatedKeys ?: return
         viewModelScope.launch {
+            secureStorage.saveSecret(SecureStorage.MNEMONIC, keys.mnemonic)
+            secureStorage.saveSecret(SecureStorage.PRIVATE_KEY, KianKeys.bytesToHex(keys.privKey))
             persistKeyPair(keys.pubkey, "Your keys were stored securely.")
         }
     }
 
-    private suspend fun persistKeyPair(pubkey: String, message: String) {
+    private suspend fun persistKeyPair(pubkeyHex: String, message: String) {
         isSaving = true
         try {
+            val pubkeyBytes = KianKeys.hexToBytes(pubkeyHex)
+            val npub = KianKeys.toNpub(pubkeyBytes)
+            
             val key = Key(
-                pubkey = pubkey,
-                npub = pubkey, // Should convert to npub properly later
+                pubkey = pubkeyHex,
+                npub = npub,
                 createdAt = System.currentTimeMillis() / 1000
             )
             keyDao.saveKeyPair(key)

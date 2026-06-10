@@ -60,6 +60,7 @@ dependencies {
     // Crypto
     implementation(libs.secp256k1)
     implementation(libs.bip39)
+    implementation(libs.androidx.security.crypto)
     
     // Networking
     implementation(libs.okhttp)

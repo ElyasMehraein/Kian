@@ -32,4 +32,18 @@ object KianKeys {
     fun hexToBytes(hex: String): ByteArray {
         return hex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
     }
+
+    fun toNsec(privKey: ByteArray): String {
+        return Bech32.encode("nsec", privKey)
+    }
+
+    fun toNpub(pubKey: ByteArray): String {
+        return Bech32.encode("npub", pubKey)
+    }
+
+    fun nsecToPrivKey(nsec: String): ByteArray {
+        val (hrp, data) = Bech32.decode(nsec)
+        if (hrp != "nsec") throw Exception("Invalid nsec")
+        return data
+    }
 }

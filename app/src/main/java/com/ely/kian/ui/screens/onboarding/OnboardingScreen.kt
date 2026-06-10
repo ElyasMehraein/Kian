@@ -1,12 +1,9 @@
 package com.ely.kian.ui.screens.onboarding
 
 import android.widget.Toast
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -14,7 +11,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -31,6 +30,7 @@ fun OnboardingScreen(
     val kianColors = KianTheme.colors
     val context = LocalContext.current
     val scrollState = rememberScrollState()
+    val clipboardManager = LocalClipboardManager.current
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -110,11 +110,16 @@ fun OnboardingScreen(
                 fontWeight = FontWeight.SemiBold,
                 color = kianColors.muted
             )
+            val mnemonic = viewModel.generatedKeys?.mnemonic ?: "Tap generate to create your wallet keys."
             Text(
-                text = viewModel.generatedKeys?.mnemonic ?: "Tap generate to create your wallet keys.",
+                text = mnemonic,
                 fontSize = 16.sp,
                 color = kianColors.ink,
-                lineHeight = 24.sp
+                lineHeight = 24.sp,
+                modifier = Modifier.clickable(enabled = viewModel.generatedKeys != null) {
+                    clipboardManager.setText(AnnotatedString(mnemonic))
+                    Toast.makeText(context, "Mnemonic copied", Toast.LENGTH_SHORT).show()
+                }
             )
         }
 

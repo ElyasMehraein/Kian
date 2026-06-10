@@ -16,6 +16,7 @@ secp256k1 = "0.23.0"
 bip39 = "1.0.9"
 okhttp = "4.12.0"
 kotlinxSerialization = "1.7.3"
+securityCrypto = "1.1.0-alpha06"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -44,6 +45,7 @@ secp256k1 = { group = "fr.acinq.secp256k1", name = "secp256k1-kmp-jni-android", 
 bip39 = { group = "cash.z.ecc.android", name = "kotlin-bip39", version.ref = "bip39" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
