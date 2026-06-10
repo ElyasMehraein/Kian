@@ -27,10 +27,11 @@ Create the screens and ensure the layout matches the original Expo screens.
 - [x] **Task 2.4: Chat & Conversation Screens**
 - [x] **Task 2.5: Onboarding & Identity**
 - [x] **Task 2.6: Private Key Management Screen**
+- [x] **Task 2.7: Backup & Recovery Screen**
 
 ---
 
-## Phase 3: Data Layer & Offline Logic (In Progress)
+## Phase 3: Data Layer & Offline Logic (Completed)
 Implement the core logic following `expo-refrence/src/db/schema.ts` and `expo-refrence/docs/db-schema.md`.
 
 - [x] **Task 3.1: Room Database Setup**
@@ -38,8 +39,10 @@ Implement the core logic following `expo-refrence/src/db/schema.ts` and `expo-re
   - [x] BIP39 mnemonic handling.
   - [x] Secp256k1 key derivation.
   - [x] Multi-device Sync (Self-Copy mechanism).
-  - [/] **NIP-44** (Encryption) and **NIP-59** (Gift Wrap) - *Core structure implemented, full crypto library integration pending*.
-- [x] **Task 3.3: WoT Ranking Engine**
+  - [x] **NIP-44** (Encryption) and **NIP-59** (Gift Wrap) implementation.
+- [x] **Task 3.3: Secure Backup Engine**
+  - [x] AES-GCM encrypted database export.
+  - [x] Integration with Android Share Intent and FileProvider.
 
 ---
 
@@ -47,31 +50,44 @@ Implement the core logic following `expo-refrence/src/db/schema.ts` and `expo-re
 - [x] **Task 4.1: Relay Pool Manager**
 - [x] **Task 4.2: Event Parsing (Kinds 0, 3, 31999, 30018)**
 - [x] **Task 4.3: Message Status & Receipts (Kind 20001/20002)**
-  - Implement transient receipts (Delivered/Read) with visual tick icons in UI.
+  - Implement transient receipts (Delivered/Read) with visual status in UI.
 - [x] **Task 4.4: Conversation Deletion (Kind 15001)**
   - Implement two-way secure deletion of chat history.
+- [ ] **Task 4.5: DM Inbox Relays (Kind 10050)**
+  - [x] Discovery logic in SyncManager.
+  - [ ] Automatic routing for all NIP-17 private events.
 
 ---
 
 ## Phase 5: Trade & Tokenization (Upcoming)
 Implementing the "Real World" commerce features from the Expo reference.
 
-- [ ] **Task 5.1: Token Lifecycle (UTXO Engine)**
-  - Implement Kind 35001 (Genesis) and 35002 (Remint).
-  - Logic for tracking owned assets in the `token_utxos` table.
-- [ ] **Task 5.2: In-Chat Token Transfers (Kind 1050)**
-  - UI for requesting/sending tokens directly within the chat thread.
-  - Integration with the Wallet balance.
-- [ ] **Task 5.3: Product Integration in Chat**
-  - Send product cards from catalog to chat.
-  - Order flow (Kind 14/15 formatted payloads).
-- [ ] **Task 5.4: Offline Transport (Zero-Internet)**
-  - CBOR compression of events.
-  - SMS transport for encrypted chat payloads.
+- [ ] **Task 5.1: Shopping Cart System**
+  - [ ] Implement `CartItem` entity and `CartDao`.
+  - [ ] Checkout logic: Convert cart to formatted JSON payload.
+  - [ ] Send order as Kind 14 (Wrapped in NIP-59) to the merchant.
+- [ ] **Task 5.2: Token Lifecycle (UTXO Engine)**
+  - [ ] UI and logic for **Kind 35001 (Genesis)**: Minting new tokens from products.
+  - [ ] Logic for **Kind 35002 (Remint)**: Producer-side approval of transfer requests.
+- [ ] **Task 5.3: In-Chat Token Transfers (Kind 1050)**
+  - [x] Repository logic for Transfer Requests.
+  - [ ] Integration with the Chat UI to show transfer status (Waiting/Fulfilled).
+
+---
+
+## Phase 6: Web of Trust & Discovery (Upcoming)
+Refining the merchant discovery based on social circles.
+
+- [ ] **Task 6.1: Aggregated Reviews (Kind 31999)**
+  - [ ] Logic to parse the "All-in-One" reviews JSON.
+  - [ ] Incremental updates to the local `reviews` table.
+- [ ] **Task 6.2: Mutual Follows Calculation**
+  - [ ] Background sync of Kind 3 (Follow lists) for all followings.
+  - [ ] Integration with `MerchantRankingEngine` for social scoring.
 
 ---
 
 ## Instructions for AI
-- **Current Focus**: Task 5.2 and 5.3 (Commerce in Chat).
+- **Current Focus**: Phase 5.1 (Shopping Cart).
 - **Security**: All commerce events MUST be wrapped in NIP-59.
 - Use `MockData` for ViewModels only when real repository data is not yet available.

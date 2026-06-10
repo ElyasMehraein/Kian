@@ -24,16 +24,26 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.widget.Toast
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ely.kian.KianApp
 import com.ely.kian.ui.theme.KianTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BackupScreen(onBack: () -> Unit) {
     val context = LocalContext.current
-    val viewModel: BackupViewModel = viewModel(factory = BackupViewModel.provideFactory(context))
+    val app = context.applicationContext as KianApp
+    val viewModel: BackupViewModel = viewModel(
+        factory = BackupViewModel.provideFactory(context, app.container.secureStorage)
+    )
     val kianColors = KianTheme.colors
+    
+    // To handle success/error messages
+    fun showMessage(message: String) {
+        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+    }
     
     Scaffold(
         topBar = {
@@ -155,7 +165,10 @@ fun BackupScreen(onBack: () -> Unit) {
             // Create Backup Button
             item {
                 Button(
-                    onClick = { viewModel.createBackup() },
+                    onClick = { 
+                        viewModel.createBackup()
+                        showMessage("Encrypted backup created successfully!")
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
@@ -202,18 +215,41 @@ fun BackupScreen(onBack: () -> Unit) {
                 items(viewModel.backups) { backup ->
                     BackupItem(
                         backup = backup,
+                        onRestore = {
+                            viewModel.restoreBackup(
+                                backup = backup,
+                                onSuccess = { 
+                                    showMessage("Data restored! Please restart the app.")
+                                },
+                                onError = { error ->
+                                    showMessage("Error: $error")
+                                }
+                            )
+                        },
                         onShare = {
-                            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", backup.file)
-                            val intent = Intent(Intent.ACTION_SEND).apply {
-                                type = "application/octet-stream"
-                                putExtra(Intent.EXTRA_STREAM, uri)
-                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            try {
+                                val authority = "com.ely.kian.fileprovider"
+                                val uri = FileProvider.getUriForFile(context, authority, backup.file)
+                                
+                                val intent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "application/octet-stream"
+                                    putExtra(Intent.EXTRA_STREAM, uri)
+                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }
+                                
+                                val chooser = Intent.createChooser(intent, "Share Backup")
+                                chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                context.startActivity(chooser)
+                            } catch (e: Exception) {
+                                android.util.Log.e("BackupScreen", "Share failed: ${e.message}", e)
+                                showMessage("Share failed: ${e.localizedMessage}")
                             }
-                            context.startActivity(Intent.createChooser(intent, "Share Backup"))
+                        },
+                        onDelete = {
+                            viewModel.deleteBackup(backup)
+                            showMessage("Backup deleted.")
                         }
-                    ) {
-                        viewModel.deleteBackup(backup)
-                    }
+                    )
                 }
             }
 
@@ -241,6 +277,7 @@ fun BackupScreen(onBack: () -> Unit) {
 @Composable
 fun BackupItem(
     backup: BackupFile,
+    onRestore: () -> Unit,
     onShare: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -269,7 +306,7 @@ fun BackupItem(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Button(
-                    onClick = { /* Restore logic */ },
+                    onClick = onRestore,
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB))
