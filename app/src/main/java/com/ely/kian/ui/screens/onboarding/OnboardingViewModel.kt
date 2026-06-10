@@ -40,6 +40,7 @@ class OnboardingViewModel(
         private set
 
     var mnemonicInput by mutableStateOf("")
+    var privateKeyInput by mutableStateOf("")
     
     var isSaving by mutableStateOf(false)
         private set
@@ -94,6 +95,35 @@ class OnboardingViewModel(
                 persistKeyPair(pubkeyHex, "Your wallet was restored securely.")
             } catch (e: Exception) {
                 _events.emit(OnboardingEvent.Error("Restore failed: ${e.message}"))
+            }
+        }
+    }
+
+    fun handleRestoreFromPrivateKey() {
+        val input = privateKeyInput.trim()
+        if (input.isEmpty() || isSaving) return
+
+        viewModelScope.launch {
+            try {
+                val privKey = if (input.startsWith("nsec")) {
+                    KianKeys.nsecToPrivKey(input)
+                } else {
+                    KianKeys.hexToBytes(input)
+                }
+
+                if (privKey.size != 32) {
+                    throw Exception("Invalid private key length")
+                }
+
+                val pubkeyBytes = KianKeys.getPubKey(privKey)
+                val pubkeyHex = KianKeys.bytesToHex(pubkeyBytes)
+
+                // Note: Restoring from private key means we don't have the mnemonic.
+                secureStorage.saveSecret(SecureStorage.PRIVATE_KEY, KianKeys.bytesToHex(privKey))
+                
+                persistKeyPair(pubkeyHex, "Logged in with private key.")
+            } catch (e: Exception) {
+                _events.emit(OnboardingEvent.Error("Invalid private key: ${e.message}"))
             }
         }
     }

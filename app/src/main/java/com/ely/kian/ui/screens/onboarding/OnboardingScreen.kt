@@ -152,6 +152,34 @@ fun OnboardingScreen(
             )
         }
 
+        // Private Key Card
+        OnboardingCard {
+            Text(
+                text = "Login with Private Key",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = kianColors.muted
+            )
+            Text(
+                text = "Enter your nsec or hex private key to log in.",
+                fontSize = 14.sp,
+                color = kianColors.muted,
+                lineHeight = 20.sp
+            )
+            KianInput(
+                value = viewModel.privateKeyInput,
+                onValueChange = { viewModel.privateKeyInput = it },
+                placeholder = "nsec... or hex",
+                modifier = Modifier.fillMaxWidth()
+            )
+            KianButton(
+                text = if (viewModel.isSaving) "Saving..." else "Login with Private Key",
+                onClick = { viewModel.handleRestoreFromPrivateKey() },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = viewModel.privateKeyInput.isNotBlank() && !viewModel.isSaving
+            )
+        }
+
         // Save Keys Button
         KianButton(
             text = if (viewModel.isSaving) "Saving..." else "Save keys",
