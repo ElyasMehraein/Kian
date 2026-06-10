@@ -7,6 +7,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -16,24 +18,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ely.kian.ui.components.InitialAvatar
 import com.ely.kian.ui.theme.KianTheme
-
-data class Conversation(
-    val id: String,
-    val name: String,
-    val lastMessage: String,
-    val time: String,
-    val unreadCount: Int = 0
-)
-
-val mockConversations = listOf(
-    Conversation("1", "Alice", "See you tomorrow at the market!", "10:30 AM", 2),
-    Conversation("2", "Bob", "Thanks for the honey!", "Yesterday"),
-    Conversation("3", "Charlie", "Is the coffee still available?", "Monday"),
-)
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 
 @Composable
-fun ChatsScreen() {
+fun ChatsScreen(
+    viewModel: com.ely.kian.ui.screens.chat.ChatViewModel,
+    onChatClick: (String) -> Unit
+) {
     val kianColors = KianTheme.colors
+    val conversations by viewModel.conversations.collectAsState()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -49,43 +44,63 @@ fun ChatsScreen() {
         )
 
         LazyColumn {
-            items(mockConversations) { conversation ->
-                ConversationItem(conversation)
+            items(conversations) { conversation ->
+                ConversationItem(
+                    name = conversation.peerName,
+                    lastMessage = conversation.lastMessage ?: "",
+                    time = conversation.lastMessageAt?.toString() ?: "", // In a real app, format this date
+                    unreadCount = conversation.unreadCount,
+                    onClick = { onChatClick(conversation.peerPubkey) }
+                )
             }
         }
     }
 }
 
 @Composable
-fun ConversationItem(conversation: Conversation) {
+fun ConversationItem(
+    name: String,
+    lastMessage: String,
+    time: String,
+    unreadCount: Int,
+    onClick: () -> Unit
+) {
     val kianColors = KianTheme.colors
     Column {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { /* Navigate to chat room */ }
+                .clickable { onClick() }
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            InitialAvatar(name = conversation.name, size = 56.dp)
+            InitialAvatar(name = name, size = 56.dp)
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = conversation.name, fontWeight = FontWeight.Bold, color = kianColors.ink, fontSize = 16.sp)
-                    Text(text = conversation.time, fontSize = 12.sp, color = kianColors.ink.copy(alpha = 0.5f))
+                    Text(text = name, fontWeight = FontWeight.Bold, color = kianColors.ink, fontSize = 16.sp)
+                    Text(text = time, fontSize = 12.sp, color = kianColors.ink.copy(alpha = 0.5f))
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = conversation.lastMessage,
+                    text = lastMessage,
                     fontSize = 14.sp,
-                    color = if (conversation.unreadCount > 0) kianColors.ink else kianColors.ink.copy(alpha = 0.5f),
+                    color = if (unreadCount > 0) kianColors.ink else kianColors.ink.copy(alpha = 0.5f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    fontWeight = if (conversation.unreadCount > 0) FontWeight.Medium else FontWeight.Normal
+                    fontWeight = if (unreadCount > 0) FontWeight.Medium else FontWeight.Normal
                 )
+            }
+            if (unreadCount > 0) {
+                Box(
+                    modifier = Modifier.background(kianColors.accent, CircleShape)
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                ) {
+                    Text(text = unreadCount.toString(), color = kianColors.canvas, fontSize = 10.sp)
+                }
             }
         }
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = kianColors.line)

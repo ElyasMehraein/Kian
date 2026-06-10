@@ -17,6 +17,7 @@ import okhttp3.WebSocketListener
 class NostrSyncManager(
     private val relayPool: RelayPoolManager,
     private val userProfileDao: UserProfileDao,
+    private val chatRepository: com.ely.kian.data.repository.ChatRepository? = null,
     private val json: Json = Json { ignoreUnknownKeys = true }
 ) {
     private val TAG = "NostrSyncManager"
@@ -28,13 +29,21 @@ class NostrSyncManager(
         "wss://relay.nostr.band"
     )
 
-    fun startSyncing() {
+    fun startSyncing(myPubkey: String? = null) {
         defaultRelays.forEach { url ->
             relayPool.connect(url, object : WebSocketListener() {
                 override fun onOpen(webSocket: WebSocket, response: Response) {
                     Log.d(TAG, "Connected to $url")
                     val traderFilter = """{"kinds": [0], "#t": ["trader"], "limit": 100}"""
                     relayPool.subscribe(url, "trader_sync", traderFilter)
+                    
+                    if (myPubkey != null) {
+                        val dmFilter = """{"kinds": [4], "#p": ["$myPubkey"], "limit": 50}"""
+                        relayPool.subscribe(url, "dm_recv_sync", dmFilter)
+                        
+                        val dmSentFilter = """{"kinds": [4], "authors": ["$myPubkey"], "limit": 50}"""
+                        relayPool.subscribe(url, "dm_sent_sync", dmSentFilter)
+                    }
                 }
 
                 override fun onMessage(webSocket: WebSocket, text: String) {
@@ -67,6 +76,13 @@ class NostrSyncManager(
     private fun handleEvent(event: NostrEvent) {
         when (event.kind) {
             0 -> handleMetadata(event)
+            4 -> handleDirectMessage(event)
+        }
+    }
+
+    private fun handleDirectMessage(event: NostrEvent) {
+        syncScope.launch {
+            chatRepository?.handleIncomingEvent(event)
         }
     }
 

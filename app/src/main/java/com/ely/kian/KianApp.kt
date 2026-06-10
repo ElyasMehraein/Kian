@@ -20,7 +20,8 @@ class KianApp : Application() {
             appScope.launch {
                 try {
                     kotlinx.coroutines.delay(5000)
-                    container.nostrSyncManager.startSyncing()
+                    // Syncing is now triggered from MainViewModel when pubkey is available
+                    // container.nostrSyncManager.startSyncing()
                 } catch (t: Throwable) {
                     android.util.Log.e("KianApp", "Nostr sync failed", t)
                 }

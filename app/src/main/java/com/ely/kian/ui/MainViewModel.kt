@@ -54,6 +54,7 @@ class MainViewModel(
                     isLoggedIn = key != null
                     ownPubkey = key?.pubkey
                     if (key != null) {
+                        nostrSyncManager.startSyncing(key.pubkey)
                         try {
                             val profile = userProfileDao.getProfile(key.pubkey)
                             accountMode = if (profile?.isTrader == true) "merchant" else "business"

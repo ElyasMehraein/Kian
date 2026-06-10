@@ -35,6 +35,7 @@ import com.ely.kian.ui.screens.onboarding.PrivateKeyScreen
 import com.ely.kian.ui.screens.merchant.MerchantProfileScreen
 import com.ely.kian.ui.screens.profile.ProfileEditScreen
 import com.ely.kian.ui.screens.chat.ChatRoomScreen
+import com.ely.kian.ui.screens.chat.ChatViewModel
 import com.ely.kian.ui.screens.cart.CartScreen
 import com.ely.kian.ui.screens.relays.RelayManagementScreen
 import com.ely.kian.ui.theme.KianTheme
@@ -146,7 +147,13 @@ fun KianScaffold() {
                 }
                 composable(Screen.Wallet.route) { WalletScreen() }
                 composable(Screen.Products.route) { ProductManagerScreen() }
-                composable(Screen.Chats.route) { ChatsScreen() }
+                composable(Screen.Chats.route) {
+                    val chatViewModel: ChatViewModel = viewModel(factory = ChatViewModel.provideFactory(app.container.chatRepository, app.container.userProfileDao))
+                    ChatsScreen(
+                        viewModel = chatViewModel,
+                        onChatClick = { pubkey -> navController.navigate("chat/$pubkey") }
+                    )
+                }
                 
                 composable("profile") { 
                     MerchantProfileScreen(
@@ -193,8 +200,10 @@ fun KianScaffold() {
                 
                 composable(Screen.ChatRoom.route) { backStackEntry ->
                     val pubkey = backStackEntry.arguments?.getString("pubkey") ?: ""
+                    val chatViewModel: ChatViewModel = viewModel(factory = ChatViewModel.provideFactory(app.container.chatRepository, app.container.userProfileDao))
                     ChatRoomScreen(
                         peerPubkey = pubkey,
+                        viewModel = chatViewModel,
                         onBack = { navController.popBackStack() },
                         onCart = { navController.navigate("cart") }
                     )

@@ -20,29 +20,30 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ely.kian.ui.components.InitialAvatar
 import com.ely.kian.ui.theme.KianTheme
-
-data class Message(
-    val id: String,
-    val sender: String,
-    val content: String,
-    val timestamp: Long,
-    val isMine: Boolean
-)
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatRoomScreen(
     peerPubkey: String,
+    viewModel: ChatViewModel,
     onBack: () -> Unit,
     onCart: () -> Unit
 ) {
     val kianColors = KianTheme.colors
     var text by remember { mutableStateOf("") }
-    val mockMessages = listOf(
-        Message("1", "peer", "Hi there!", 1000, false),
-        Message("2", "me", "Hello! Is the honey still available?", 2000, true),
-        Message("3", "peer", "Yes, it is. How many would you like?", 3000, false)
-    )
+    
+    val messages by viewModel.getMessages(peerPubkey).collectAsState(initial = emptyList())
+    var peerName by remember { mutableStateOf(peerPubkey.take(8)) }
+
+    LaunchedEffect(peerPubkey) {
+        viewModel.markAsRead(peerPubkey)
+        val profile = viewModel.getProfile(peerPubkey)
+        profile?.let {
+            peerName = it.displayName ?: it.name ?: peerPubkey.take(8)
+        }
+    }
 
     Scaffold(
         containerColor = kianColors.canvas,
@@ -50,10 +51,10 @@ fun ChatRoomScreen(
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        InitialAvatar(name = "Peer", size = 40.dp)
+                        InitialAvatar(name = peerName, size = 40.dp)
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
-                            Text(text = "Peer Name", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = kianColors.ink)
+                            Text(text = peerName, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = kianColors.ink)
                             Text(text = "View profile", fontSize = 12.sp, color = kianColors.ink.copy(alpha = 0.5f))
                         }
                     }
@@ -83,7 +84,10 @@ fun ChatRoomScreen(
             ChatComposer(
                 text = text,
                 onTextChange = { text = it },
-                onSend = { text = "" }
+                onSend = { 
+                    viewModel.sendMessage(peerPubkey, text)
+                    text = "" 
+                }
             )
         }
     ) { paddingValues ->
@@ -92,21 +96,25 @@ fun ChatRoomScreen(
                 .fillMaxSize()
                 .padding(paddingValues),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            reverseLayout = false // Or true if we want typical chat behavior
         ) {
-            items(mockMessages) { message ->
-                MessageBubble(message)
+            items(messages) { message ->
+                MessageBubble(
+                    content = message.content,
+                    isMine = message.status == "sent" || message.status == "sending"
+                )
             }
         }
     }
 }
 
 @Composable
-fun MessageBubble(message: Message) {
+fun MessageBubble(content: String, isMine: Boolean) {
     val kianColors = KianTheme.colors
     Box(
         modifier = Modifier.fillMaxWidth(),
-        contentAlignment = if (message.isMine) Alignment.CenterEnd else Alignment.CenterStart
+        contentAlignment = if (isMine) Alignment.CenterEnd else Alignment.CenterStart
     ) {
         Column(
             modifier = Modifier
@@ -114,15 +122,15 @@ fun MessageBubble(message: Message) {
                 .clip(RoundedCornerShape(
                     topStart = 16.dp,
                     topEnd = 16.dp,
-                    bottomStart = if (message.isMine) 16.dp else 4.dp,
-                    bottomEnd = if (message.isMine) 4.dp else 16.dp
+                    bottomStart = if (isMine) 16.dp else 4.dp,
+                    bottomEnd = if (isMine) 4.dp else 16.dp
                 ))
-                .background(if (message.isMine) kianColors.ink else kianColors.panel)
+                .background(if (isMine) kianColors.ink else kianColors.panel)
                 .padding(horizontal = 16.dp, vertical = 10.dp)
         ) {
             Text(
-                text = message.content,
-                color = if (message.isMine) kianColors.canvas else kianColors.ink,
+                text = content,
+                color = if (isMine) kianColors.canvas else kianColors.ink,
                 fontSize = 15.sp,
                 lineHeight = 22.sp
             )

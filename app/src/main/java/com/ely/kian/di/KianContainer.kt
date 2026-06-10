@@ -6,6 +6,7 @@ import com.ely.kian.crypto.SecureStorage
 import com.ely.kian.data.local.KianDatabase
 import com.ely.kian.data.remote.NostrSyncManager
 import com.ely.kian.data.remote.RelayPoolManager
+import com.ely.kian.data.repository.ChatRepository
 
 class KianContainer(context: Context) {
     val secureStorage = SecureStorage(context)
@@ -28,7 +29,11 @@ class KianContainer(context: Context) {
     val offlineQueueDao get() = database.offlineQueueDao()
     val relayDao get() = database.relayDao()
 
+    val chatRepository: ChatRepository by lazy {
+        ChatRepository(chatDao, relayPoolManager, secureStorage)
+    }
+
     val nostrSyncManager by lazy {
-        NostrSyncManager(relayPoolManager, userProfileDao)
+        NostrSyncManager(relayPoolManager, userProfileDao, chatRepository = chatRepository)
     }
 }
