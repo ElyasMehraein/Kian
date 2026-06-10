@@ -2,12 +2,12 @@ package com.ely.kian.data.local
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
-import com.ely.kian.data.local.dao.RelayDao
-import com.ely.kian.data.local.dao.UserProfileDao
+import com.ely.kian.data.local.dao.*
 import com.ely.kian.data.local.entities.*
 
 @Database(
     entities = [
+        Key::class,
         Profile::class,
         UserFollow::class,
         Product::class,
@@ -26,6 +26,12 @@ import com.ely.kian.data.local.entities.*
     exportSchema = false
 )
 abstract class KianDatabase : RoomDatabase() {
+    abstract fun keyDao(): KeyDao
     abstract fun userProfileDao(): UserProfileDao
+    abstract fun productDao(): ProductDao
+    abstract fun tokenDao(): TokenDao
+    abstract fun chatDao(): ChatDao
+    abstract fun reviewDao(): ReviewDao
+    abstract fun offlineQueueDao(): OfflineQueueDao
     abstract fun relayDao(): RelayDao
 }

@@ -2,6 +2,7 @@ package com.ely.kian.data.local.dao
 
 import androidx.room.*
 import com.ely.kian.data.local.entities.Profile
+import com.ely.kian.data.local.entities.UserFollow
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -12,9 +13,36 @@ interface UserProfileDao {
     @Query("SELECT * FROM profiles WHERE pubkey = :pubkey")
     suspend fun getProfile(pubkey: String): Profile?
 
+    @Query("SELECT * FROM profiles WHERE pubkey IN (:pubkeys)")
+    suspend fun getProfiles(pubkeys: List<String>): List<Profile>
+
+    @Query("SELECT * FROM profiles WHERE displayName LIKE :query OR name LIKE :query ORDER BY updatedAt DESC")
+    fun searchProfiles(query: String): Flow<List<Profile>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsert(profile: Profile)
+    suspend fun insert(profile: Profile)
+
+    @Transaction
+    suspend fun upsert(profile: Profile) {
+        val existing = getProfile(profile.pubkey)
+        if (existing == null || profile.createdAt >= existing.createdAt) {
+            insert(profile)
+        }
+    }
 
     @Delete
     suspend fun delete(profile: Profile)
+
+    // Follows
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertFollow(follow: UserFollow)
+
+    @Query("SELECT * FROM user_follows WHERE pubkey = :pubkey")
+    fun listFollows(pubkey: String): Flow<List<UserFollow>>
+
+    @Query("SELECT EXISTS(SELECT 1 FROM user_follows WHERE pubkey = :pubkey AND followsPubkey = :targetPubkey)")
+    suspend fun isFollowing(pubkey: String, targetPubkey: String): Boolean
+
+    @Query("DELETE FROM user_follows WHERE pubkey = :pubkey AND followsPubkey = :targetPubkey")
+    suspend fun deleteFollow(pubkey: String, targetPubkey: String)
 }

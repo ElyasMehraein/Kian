@@ -1,6 +1,7 @@
 package com.ely.kian.data.local.entities
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "profiles")
@@ -17,7 +18,14 @@ data class Profile(
     val updatedAt: Long
 )
 
-@Entity(tableName = "user_follows", primaryKeys = ["pubkey", "followsPubkey"])
+@Entity(
+    tableName = "user_follows",
+    primaryKeys = ["pubkey", "followsPubkey"],
+    indices = [
+        Index(value = ["pubkey"]),
+        Index(value = ["followsPubkey"])
+    ]
+)
 data class UserFollow(
     val pubkey: String,
     val followsPubkey: String,

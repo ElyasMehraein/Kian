@@ -1,6 +1,7 @@
 package com.ely.kian.data.local.entities
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "relays")
@@ -10,7 +11,11 @@ data class Relay(
     val writeEnabled: Boolean = true
 )
 
-@Entity(tableName = "dm_inbox_relays", primaryKeys = ["pubkey", "relayUrl"])
+@Entity(
+    tableName = "dm_inbox_relays",
+    primaryKeys = ["pubkey", "relayUrl"],
+    indices = [Index(value = ["pubkey"])]
+)
 data class DmInboxRelay(
     val pubkey: String,
     val relayUrl: String,

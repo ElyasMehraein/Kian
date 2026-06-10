@@ -1,6 +1,7 @@
 package com.ely.kian.data.local.entities
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "token_definitions", primaryKeys = ["assetId", "pubkey"])
@@ -17,7 +18,14 @@ data class TokenDefinition(
     val createdAt: Long
 )
 
-@Entity(tableName = "token_utxos")
+@Entity(
+    tableName = "token_utxos",
+    indices = [
+        Index(value = ["owner"]),
+        Index(value = ["producer"]),
+        Index(value = ["assetRef"])
+    ]
+)
 data class TokenUtxo(
     @PrimaryKey val utxoId: String,
     val assetRef: String,

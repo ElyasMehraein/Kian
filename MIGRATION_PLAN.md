@@ -49,8 +49,11 @@ Create the screens and ensure the layout matches the original Expo screens.
 Implement the core logic following `expo-refrence/src/db/schema.ts` and `expo-refrence/docs/db-schema.md`.
 
 - [x] **Task 3.1: Room Database Setup**
-  - Create entities based on `expo-refrence/src/db/schema.ts`: `Profile`, `UserFollow`, `Product`, `ProductCategory`, `TokenDefinition`, `TokenUtxo`, `Conversation`, `Message`, `MessageReceipt`, `Review`, `OfflineQueue`, `Relay`, `DmInboxRelay`.
-  - Implement DAOs matching the logic in `expo-refrence/src/db/repos/`.
+  - Created 14 entities matching `expo-refrence/src/db/schema.ts` exactly.
+  - Implemented Indices on all tables to match performance parity with the Expo version.
+  - Created DAOs for all repositories: `KeyDao`, `UserProfileDao`, `ProductDao`, `TokenDao`, `ChatDao`, `ReviewDao`, `OfflineQueueDao`, `RelayDao`.
+  - Configured `KianDatabase` with all entities and DAOs.
+  - Integrated `Foreign Key` constraints (e.g., Message -> Conversation) with `CASCADE DELETE`.
 - [x] **Task 3.2: Key Management & Cryptography**
   - Implement BIP39 mnemonic handling.
   - Implement Secp256k1 key derivation.
