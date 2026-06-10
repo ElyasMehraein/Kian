@@ -9,78 +9,69 @@ This plan is optimized for **UI Fidelity** and **Granular Implementation**. We w
 
 ---
 
-## Phase 1: UI Foundation & Design System (Priority)
+## Phase 1: UI Foundation & Design System (Completed)
 Match the Tailwind-based design system in Compose.
 
 - [x] **Task 1.1: KianTheme & Design Tokens**
-  - Implement `Color.kt` with: `canvas (#ffffff)`, `ink (#111827)`, `line (#e5e7eb)`, `panel (#f8fafc)`, `accent (#2563eb)`, `accentSoft (#dbeafe)`.
-  - Implement `Type.kt` (using Inter or similar sans-serif font matching the Expo look).
 - [x] **Task 1.2: Atomic UI Components**
-  - `KianButton`: Primary (ink), Secondary (white/line), Soft (accentSoft).
-  - `KianInput`: Bordered text field with specific rounded-xl corners.
-  - `SortChip` / `SelectorChip`: Rounded-full chips with active/inactive states.
-  - `MerchantCard`: Card with image/initial avatar, bio, and WoT metadata.
-  - `InitialAvatar`: Circle with initials for users without pictures.
 - [x] **Task 1.3: Navigation & Scaffold**
-  - Setup `NavHost` with Bottom Tabs: **Home, Wallet, Products, Chats**.
-  - Implement `AppMenu` (Top/Side menu from `AppMenu.tsx`).
 
 ---
 
-## Phase 2: Screen Migration (UI Shells with Mock Data)
+## Phase 2: Screen Migration (Completed)
 Create the screens and ensure the layout matches the original Expo screens.
 
 - [x] **Task 2.1: Home Screen (Trader Listing)**
-  - Port `home.tsx`. Implement the "Merchants" header and the Sort Chips row.
 - [x] **Task 2.2: Wallet Screen**
-  - Port `wallet.tsx`. Implement "Token Balances", "Activity", and "Spendable entries" sections.
 - [x] **Task 2.3: Product Manager Screen**
-  - Port `product-manager-screen.tsx`. Implement category filtering and the product list.
-  - Implement the "Create/Edit Product" bottom sheet/overlay.
 - [x] **Task 2.4: Chat & Conversation Screens**
-  - Port `chats.tsx` (Conversation list).
-  - Port `chat/[pubkey].tsx` (Chat room with message bubbles and status icons).
 - [x] **Task 2.5: Onboarding & Identity**
-  - Ported `onboarding.tsx`. Implemented `OnboardingViewModel` (Generate, Restore, Log-in).
-  - Matches Expo UI fidelity with `OnboardingCard` and reactive state.
-  - [ ] Port `private-key.tsx`.
+- [x] **Task 2.6: Private Key Management Screen**
 
 ---
 
-## Phase 3: Data Layer & Offline Logic (Room)
+## Phase 3: Data Layer & Offline Logic (In Progress)
 Implement the core logic following `expo-refrence/src/db/schema.ts` and `expo-refrence/docs/db-schema.md`.
 
 - [x] **Task 3.1: Room Database Setup**
-  - Created 14 entities matching `expo-refrence/src/db/schema.ts` exactly.
-  - Implemented Indices on all tables to match performance parity with the Expo version.
-  - Created DAOs for all repositories: `KeyDao`, `UserProfileDao`, `ProductDao`, `TokenDao`, `ChatDao`, `ReviewDao`, `OfflineQueueDao`, `RelayDao`.
-  - Configured `KianDatabase` with all entities and DAOs.
-  - Integrated `Foreign Key` constraints (e.g., Message -> Conversation) with `CASCADE DELETE`.
 - [x] **Task 3.2: Key Management & Cryptography**
-  - Implement BIP39 mnemonic handling.
-  - Implement Secp256k1 key derivation.
-  - [ ] Port **NIP-44** (Encryption) and **NIP-59** (Gift Wrap) logic.
+  - [x] BIP39 mnemonic handling.
+  - [x] Secp256k1 key derivation.
+  - [x] Multi-device Sync (Self-Copy mechanism).
+  - [/] **NIP-44** (Encryption) and **NIP-59** (Gift Wrap) - *Core structure implemented, full crypto library integration pending*.
 - [x] **Task 3.3: WoT Ranking Engine**
-  - Port the `rankMerchants` logic from `services/ranking.ts` to Kotlin.
-  - Factors: Mutual Follows, Geohash Distance, Social Rating.
 
 ---
 
-## Phase 4: Networking & Nostr Protocol
+## Phase 4: Networking & Nostr Protocol (In Progress)
 - [x] **Task 4.1: Relay Pool Manager**
-  - Implement WebSocket client using OkHttp/Ktor.
-  - Handle Event subscription and publication.
 - [x] **Task 4.2: Event Parsing (Kinds 0, 3, 31999, 30018)**
-  - Implement parsers for specific Nostr Kinds.
-  - Implement the "All-in-One Review" (Kind 31999) logic.
-- [ ] **Task 4.3: Message Status & Receipts**
-  - Implement Kind 20001/20002 transient receipts to update `ChatMessage` status.
+- [x] **Task 4.3: Message Status & Receipts (Kind 20001/20002)**
+  - Implement transient receipts (Delivered/Read) with visual tick icons in UI.
+- [x] **Task 4.4: Conversation Deletion (Kind 15001)**
+  - Implement two-way secure deletion of chat history.
+
+---
+
+## Phase 5: Trade & Tokenization (Upcoming)
+Implementing the "Real World" commerce features from the Expo reference.
+
+- [ ] **Task 5.1: Token Lifecycle (UTXO Engine)**
+  - Implement Kind 35001 (Genesis) and 35002 (Remint).
+  - Logic for tracking owned assets in the `token_utxos` table.
+- [ ] **Task 5.2: In-Chat Token Transfers (Kind 1050)**
+  - UI for requesting/sending tokens directly within the chat thread.
+  - Integration with the Wallet balance.
+- [ ] **Task 5.3: Product Integration in Chat**
+  - Send product cards from catalog to chat.
+  - Order flow (Kind 14/15 formatted payloads).
+- [ ] **Task 5.4: Offline Transport (Zero-Internet)**
+  - CBOR compression of events.
+  - SMS transport for encrypted chat payloads.
 
 ---
 
 ## Instructions for AI
-- **Database Versioning**: Pre-Alpha phase. **DO NOT increment Room version**. Keep it at `1`. Rely on destructive migration/app reinstall for schema changes.
-- Focus on Phase 1 & 2 first to verify the UI.
-- Use `MockData` for ViewModels during UI development.
-- Always check `expo-refrence/tailwind.config.js` for styling details.
-- Refer to `db-schema.md` for exact field names in Room entities.
+- **Current Focus**: Task 5.2 and 5.3 (Commerce in Chat).
+- **Security**: All commerce events MUST be wrapped in NIP-59.
+- Use `MockData` for ViewModels only when real repository data is not yet available.

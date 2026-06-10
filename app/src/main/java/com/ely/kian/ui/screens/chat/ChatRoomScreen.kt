@@ -1,6 +1,7 @@
 package com.ely.kian.ui.screens.chat
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -33,6 +34,7 @@ fun ChatRoomScreen(
 ) {
     val kianColors = KianTheme.colors
     var text by remember { mutableStateOf("") }
+    var showDeleteDialog by remember { mutableStateOf(false) }
     
     val messages by viewModel.getMessages(peerPubkey).collectAsState(initial = emptyList())
     var peerName by remember { mutableStateOf(peerPubkey.take(8)) }
@@ -45,12 +47,39 @@ fun ChatRoomScreen(
         }
     }
 
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete Conversation") },
+            text = { Text("This will delete the chat history for both you and the recipient. Are you sure?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteConversation(peerPubkey)
+                        showDeleteDialog = false
+                        onBack()
+                    }
+                ) {
+                    Text("Delete Everywhere", color = Color.Red)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     Scaffold(
         containerColor = kianColors.canvas,
         topBar = {
             TopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { /* Show profile */ }
+                    ) {
                         InitialAvatar(name = peerName, size = 40.dp)
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
@@ -74,6 +103,13 @@ fun ChatRoomScreen(
                             imageVector = Icons.Default.ShoppingCart, 
                             contentDescription = "Cart", 
                             tint = kianColors.ink.copy(alpha = 0.5f)
+                        )
+                    }
+                    IconButton(onClick = { showDeleteDialog = true }) {
+                        Icon(
+                            imageVector = Icons.Default.DeleteSweep, 
+                            contentDescription = "Delete Chat", 
+                            tint = Color.Red.copy(alpha = 0.6f)
                         )
                     }
                 },

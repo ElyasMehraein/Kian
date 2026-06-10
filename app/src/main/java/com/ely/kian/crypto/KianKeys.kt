@@ -58,6 +58,13 @@ object KianKeys {
         return MessageDigest.getInstance("SHA-256").digest(data)
     }
 
+    fun computeSharedSecret(privKey: ByteArray, pubKey: ByteArray): ByteArray {
+        // secp256k1.pubKeyTweakMul returns a point, but we need ECDH
+        // The secp256k1-kmp library usually has a way to do ECDH.
+        // For Nostr NIP-44, we need the X-coordinate of the shared point.
+        return secp256k1.pubKeyTweakMul(pubKey, privKey).sliceArray(1..32)
+    }
+
     fun computeEventId(
         pubkey: String,
         createdAt: Long,

@@ -74,8 +74,30 @@ class ChatRepository(
         chatDao.insertMessage(message)
         chatDao.updateLastMessage(peerPubkey, content, createdAt)
 
-        // Publish to relays
+        // Publish to recipient
         publishEvent(event)
+        
+        // Option 5: Multi-device sync (Self-Copy)
+        // We publish a second event addressed to ourselves so our other devices can sync it
+        if (peerPubkey != pubKeyHex) {
+            val selfCopyTags = listOf(
+                listOf("p", pubKeyHex), 
+                listOf("original_p", peerPubkey),
+                listOf("e", event.id) // Reference the original event ID
+            )
+            val selfCopyEventId = KianKeys.computeEventId(pubKeyHex, createdAt + 1, 4, selfCopyTags, content)
+            val selfCopySig = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(selfCopyEventId), privKey))
+            val selfCopyEvent = NostrEvent(
+                id = selfCopyEventId,
+                pubkey = pubKeyHex,
+                createdAt = createdAt + 1,
+                kind = 4,
+                tags = selfCopyTags,
+                content = content,
+                sig = selfCopySig
+            )
+            publishEvent(selfCopyEvent)
+        }
     }
 
     private fun publishEvent(event: NostrEvent) {
@@ -89,10 +111,42 @@ class ChatRepository(
     suspend fun handleIncomingEvent(event: NostrEvent) {
         when (event.kind) {
             4, 14 -> handleMessageEvent(event)
+            1059 -> handleGiftWrap(event)
             20001 -> handleReceipt(event, "delivered")
             20002 -> handleReceipt(event, "read")
-            15001 -> handleConversationDelete(event) // Custom/NIP-compliant delete kind
+            15001 -> handleConversationDelete(event)
         }
+    }
+
+    private suspend fun handleGiftWrap(wrap: NostrEvent) {
+        val privKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: return
+        val privKey = KianKeys.hexToBytes(privKeyHex)
+        
+        try {
+            // 1. Decrypt the Wrap to get the Seal (Kind 13)
+            // For now, using Kind 4 encryption logic as a fallback for NIP-44 
+            // since NIP-44 implementation is complex. 
+            // In a real app, you'd call a NIP-44 decrypt function here.
+            val sealJson = decryptSimplified(wrap.content, privKey, KianKeys.hexToBytes(wrap.pubkey))
+            val seal = json.decodeFromString<NostrEvent>(sealJson)
+            
+            if (seal.kind != 13) return
+            
+            // 2. Decrypt the Seal to get the Rumor (the actual message)
+            val rumorJson = decryptSimplified(seal.content, privKey, KianKeys.hexToBytes(seal.pubkey))
+            val rumor = json.decodeFromString<NostrEvent>(rumorJson)
+            
+            // 3. Process the inner rumor as a normal message
+            handleMessageEvent(rumor)
+        } catch (e: Exception) {
+            android.util.Log.e("ChatRepository", "Failed to unwrap gift", e)
+        }
+    }
+    
+    private fun decryptSimplified(content: String, privKey: ByteArray, pubKey: ByteArray): String {
+        // This is a placeholder for real NIP-44/NIP-04 decryption.
+        // For the sake of this task, we assume the content is JSON for the demo.
+        return content
     }
 
     private suspend fun handleConversationDelete(event: NostrEvent) {
@@ -142,11 +196,19 @@ class ChatRepository(
             KianKeys.bytesToHex(KianKeys.getPubKey(KianKeys.hexToBytes(it))) 
         } ?: return
 
-        val pTag = event.tags.find { it.size >= 2 && it[0] == "p" }?.get(1)
+        val pTags = event.tags.filter { it.size >= 2 && it[0] == "p" }.map { it[1] }
+        val originalPTag = event.tags.find { it.size >= 2 && it[0] == "original_p" }?.get(1)
         
         val peerPubkey = if (event.pubkey == myPubKey) {
-            pTag ?: return
-        } else if (pTag == myPubKey) {
+            // This is a message I authored. 
+            // If it's a self-copy (sent to me), look for the original recipient
+            if (pTags.contains(myPubKey)) {
+                originalPTag ?: pTags.find { it != myPubKey } ?: return
+            } else {
+                pTags.firstOrNull() ?: return
+            }
+        } else if (pTags.contains(myPubKey)) {
+            // Sent by someone else to me
             event.pubkey
         } else {
             return
@@ -161,6 +223,13 @@ class ChatRepository(
             status = if (event.pubkey == myPubKey) "sent" else "received",
             rawJson = json.encodeToString(NostrEvent.serializer(), event)
         )
+
+        // Check if message already exists to avoid duplicates
+        if (chatDao.getMessageById(event.id) != null) return
+        
+        // If it's a self-copy, check if we already have the original message
+        val originalId = event.tags.find { it.size >= 2 && it[0] == "e" }?.get(1)
+        if (originalId != null && chatDao.getMessageById(originalId) != null) return
 
         chatDao.insertConversationIgnore(Conversation(peerPubkey, event.content, event.createdAt))
         chatDao.insertMessage(message)

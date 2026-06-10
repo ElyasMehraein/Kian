@@ -30,6 +30,9 @@ interface ChatDao {
     @Query("UPDATE conversations SET lastMessage = '__deleted_conversation__', lastMessageAt = :deletedAt, unreadCount = 0 WHERE peerPubkey = :peerPubkey")
     suspend fun markConversationDeleted(peerPubkey: String, deletedAt: Long)
 
+    @Query("DELETE FROM conversations WHERE peerPubkey = :peerPubkey")
+    suspend fun deleteConversation(peerPubkey: String)
+
     // Messages
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMessage(message: Message)

@@ -72,6 +72,12 @@ class ChatViewModel(
         }
     }
 
+    fun deleteConversation(peerPubkey: String) {
+        viewModelScope.launch {
+            chatRepository.deleteConversationEverywhere(peerPubkey)
+        }
+    }
+
     companion object {
         fun provideFactory(chatRepository: ChatRepository, userProfileDao: UserProfileDao): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
