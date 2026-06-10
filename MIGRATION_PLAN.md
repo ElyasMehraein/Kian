@@ -46,11 +46,11 @@ Create the screens and ensure the layout matches the original Expo screens.
 ---
 
 ## Phase 3: Data Layer & Offline Logic (Room)
-Implement the core logic following `db-schema.md` and `architecture.md`.
+Implement the core logic following `expo-refrence/src/db/schema.ts` and `expo-refrence/docs/db-schema.md`.
 
 - [x] **Task 3.1: Room Database Setup**
-  - Create entities: `UserProfile`, `Product`, `ChatMessage`, `TokenUtxo`, `OfflineQueue`.
-  - Implement DAOs with specific queries (e.g., `listMerchants` with WoT sorting).
+  - Create entities based on `expo-refrence/src/db/schema.ts`: `Profile`, `UserFollow`, `Product`, `ProductCategory`, `TokenDefinition`, `TokenUtxo`, `Conversation`, `Message`, `MessageReceipt`, `Review`, `OfflineQueue`, `Relay`, `DmInboxRelay`.
+  - Implement DAOs matching the logic in `expo-refrence/src/db/repos/`.
 - [x] **Task 3.2: Key Management & Cryptography**
   - Implement BIP39 mnemonic handling.
   - Implement Secp256k1 key derivation.

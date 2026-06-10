@@ -12,7 +12,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ely.kian.ui.components.KianChip
 import com.ely.kian.ui.components.MerchantCard
-import com.ely.kian.ui.theme.Ink
+import com.ely.kian.ui.theme.KianTheme
 
 data class Merchant(
     val id: String,
@@ -31,6 +31,7 @@ val mockMerchants = listOf(
 
 @Composable
 fun HomeScreen(onMerchantClick: (String) -> Unit) {
+    val kianColors = KianTheme.colors
     var selectedSort by remember { mutableStateOf("All") }
     val sortOptions = listOf("All", "Nearest", "Top Rated", "Verified")
 
@@ -44,7 +45,7 @@ fun HomeScreen(onMerchantClick: (String) -> Unit) {
             text = "Merchants",
             fontSize = 32.sp,
             fontWeight = FontWeight.Bold,
-            color = Ink,
+            color = kianColors.ink,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp)
         )
 

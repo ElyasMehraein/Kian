@@ -1,11 +1,10 @@
 package com.ely.kian.services
 
-import com.ely.kian.data.local.entities.UserProfile
-import kotlin.math.*
+import com.ely.kian.data.local.entities.Profile
 
 data class MerchantInfo(
     val pubkey: String,
-    val profile: UserProfile,
+    val profile: Profile,
     val score: Float,
     val title: String,
     val mutualFollows: Int,
@@ -18,7 +17,7 @@ object MerchantRankingEngine {
     fun rankMerchants(
         currentPubkey: String?,
         currentGeohash: String?,
-        merchants: List<UserProfile>,
+        merchants: List<Profile>,
         followings: Set<String>,
         mutualFollowsMap: Map<String, Int>,
         socialRatingsMap: Map<String, Float>
@@ -26,8 +25,8 @@ object MerchantRankingEngine {
         return merchants.map { merchant ->
             val mutualFollows = mutualFollowsMap[merchant.pubkey] ?: 0
             val socialRating = socialRatingsMap[merchant.pubkey] ?: 0f
-            val distanceKm = if (currentGeohash != null && merchant.nip05 != null) { // Assuming geohash is in nip05 for now or another field
-                calculateGeohashDistance(currentGeohash, merchant.nip05!!) 
+            val distanceKm = if (currentGeohash != null && merchant.geohash != null) {
+                calculateGeohashDistance(currentGeohash, merchant.geohash)
             } else null
             
             val distanceFactor = if (distanceKm != null && distanceKm <= 10) 1f else 0f

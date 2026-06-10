@@ -27,8 +27,7 @@ import com.ely.kian.ui.screens.onboarding.PrivateKeyScreen
 import com.ely.kian.ui.screens.merchant.MerchantProfileScreen
 import com.ely.kian.ui.screens.chat.ChatRoomScreen
 import com.ely.kian.ui.screens.cart.CartScreen
-import com.ely.kian.ui.theme.Ink
-import com.ely.kian.ui.theme.Line
+import com.ely.kian.ui.theme.KianTheme
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     object Home : Screen("home", "Home", Icons.Default.Home)
@@ -53,6 +52,7 @@ val items = listOf(
 fun KianScaffold() {
     val navController = rememberNavController()
     var isMenuOpen by remember { mutableStateOf(false) }
+    val kianColors = KianTheme.colors
     
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -64,8 +64,8 @@ fun KianScaffold() {
             bottomBar = {
                 if (showBottomBar) {
                     NavigationBar(
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        contentColor = Ink,
+                        containerColor = kianColors.canvas,
+                        contentColor = kianColors.ink,
                         tonalElevation = 0.dp
                     ) {
                         val currentDestination = navBackStackEntry?.destination
@@ -84,11 +84,11 @@ fun KianScaffold() {
                                     }
                                 },
                                 colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = Ink,
-                                    selectedTextColor = Ink,
-                                    indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
-                                    unselectedIconColor = Ink.copy(alpha = 0.6f),
-                                    unselectedTextColor = Ink.copy(alpha = 0.6f)
+                                    selectedIconColor = kianColors.ink,
+                                    selectedTextColor = kianColors.ink,
+                                    indicatorColor = kianColors.panel,
+                                    unselectedIconColor = kianColors.ink.copy(alpha = 0.4f),
+                                    unselectedTextColor = kianColors.ink.copy(alpha = 0.4f)
                                 )
                             )
                         }
@@ -164,7 +164,8 @@ fun KianScaffold() {
 
 @Composable
 fun PlaceholderScreen(name: String) {
-    Surface {
-        Text(text = name, modifier = Modifier.padding(16.dp))
+    val kianColors = KianTheme.colors
+    Surface(color = kianColors.canvas) {
+        Text(text = name, modifier = Modifier.padding(16.dp), color = kianColors.ink)
     }
 }

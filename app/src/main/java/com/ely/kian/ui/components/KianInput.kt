@@ -8,9 +8,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.ely.kian.ui.theme.Accent
-import com.ely.kian.ui.theme.Ink
-import com.ely.kian.ui.theme.Line
+import com.ely.kian.ui.theme.KianTheme
 
 @Composable
 fun KianInput(
@@ -21,6 +19,8 @@ fun KianInput(
     isError: Boolean = false,
     singleLine: Boolean = true
 ) {
+    val kianColors = KianTheme.colors
+    
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
@@ -30,11 +30,13 @@ fun KianInput(
         singleLine = singleLine,
         shape = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = Accent,
-            unfocusedBorderColor = Line,
-            focusedTextColor = Ink,
-            unfocusedTextColor = Ink,
-            cursorColor = Accent
+            focusedBorderColor = kianColors.accent,
+            unfocusedBorderColor = kianColors.line,
+            focusedTextColor = kianColors.ink,
+            unfocusedTextColor = kianColors.ink,
+            cursorColor = kianColors.accent,
+            focusedPlaceholderColor = kianColors.ink.copy(alpha = 0.5f),
+            unfocusedPlaceholderColor = kianColors.ink.copy(alpha = 0.5f)
         )
     )
 }

@@ -15,13 +15,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ely.kian.ui.theme.Accent
-import com.ely.kian.ui.theme.Ink
-import com.ely.kian.ui.theme.Line
-import com.ely.kian.ui.theme.Panel
+import com.ely.kian.ui.theme.KianTheme
 
 @Composable
 fun WalletScreen() {
+    val kianColors = KianTheme.colors
+    
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -31,7 +30,7 @@ fun WalletScreen() {
             text = "Assets",
             fontSize = 32.sp,
             fontWeight = FontWeight.Bold,
-            color = Ink,
+            color = kianColors.ink,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp)
         )
 
@@ -63,22 +62,24 @@ fun WalletScreen() {
 
 @Composable
 fun SectionHeader(title: String) {
+    val kianColors = KianTheme.colors
     Text(
         text = title,
         fontSize = 18.sp,
         fontWeight = FontWeight.SemiBold,
-        color = Ink,
+        color = kianColors.ink,
         modifier = Modifier.padding(16.dp)
     )
 }
 
 @Composable
 fun BalanceCard(balance: String, symbol: String) {
+    val kianColors = KianTheme.colors
     Surface(
         modifier = Modifier
             .padding(horizontal = 16.dp)
             .fillMaxWidth(),
-        color = Accent,
+        color = kianColors.accent,
         shape = RoundedCornerShape(24.dp)
     ) {
         Column(modifier = Modifier.padding(24.dp)) {
@@ -94,22 +95,24 @@ fun BalanceCard(balance: String, symbol: String) {
 
 @Composable
 fun EntryItem(name: String, amount: String) {
+    val kianColors = KianTheme.colors
     Row(
         modifier = Modifier
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .fillMaxWidth()
-            .background(Panel, RoundedCornerShape(12.dp))
+            .background(kianColors.panel, RoundedCornerShape(12.dp))
             .padding(16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = name, fontWeight = FontWeight.Medium, color = Ink)
-        Text(text = "$amount Units", color = Ink, fontWeight = FontWeight.Bold)
+        Text(text = name, fontWeight = FontWeight.Medium, color = kianColors.ink)
+        Text(text = "$amount Units", color = kianColors.ink, fontWeight = FontWeight.Bold)
     }
 }
 
 @Composable
 fun ActivityItem(title: String, date: String, amount: String) {
+    val kianColors = KianTheme.colors
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         Row(
             modifier = Modifier
@@ -119,11 +122,11 @@ fun ActivityItem(title: String, date: String, amount: String) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text(text = title, fontWeight = FontWeight.Medium, color = Ink)
-                Text(text = date, fontSize = 12.sp, color = Color.Gray)
+                Text(text = title, fontWeight = FontWeight.Medium, color = kianColors.ink)
+                Text(text = date, fontSize = 12.sp, color = kianColors.ink.copy(alpha = 0.5f))
             }
-            Text(text = amount, fontWeight = FontWeight.Bold, color = Ink)
+            Text(text = amount, fontWeight = FontWeight.Bold, color = kianColors.ink)
         }
-        HorizontalDivider(color = Line)
+        HorizontalDivider(color = kianColors.line)
     }
 }

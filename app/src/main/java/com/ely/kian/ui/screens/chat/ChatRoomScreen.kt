@@ -1,12 +1,13 @@
 package com.ely.kian.ui.screens.chat
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,11 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ely.kian.ui.components.InitialAvatar
-import com.ely.kian.ui.theme.Accent
-import com.ely.kian.ui.theme.Canvas
-import com.ely.kian.ui.theme.Ink
-import com.ely.kian.ui.theme.Line
-import com.ely.kian.ui.theme.Panel
+import com.ely.kian.ui.theme.KianTheme
 
 data class Message(
     val id: String,
@@ -39,6 +36,7 @@ fun ChatRoomScreen(
     onBack: () -> Unit,
     onCart: () -> Unit
 ) {
+    val kianColors = KianTheme.colors
     var text by remember { mutableStateOf("") }
     val mockMessages = listOf(
         Message("1", "peer", "Hi there!", 1000, false),
@@ -47,6 +45,7 @@ fun ChatRoomScreen(
     )
 
     Scaffold(
+        containerColor = kianColors.canvas,
         topBar = {
             TopAppBar(
                 title = {
@@ -54,22 +53,30 @@ fun ChatRoomScreen(
                         InitialAvatar(name = "Peer", size = 40.dp)
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
-                            Text(text = "Peer Name", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Ink)
-                            Text(text = "View profile", fontSize = 12.sp, color = Color.Gray)
+                            Text(text = "Peer Name", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = kianColors.ink)
+                            Text(text = "View profile", fontSize = 12.sp, color = kianColors.ink.copy(alpha = 0.5f))
                         }
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack, 
+                            contentDescription = "Back",
+                            tint = kianColors.ink
+                        )
                     }
                 },
                 actions = {
                     IconButton(onClick = onCart) {
-                        Icon(Icons.Default.ShoppingCart, contentDescription = "Cart", tint = Color.Gray)
+                        Icon(
+                            imageVector = Icons.Default.ShoppingCart, 
+                            contentDescription = "Cart", 
+                            tint = kianColors.ink.copy(alpha = 0.5f)
+                        )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Canvas)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = kianColors.canvas)
             )
         },
         bottomBar = {
@@ -96,6 +103,7 @@ fun ChatRoomScreen(
 
 @Composable
 fun MessageBubble(message: Message) {
+    val kianColors = KianTheme.colors
     Box(
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = if (message.isMine) Alignment.CenterEnd else Alignment.CenterStart
@@ -109,12 +117,12 @@ fun MessageBubble(message: Message) {
                     bottomStart = if (message.isMine) 16.dp else 4.dp,
                     bottomEnd = if (message.isMine) 4.dp else 16.dp
                 ))
-                .background(if (message.isMine) Ink else Panel)
+                .background(if (message.isMine) kianColors.ink else kianColors.panel)
                 .padding(horizontal = 16.dp, vertical = 10.dp)
         ) {
             Text(
                 text = message.content,
-                color = if (message.isMine) Color.White else Ink,
+                color = if (message.isMine) kianColors.canvas else kianColors.ink,
                 fontSize = 15.sp,
                 lineHeight = 22.sp
             )
@@ -128,9 +136,10 @@ fun ChatComposer(
     onTextChange: (String) -> Unit,
     onSend: () -> Unit
 ) {
+    val kianColors = KianTheme.colors
     Surface(
         tonalElevation = 2.dp,
-        color = Canvas,
+        color = kianColors.canvas,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -141,10 +150,10 @@ fun ChatComposer(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = { }) {
-                Icon(Icons.Default.AccountBalanceWallet, contentDescription = "Send Token", tint = Color.Gray)
+                Icon(Icons.Default.AccountBalanceWallet, contentDescription = "Send Token", tint = kianColors.ink.copy(alpha = 0.5f))
             }
             IconButton(onClick = { }) {
-                Icon(Icons.Default.LocalShipping, contentDescription = "Send Product", tint = Color.Gray)
+                Icon(Icons.Default.LocalShipping, contentDescription = "Send Product", tint = kianColors.ink.copy(alpha = 0.5f))
             }
             
             OutlinedTextField(
@@ -156,10 +165,11 @@ fun ChatComposer(
                     .padding(horizontal = 4.dp),
                 shape = RoundedCornerShape(24.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Line,
-                    unfocusedBorderColor = Line,
-                    focusedTextColor = Ink,
-                    unfocusedTextColor = Ink
+                    focusedBorderColor = kianColors.line,
+                    unfocusedBorderColor = kianColors.line,
+                    focusedTextColor = kianColors.ink,
+                    unfocusedTextColor = kianColors.ink,
+                    cursorColor = kianColors.accent
                 ),
                 maxLines = 4
             )
@@ -169,9 +179,9 @@ fun ChatComposer(
                 enabled = text.isNotBlank()
             ) {
                 Icon(
-                    Icons.Default.Send,
+                    Icons.AutoMirrored.Filled.Send,
                     contentDescription = "Send",
-                    tint = if (text.isNotBlank()) Accent else Color.Gray
+                    tint = if (text.isNotBlank()) kianColors.accent else kianColors.ink.copy(alpha = 0.3f)
                 )
             }
         }

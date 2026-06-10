@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,28 +20,27 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.ely.kian.ui.theme.Canvas
-import com.ely.kian.ui.theme.Ink
-import com.ely.kian.ui.theme.Line
-import com.ely.kian.ui.theme.Panel
+import com.ely.kian.ui.theme.KianTheme
 
 @Composable
 fun AppMenuButton(
     modifier: Modifier = Modifier,
     onOpenMenu: () -> Unit
 ) {
+    val kianColors = KianTheme.colors
+    
     Box(
         modifier = modifier
             .size(48.dp)
             .shadow(8.dp, RoundedCornerShape(16.dp))
             .clip(RoundedCornerShape(16.dp))
-            .background(Ink)
+            .background(kianColors.ink)
             .clickable { onOpenMenu() },
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = "≡",
-            color = Color.White,
+            color = kianColors.canvas,
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.offset(y = (-2).dp)
@@ -54,6 +54,8 @@ fun AppMenuDialog(
     onDismiss: () -> Unit,
     onNavigate: (String) -> Unit
 ) {
+    val kianColors = KianTheme.colors
+    
     if (isOpen) {
         Dialog(
             onDismissRequest = onDismiss,
@@ -71,7 +73,7 @@ fun AppMenuDialog(
                         .padding(top = 80.dp, end = 16.dp, start = 16.dp)
                         .widthIn(max = 320.dp)
                         .clip(RoundedCornerShape(24.dp))
-                        .background(Canvas)
+                        .background(kianColors.canvas)
                         .clickable(enabled = false) { }
                         .padding(20.dp)
                 ) {
@@ -79,7 +81,7 @@ fun AppMenuDialog(
                         text = "Application menu",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Ink,
+                        color = kianColors.ink,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
 
@@ -104,13 +106,13 @@ fun AppMenuDialog(
                         onClick = { onNavigate("private-key"); onDismiss() }
                     )
                     
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Line)
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = kianColors.line)
                     
                     Text(
                         text = "Account Mode",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color.Gray,
+                        color = kianColors.ink.copy(alpha = 0.5f),
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                     
@@ -118,7 +120,7 @@ fun AppMenuDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Panel)
+                            .background(kianColors.panel)
                             .padding(4.dp)
                     ) {
                         AccountModeButton(
@@ -138,7 +140,7 @@ fun AppMenuDialog(
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     MenuItem(
-                        icon = Icons.Default.Logout,
+                        icon = Icons.AutoMirrored.Filled.Logout,
                         label = "Logout",
                         destructive = true,
                         onClick = { onNavigate("logout"); onDismiss() }
@@ -156,6 +158,8 @@ fun MenuItem(
     destructive: Boolean = false,
     onClick: () -> Unit
 ) {
+    val kianColors = KianTheme.colors
+    
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -166,14 +170,14 @@ fun MenuItem(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = if (destructive) Color.Red else Ink,
+            tint = if (destructive) Color.Red else kianColors.ink,
             modifier = Modifier.size(20.dp)
         )
         Spacer(modifier = Modifier.width(12.dp))
         Text(
             text = label,
             fontSize = 16.sp,
-            color = if (destructive) Color.Red else Ink,
+            color = if (destructive) Color.Red else kianColors.ink,
             fontWeight = FontWeight.Medium
         )
     }
@@ -186,10 +190,12 @@ fun AccountModeButton(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
+    val kianColors = KianTheme.colors
+    
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(if (selected) Canvas else Color.Transparent)
+            .background(if (selected) kianColors.canvas else Color.Transparent)
             .clickable { onClick() }
             .padding(vertical = 8.dp),
         contentAlignment = Alignment.Center
@@ -198,7 +204,7 @@ fun AccountModeButton(
             text = label,
             fontSize = 14.sp,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-            color = if (selected) Ink else Color.Gray
+            color = if (selected) kianColors.ink else kianColors.ink.copy(alpha = 0.5f)
         )
     }
 }

@@ -14,9 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ely.kian.ui.theme.Canvas
-import com.ely.kian.ui.theme.Ink
-import com.ely.kian.ui.theme.Line
+import com.ely.kian.ui.theme.KianTheme
 
 @Composable
 fun MerchantCard(
@@ -27,14 +25,16 @@ fun MerchantCard(
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {}
 ) {
+    val kianColors = KianTheme.colors
+    
     Card(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .border(1.dp, Line, RoundedCornerShape(16.dp)),
+            .border(1.dp, kianColors.line, RoundedCornerShape(16.dp)),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Canvas
+            containerColor = kianColors.canvas
         )
     ) {
         Row(
@@ -52,12 +52,12 @@ fun MerchantCard(
                     text = name,
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
-                    color = Ink
+                    color = kianColors.ink
                 )
                 Text(
                     text = bio,
                     fontSize = 14.sp,
-                    color = Color.Gray,
+                    color = kianColors.ink.copy(alpha = 0.6f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -69,13 +69,13 @@ fun MerchantCard(
                         text = "★ $rating",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
-                        color = Ink
+                        color = kianColors.ink
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "• $distance",
                         fontSize = 12.sp,
-                        color = Color.Gray
+                        color = kianColors.ink.copy(alpha = 0.5f)
                     )
                 }
             }

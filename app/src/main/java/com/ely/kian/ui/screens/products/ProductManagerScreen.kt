@@ -19,9 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ely.kian.ui.components.KianButton
 import com.ely.kian.ui.components.KianChip
-import com.ely.kian.ui.theme.Ink
-import com.ely.kian.ui.theme.Line
-import com.ely.kian.ui.theme.Panel
+import com.ely.kian.ui.theme.KianTheme
 
 data class Product(
     val id: String,
@@ -40,17 +38,19 @@ val mockProducts = listOf(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductManagerScreen() {
+    val kianColors = KianTheme.colors
     var selectedCategory by remember { mutableStateOf("All") }
     val categories = listOf("All", "Food", "Bath", "Clothing")
     var showBottomSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
 
     Scaffold(
+        containerColor = kianColors.canvas,
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showBottomSheet = true },
-                containerColor = Ink,
-                contentColor = Color.White
+                containerColor = kianColors.ink,
+                contentColor = kianColors.canvas
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Product")
             }
@@ -67,7 +67,7 @@ fun ProductManagerScreen() {
                 text = "Product Manager",
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
-                color = Ink,
+                color = kianColors.ink,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp)
             )
 
@@ -102,18 +102,19 @@ fun ProductManagerScreen() {
             ModalBottomSheet(
                 onDismissRequest = { showBottomSheet = false },
                 sheetState = sheetState,
-                containerColor = Color.White
+                containerColor = kianColors.canvas,
+                contentColor = kianColors.ink
             ) {
                 Column(
                     modifier = Modifier
                         .padding(24.dp)
                         .fillMaxWidth()
                 ) {
-                    Text(text = "Add New Product", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Ink)
+                    Text(text = "Add New Product", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = kianColors.ink)
                     Spacer(modifier = Modifier.height(24.dp))
-                    Text(text = "Product Name Placeholder", color = Color.Gray)
+                    Text(text = "Product Name Placeholder", color = kianColors.ink.copy(alpha = 0.5f))
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text(text = "Required Asset Amount", color = Color.Gray)
+                    Text(text = "Required Asset Amount", color = kianColors.ink.copy(alpha = 0.5f))
                     Spacer(modifier = Modifier.height(24.dp))
                     KianButton(
                         text = "Create Product",
@@ -129,10 +130,11 @@ fun ProductManagerScreen() {
 
 @Composable
 fun ProductItem(product: Product) {
+    val kianColors = KianTheme.colors
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Panel, RoundedCornerShape(16.dp))
+            .background(kianColors.panel, RoundedCornerShape(16.dp))
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -140,13 +142,13 @@ fun ProductItem(product: Product) {
             modifier = Modifier
                 .size(48.dp)
                 .clip(RoundedCornerShape(8.dp))
-                .background(Line)
+                .background(kianColors.line)
         )
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = product.name, fontWeight = FontWeight.Bold, color = Ink)
-            Text(text = product.category, fontSize = 12.sp, color = Color.Gray)
+            Text(text = product.name, fontWeight = FontWeight.Bold, color = kianColors.ink)
+            Text(text = product.category, fontSize = 12.sp, color = kianColors.ink.copy(alpha = 0.5f))
         }
-        Text(text = "${product.price} Units", fontWeight = FontWeight.Bold, color = Ink)
+        Text(text = "${product.price} Units", fontWeight = FontWeight.Bold, color = kianColors.ink)
     }
 }

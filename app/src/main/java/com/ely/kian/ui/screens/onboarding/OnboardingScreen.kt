@@ -1,5 +1,6 @@
 package com.ely.kian.ui.screens.onboarding
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -11,16 +12,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ely.kian.ui.components.ButtonType
 import com.ely.kian.ui.components.KianButton
-import com.ely.kian.ui.theme.Ink
+import com.ely.kian.ui.theme.KianTheme
 
 @Composable
 fun OnboardingScreen(
     onCreateNew: () -> Unit,
     onImport: () -> Unit
 ) {
+    val kianColors = KianTheme.colors
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(kianColors.canvas)
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -29,14 +32,14 @@ fun OnboardingScreen(
             text = "Kian",
             fontSize = 48.sp,
             fontWeight = FontWeight.Black,
-            color = Ink
+            color = kianColors.ink
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "Your private, offline-first marketplace and chat.",
             fontSize = 18.sp,
             textAlign = TextAlign.Center,
-            color = Ink.copy(alpha = 0.7f)
+            color = kianColors.ink.copy(alpha = 0.7f)
         )
         Spacer(modifier = Modifier.height(48.dp))
         KianButton(

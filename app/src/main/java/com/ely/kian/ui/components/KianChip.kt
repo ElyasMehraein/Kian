@@ -9,14 +9,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ely.kian.ui.theme.Accent
-import com.ely.kian.ui.theme.AccentSoft
-import com.ely.kian.ui.theme.Canvas
-import com.ely.kian.ui.theme.Ink
-import com.ely.kian.ui.theme.Line
+import com.ely.kian.ui.theme.KianTheme
 
 @Composable
 fun KianChip(
@@ -25,12 +20,14 @@ fun KianChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val kianColors = KianTheme.colors
+    
     Surface(
         modifier = modifier.clickable { onClick() },
         shape = RoundedCornerShape(50), // Rounded-full
-        color = if (selected) Ink else Canvas,
-        border = if (selected) null else BorderStroke(1.dp, Line),
-        contentColor = if (selected) Canvas else Ink
+        color = if (selected) kianColors.ink else kianColors.canvas,
+        border = if (selected) null else BorderStroke(1.dp, kianColors.line),
+        contentColor = if (selected) kianColors.canvas else kianColors.ink
     ) {
         Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
             Text(

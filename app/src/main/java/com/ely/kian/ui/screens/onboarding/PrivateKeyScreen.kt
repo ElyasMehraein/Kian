@@ -6,23 +6,24 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ely.kian.ui.components.KianButton
-import com.ely.kian.ui.theme.Ink
-import com.ely.kian.ui.theme.Line
-import com.ely.kian.ui.theme.Panel
+import com.ely.kian.ui.theme.KianTheme
 
 @Composable
 fun PrivateKeyScreen(
     privateKey: String,
     onContinue: () -> Unit
 ) {
+    val kianColors = KianTheme.colors
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(kianColors.canvas)
             .padding(24.dp)
             .statusBarsPadding()
     ) {
@@ -30,27 +31,28 @@ fun PrivateKeyScreen(
             text = "Save Your Key",
             fontSize = 32.sp,
             fontWeight = FontWeight.Bold,
-            color = Ink
+            color = kianColors.ink
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "This is your private key. Never share it with anyone. If you lose it, you cannot recover your identity.",
             fontSize = 16.sp,
-            color = Ink.copy(alpha = 0.7f)
+            color = kianColors.ink.copy(alpha = 0.7f)
         )
         Spacer(modifier = Modifier.height(32.dp))
         
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Panel, RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(16.dp))
+                .background(kianColors.panel)
                 .padding(24.dp)
         ) {
             Text(
                 text = privateKey,
                 fontFamily = FontFamily.Monospace,
                 fontSize = 14.sp,
-                color = Ink,
+                color = kianColors.ink,
                 lineHeight = 20.sp
             )
         }
