@@ -28,6 +28,7 @@ import com.ely.kian.ui.screens.onboarding.PrivateKeyScreen
 import com.ely.kian.ui.screens.merchant.MerchantProfileScreen
 import com.ely.kian.ui.screens.chat.ChatRoomScreen
 import com.ely.kian.ui.screens.cart.CartScreen
+import com.ely.kian.ui.screens.relays.RelayManagementScreen
 import com.ely.kian.ui.theme.KianTheme
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
@@ -112,7 +113,7 @@ fun KianScaffold() {
                 composable(Screen.Chats.route) { ChatsScreen() }
                 
                 composable("profile") { PlaceholderScreen("My Profile Screen") }
-                composable("relays") { PlaceholderScreen("Relay Management Screen") }
+                composable("relays") { RelayManagementScreen() }
                 composable("pending") { PlaceholderScreen("Pending Events Screen") }
                 composable("private-key") { PrivateKeyScreen(privateKey = "nsec1...", onContinue = { navController.popBackStack() }) }
                 
