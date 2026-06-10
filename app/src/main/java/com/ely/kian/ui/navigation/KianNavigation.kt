@@ -24,6 +24,7 @@ import com.ely.kian.ui.screens.chats.ChatsScreen
 import com.ely.kian.ui.screens.home.HomeScreen
 import com.ely.kian.ui.screens.products.ProductManagerScreen
 import com.ely.kian.ui.screens.wallet.WalletScreen
+import com.ely.kian.ui.screens.onboarding.OnboardingScreen
 import com.ely.kian.ui.screens.onboarding.PrivateKeyScreen
 import com.ely.kian.ui.screens.merchant.MerchantProfileScreen
 import com.ely.kian.ui.screens.chat.ChatRoomScreen
@@ -116,6 +117,28 @@ fun KianScaffold() {
                 composable("relays") { RelayManagementScreen() }
                 composable("pending") { PlaceholderScreen("Pending Events Screen") }
                 composable("private-key") { PrivateKeyScreen(privateKey = "nsec1...", onContinue = { navController.popBackStack() }) }
+                composable("onboarding") {
+                    OnboardingScreen(
+                        onCreateNew = { 
+                            navController.navigate(Screen.Home.route) {
+                                popUpTo("onboarding") { inclusive = true }
+                            }
+                        },
+                        onImport = { 
+                            navController.navigate(Screen.Home.route) {
+                                popUpTo("onboarding") { inclusive = true }
+                            }
+                        }
+                    )
+                }
+                
+                composable("logout") {
+                    LaunchedEffect(Unit) {
+                        navController.navigate("onboarding") {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                }
                 
                 composable(Screen.MerchantProfile.route) { backStackEntry ->
                     val pubkey = backStackEntry.arguments?.getString("pubkey") ?: ""
