@@ -46,7 +46,7 @@ fun LogoutConfirmationDialog(
         },
         text = {
             Text(
-                text = "Logging out will wipe all local data including chats, products, and wallet entries. This is an offline-first app; your data is stored locally on this device.",
+                text = "Logging out will wipe all local data including products and wallet entries. This is an offline-first app; your data is stored locally on this device.",
                 fontSize = 15.sp,
                 color = kianColors.muted,
                 textAlign = TextAlign.Center,

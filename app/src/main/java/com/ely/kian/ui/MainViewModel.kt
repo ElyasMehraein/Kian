@@ -52,7 +52,6 @@ class MainViewModel(
     init {
         viewModelScope.launch {
             try {
-                kotlinx.coroutines.delay(500) // Small delay to let DB/UI stabilize
                 keyDao.getKeyFlow().collectLatest { key ->
                     isLoggedIn = key != null
                     ownPubkey = key?.pubkey

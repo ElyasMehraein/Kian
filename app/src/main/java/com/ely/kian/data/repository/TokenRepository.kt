@@ -31,7 +31,6 @@ class TokenRepository(
     private val keyDao: KeyDao,
     private val tokenDao: TokenDao,
     private val productDao: ProductDao,
-    private val chatDao: ChatDao,
     private val offlineQueueDao: OfflineQueueDao
 ) {
     private val json = Json { ignoreUnknownKeys = true }
@@ -117,37 +116,6 @@ class TokenRepository(
         return keyDao.getKeyFlow().flatMapLatest { key ->
             val pubkey = key?.pubkey ?: return@flatMapLatest flowOf(emptyList())
 
-            val messagesFlow = chatDao.listTokenTransfers().map { messages ->
-                messages.filter { it.sender == pubkey || it.conversationPubkey == pubkey }.mapNotNull { message ->
-                    try {
-                        val contentJson = json.parseToJsonElement(message.content).jsonObject
-                        val utxoId = contentJson["utxo_id"]?.jsonPrimitive?.content
-                        val assetRef = contentJson["asset_ref"]?.jsonPrimitive?.content
-                        val amount = contentJson["amount"]?.jsonPrimitive?.content?.toLongOrNull()
-                        val recipient = contentJson["recipient"]?.jsonPrimitive?.content
-                        val requestStatus = contentJson["request_status"]?.jsonPrimitive?.content ?: "waiting_mint"
-
-                        if (utxoId != null && assetRef != null && amount != null && recipient != null) {
-                            PendingItem(
-                                eventId = message.id,
-                                utxoId = utxoId,
-                                assetRef = assetRef,
-                                amount = amount,
-                                recipient = recipient,
-                                status = when (requestStatus) {
-                                    "fulfilled" -> "fulfilled"
-                                    "rejected" -> "rejected"
-                                    else -> "waiting_mint"
-                                },
-                                createdAt = message.createdAt
-                            )
-                        } else null
-                    } catch (e: Exception) {
-                        null
-                    }
-                }
-            }
-
             val offlineFlow = offlineQueueDao.getAll().map { queue ->
                 queue.mapNotNull { item ->
                     // Simplified: In a real app, we'd decode CBOR and check Kind 1050
@@ -166,9 +134,7 @@ class TokenRepository(
                 }
             }
 
-            combine(messagesFlow, offlineFlow) { messages, offline ->
-                (messages + offline).sortedByDescending { it.createdAt }
-            }
+            offlineFlow.map { it.sortedByDescending { item -> item.createdAt } }
         }
     }
 
@@ -222,13 +188,13 @@ class TokenRepository(
         )
 
         // TODO: In a real NIP-17 implementation, this would be wrapped in NIP-59
-        // For now, we use the ChatRepository pattern or similar
-        // Actually, we should probably add this to ChatRepository or use it here
+        // For now, we use the direct publish pattern or similar
+        // Actually, we should probably add this to a generic event publisher
         
         // Marking as spent locally
         tokenDao.markSpent(utxoId)
         
-        // Note: The Expo code also sends a chat message to the recipient
+        // Note: The Expo code also sends a notification to the recipient
         // to inform them of the pending transfer.
     }
 

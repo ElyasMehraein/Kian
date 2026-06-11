@@ -38,9 +38,6 @@ object DatabaseModule {
     fun provideTokenDao(db: KianDatabase): TokenDao = db.tokenDao()
 
     @Provides
-    fun provideChatDao(db: KianDatabase): ChatDao = db.chatDao()
-
-    @Provides
     fun provideReviewDao(db: KianDatabase): ReviewDao = db.reviewDao()
 
     @Provides

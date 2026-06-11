@@ -24,7 +24,7 @@ Create the screens and ensure the layout matches the original Expo screens.
 - [x] **Task 2.1: Home Screen (Trader Listing)**
 - [x] **Task 2.2: Wallet Screen**
 - [x] **Task 2.3: Product Manager Screen**
-- [x] **Task 2.4: Chat & Conversation Screens**
+- [x] **Task 2.4: Chat & Conversation Screens (REMOVED)**
 - [x] **Task 2.5: Onboarding & Identity**
 - [x] **Task 2.6: Private Key Management Screen**
 - [x] **Task 2.7: Backup & Recovery Screen**
@@ -51,7 +51,7 @@ Implement the core logic following `expo-refrence/src/db/schema.ts` and `expo-re
 - [x] **Task 4.2: Event Parsing (Kinds 0, 3, 31999, 30018)**
 - [x] **Task 4.3: Message Status & Receipts (Kind 20001/20002)**
   - Implement transient receipts (Delivered/Read) with visual status in UI.
-- [x] **Task 4.4: Conversation Deletion (Kind 15001)**
+- [x] **Task 4.4: Conversation Deletion (Kind 15001) (REMOVED)**
   - Implement two-way secure deletion of chat history.
 - [ ] **Task 4.5: DM Inbox Relays (Kind 10050)**
   - [x] Discovery logic in SyncManager.
@@ -69,7 +69,7 @@ Implementing the "Real World" commerce features from the Expo reference.
 - [ ] **Task 5.2: Token Lifecycle (UTXO Engine)**
   - [ ] UI and logic for **Kind 35001 (Genesis)**: Minting new tokens from products.
   - [ ] Logic for **Kind 35002 (Remint)**: Producer-side approval of transfer requests.
-- [ ] **Task 5.3: In-Chat Token Transfers (Kind 1050)**
+- [ ] **Task 5.3: In-Chat Token Transfers (Kind 1050) (REMOVED)**
   - [x] Repository logic for Transfer Requests.
   - [ ] Integration with the Chat UI to show transfer status (Waiting/Fulfilled).
 

@@ -46,7 +46,6 @@ data class ReviewInfo(
 fun MerchantProfileScreen(
     pubkey: String,
     onBack: () -> Unit,
-    onChat: () -> Unit,
     onCart: () -> Unit,
     onEdit: () -> Unit = {},
     ownPubkey: String? = null,
@@ -119,7 +118,6 @@ fun MerchantProfileScreen(
                             type = com.ely.kian.ui.components.ButtonType.Soft
                         )
                     } else {
-                        KianButton(text = "Start messaging", onClick = onChat)
                         KianButton(
                             text = "Write review",
                             onClick = {},

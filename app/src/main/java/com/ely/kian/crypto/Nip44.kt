@@ -116,25 +116,25 @@ object Nip44 {
         if (len < 1 || len > 65535) throw Exception("Invalid plaintext length")
         
         val paddedLen = calcPaddedLength(len)
-        val result = ByteBuffer.allocate(2 + paddedLen).order(ByteOrder.BIG_ENDIAN)
-        result.putShort(len.toShort())
-        result.put(unpadded)
-        // Rest is zeroed by ByteBuffer
-        return result.array()
+        val result = ByteArray(2 + paddedLen)
+        result[0] = (len shr 8).toByte()
+        result[1] = (len and 0xFF).toByte()
+        System.arraycopy(unpadded, 0, result, 2, len)
+        return result
     }
 
     private fun unpad(padded: ByteArray): String {
-        val bb = ByteBuffer.wrap(padded).order(ByteOrder.BIG_ENDIAN)
-        val len = bb.short.toInt() and 0xFFFF
+        val len = ((padded[0].toInt() and 0xFF) shl 8) or (padded[1].toInt() and 0xFF)
+        if (len < 1 || len > padded.size - 2) throw Exception("Invalid padding")
         val plaintext = ByteArray(len)
-        bb.get(plaintext)
+        System.arraycopy(padded, 2, plaintext, 0, len)
         return String(plaintext)
     }
 
     private fun calcPaddedLength(len: Int): Int {
         if (len <= 32) return 32
-        val nextPower = 2.0.pow(kotlin.math.ceil(ln(len.toDouble() - 1) / ln(2.0))).toInt()
+        val nextPower = 1 shl (kotlin.math.floor(kotlin.math.log2(len - 1f)) + 1).toInt()
         val chunk = if (nextPower <= 256) 32 else nextPower / 8
-        return chunk * (kotlin.math.ceil(len.toDouble() / chunk)).toInt()
+        return chunk * (kotlin.math.floor((len - 1f) / chunk).toInt() + 1)
     }
 }

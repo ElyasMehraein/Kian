@@ -4,6 +4,7 @@
 .idea/
 .DS_Store
 /build
+/amethyst-main
 /captures
 .externalNativeBuild
 .cxx

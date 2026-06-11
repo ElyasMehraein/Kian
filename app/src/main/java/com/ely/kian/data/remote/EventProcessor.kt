@@ -1,0 +1,89 @@
+package com.ely.kian.data.remote
+
+import android.util.Log
+import com.ely.kian.crypto.KianKeys
+import com.ely.kian.crypto.Nip59
+import com.ely.kian.crypto.SecureStorage
+import com.ely.kian.data.remote.model.NostrEvent
+import com.ely.kian.data.repository.ProductRepository
+import com.ely.kian.data.repository.TokenRepository
+import com.ely.kian.data.local.dao.UserProfileDao
+import com.ely.kian.data.local.entities.Profile
+import kotlinx.serialization.json.*
+
+class EventProcessor(
+    private val secureStorage: SecureStorage,
+    private val productRepository: ProductRepository,
+    private val tokenRepository: TokenRepository,
+    private val userProfileDao: UserProfileDao,
+    private val json: Json = Json { ignoreUnknownKeys = true }
+) {
+    private val TAG = "EventProcessor"
+
+    suspend fun process(event: NostrEvent) {
+        Log.d(TAG, "Processing event kind=${event.kind} id=${event.id.take(8)}")
+        
+        when (event.kind) {
+            0 -> handleMetadata(event)
+            5 -> handleDeletion(event)
+            62 -> handleVanish(event)
+            1059 -> handleGiftWrap(event)
+            30017, 30018 -> productRepository.handleProductEvent(event)
+            35001, 35002 -> tokenRepository.handleTokenEvent(event)
+            else -> Log.w(TAG, "Unhandled event kind=${event.kind}")
+        }
+    }
+
+    private fun handleVanish(event: NostrEvent) {
+        // NIP-62 Vanish: Logic for non-commerce entities if needed
+        Log.i(TAG, "Author ${event.pubkey.take(8)} is vanishing.")
+    }
+
+    private suspend fun handleDeletion(event: NostrEvent) {
+        // Standard Kind 5 Deletion
+        val targetIds = event.tags.filter { it.size >= 2 && it[0] == "e" }.map { it[1] }
+        targetIds.forEach { id ->
+            // If it's a Kind 0, 30017, 30018, 35001, or 35002 - we do NOTHING.
+            // These records stay in Kian's DB even if requested to be deleted.
+        }
+    }
+
+    private suspend fun handleGiftWrap(wrap: NostrEvent) {
+        val privKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: return
+        val privKey = KianKeys.hexToBytes(privKeyHex)
+        
+        try {
+            val rumor = Nip59.unwrap(wrap, privKey)
+            if (rumor != null) {
+                Log.d(TAG, "Unwrapped GiftWrap: kind=${rumor.kind} id=${rumor.id.take(8)}")
+                // Recursive call to process the inner rumor
+                process(rumor)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to unwrap gift wrap", e)
+        }
+    }
+
+    private suspend fun handleMetadata(event: NostrEvent) {
+        val isTrader = event.tags.any { it.size >= 2 && it[0] == "t" && it[1] == "trader" }
+        try {
+            val content = json.parseToJsonElement(event.content).jsonObject
+            val profile = Profile(
+                pubkey = event.pubkey,
+                name = content["name"]?.jsonPrimitive?.contentOrNull,
+                displayName = content["display_name"]?.jsonPrimitive?.contentOrNull ?: content["name"]?.jsonPrimitive?.contentOrNull,
+                about = content["about"]?.jsonPrimitive?.contentOrNull,
+                picture = content["picture"]?.jsonPrimitive?.contentOrNull,
+                nip05 = content["nip05"]?.jsonPrimitive?.contentOrNull,
+                geohash = content["geohash"]?.jsonPrimitive?.contentOrNull,
+                rawJson = event.content,
+                isTrader = isTrader,
+                createdAt = event.createdAt,
+                updatedAt = System.currentTimeMillis() / 1000
+            )
+            userProfileDao.upsert(profile)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to parse metadata", e)
+        }
+    }
+}

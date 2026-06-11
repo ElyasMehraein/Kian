@@ -14,9 +14,6 @@ import com.ely.kian.data.local.entities.*
         com.ely.kian.data.local.entities.ProductCategory::class,
         com.ely.kian.data.local.entities.TokenDefinition::class,
         com.ely.kian.data.local.entities.TokenUtxo::class,
-        com.ely.kian.data.local.entities.Conversation::class,
-        com.ely.kian.data.local.entities.Message::class,
-        com.ely.kian.data.local.entities.MessageReceipt::class,
         com.ely.kian.data.local.entities.Review::class,
         com.ely.kian.data.local.entities.OfflineQueue::class,
         com.ely.kian.data.local.entities.Relay::class,
@@ -30,7 +27,6 @@ abstract class KianDatabase : RoomDatabase() {
     abstract fun userProfileDao(): UserProfileDao
     abstract fun productDao(): ProductDao
     abstract fun tokenDao(): TokenDao
-    abstract fun chatDao(): ChatDao
     abstract fun reviewDao(): ReviewDao
     abstract fun offlineQueueDao(): OfflineQueueDao
     abstract fun relayDao(): RelayDao

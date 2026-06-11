@@ -27,7 +27,6 @@ import com.ely.kian.ui.components.AppMenuDialog
 import com.ely.kian.ui.components.LogoutConfirmationDialog
 import com.ely.kian.KianApp
 import com.ely.kian.ui.MainViewModel
-import com.ely.kian.ui.screens.chats.ChatsScreen
 import com.ely.kian.ui.screens.home.HomeScreen
 import com.ely.kian.ui.screens.products.ProductManagerScreen
 import com.ely.kian.ui.screens.products.ProductCategoriesScreen
@@ -39,8 +38,6 @@ import com.ely.kian.ui.screens.onboarding.OnboardingScreen
 import com.ely.kian.ui.screens.onboarding.PrivateKeyScreen
 import com.ely.kian.ui.screens.merchant.MerchantProfileScreen
 import com.ely.kian.ui.screens.profile.ProfileEditScreen
-import com.ely.kian.ui.screens.chat.ChatRoomScreen
-import com.ely.kian.ui.screens.chat.ChatViewModel
 import com.ely.kian.ui.screens.cart.CartScreen
 import com.ely.kian.ui.screens.relays.RelayManagementScreen
 import com.ely.kian.ui.theme.KianTheme
@@ -49,11 +46,9 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     object Home : Screen("home", "Home", Icons.Default.Home)
     object Wallet : Screen("wallet", "Wallet", Icons.Default.Wallet)
     object Products : Screen("products", "Products", Icons.Default.Inventory)
-    object Chats : Screen("chats", "Chats", Icons.Default.Chat)
     
     // Sub-screens
     object MerchantProfile : Screen("merchant/{pubkey}", "Merchant", Icons.Default.Person)
-    object ChatRoom : Screen("chat/{pubkey}", "Chat", Icons.Default.Chat)
     object Cart : Screen("cart", "Cart", Icons.Default.ShoppingCart)
     object Backups : Screen("backups", "Backups", Icons.Default.Backup)
 }
@@ -62,7 +57,6 @@ val items = listOf(
     Screen.Home,
     Screen.Wallet,
     Screen.Products,
-    Screen.Chats,
 )
 
 @Composable
@@ -127,11 +121,8 @@ fun KianScaffold() {
                                 selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
                                 onClick = {
                                     navController.navigate(screen.route) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
-                                        }
+                                        popUpTo(navController.graph.findStartDestination().id)
                                         launchSingleTop = true
-                                        restoreState = true
                                     }
                                 },
                                 colors = NavigationBarItemDefaults.colors(
@@ -150,7 +141,11 @@ fun KianScaffold() {
             NavHost(
                 navController = navController,
                 startDestination = if (isLoggedIn == true) Screen.Home.route else "onboarding",
-                modifier = Modifier.padding(innerPadding)
+                modifier = Modifier.padding(innerPadding),
+                enterTransition = { androidx.compose.animation.EnterTransition.None },
+                exitTransition = { androidx.compose.animation.ExitTransition.None },
+                popEnterTransition = { androidx.compose.animation.EnterTransition.None },
+                popExitTransition = { androidx.compose.animation.ExitTransition.None }
             ) {
                 composable(Screen.Home.route) { 
                     HomeScreen(onMerchantClick = { pubkey ->
@@ -190,20 +185,12 @@ fun KianScaffold() {
                         onNavigateBack = { navController.popBackStack() }
                     )
                 }
-                composable(Screen.Chats.route) {
-                    val chatViewModel: ChatViewModel = viewModel(factory = ChatViewModel.provideFactory(app.container.chatRepository, app.container.userProfileDao))
-                    ChatsScreen(
-                        viewModel = chatViewModel,
-                        onChatClick = { pubkey -> navController.navigate("chat/$pubkey") }
-                    )
-                }
                 
                 composable("profile") { 
                     MerchantProfileScreen(
                         pubkey = viewModel.ownPubkey ?: "",
                         ownPubkey = viewModel.ownPubkey,
                         onBack = { navController.popBackStack() },
-                        onChat = { /* N/A for own profile */ },
                         onCart = { navController.navigate("cart") },
                         onEdit = { navController.navigate("profile/edit") }
                     ) 
@@ -236,20 +223,8 @@ fun KianScaffold() {
                         pubkey = pubkey,
                         ownPubkey = viewModel.ownPubkey,
                         onBack = { navController.popBackStack() },
-                        onChat = { navController.navigate("chat/$pubkey") },
                         onCart = { navController.navigate("cart") },
                         onEdit = { navController.navigate("profile/edit") }
-                    )
-                }
-                
-                composable(Screen.ChatRoom.route) { backStackEntry ->
-                    val pubkey = backStackEntry.arguments?.getString("pubkey") ?: ""
-                    val chatViewModel: ChatViewModel = viewModel(factory = ChatViewModel.provideFactory(app.container.chatRepository, app.container.userProfileDao))
-                    ChatRoomScreen(
-                        peerPubkey = pubkey,
-                        viewModel = chatViewModel,
-                        onBack = { navController.popBackStack() },
-                        onCart = { navController.navigate("cart") }
                     )
                 }
                 

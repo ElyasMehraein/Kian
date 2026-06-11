@@ -6,13 +6,13 @@ import kotlinx.serialization.json.JsonElement
 
 @Serializable
 data class NostrEvent(
-    val id: String,
+    val id: String = "",
     val pubkey: String,
     @SerialName("created_at") val createdAt: Long,
     val kind: Int,
     val tags: List<List<String>>,
     val content: String,
-    val sig: String
+    val sig: String = ""
 )
 
 @Serializable

@@ -4,9 +4,9 @@ import android.content.Context
 import androidx.room.Room
 import com.ely.kian.crypto.SecureStorage
 import com.ely.kian.data.local.KianDatabase
+import com.ely.kian.data.remote.EventProcessor
 import com.ely.kian.data.remote.NostrSyncManager
 import com.ely.kian.data.remote.RelayPoolManager
-import com.ely.kian.data.repository.ChatRepository
 import com.ely.kian.data.repository.ProductRepository
 import com.ely.kian.data.repository.TokenRepository
 
@@ -26,21 +26,25 @@ class KianContainer(context: Context) {
     val userProfileDao get() = database.userProfileDao()
     val productDao get() = database.productDao()
     val tokenDao get() = database.tokenDao()
-    val chatDao get() = database.chatDao()
     val reviewDao get() = database.reviewDao()
     val offlineQueueDao get() = database.offlineQueueDao()
     val relayDao get() = database.relayDao()
-
-    val chatRepository: ChatRepository by lazy {
-        ChatRepository(chatDao, relayDao, relayPoolManager, secureStorage)
-    }
 
     val productRepository: ProductRepository by lazy {
         ProductRepository(productDao, relayPoolManager, secureStorage)
     }
 
     val tokenRepository: TokenRepository by lazy {
-        TokenRepository(keyDao, tokenDao, productDao, chatDao, offlineQueueDao)
+        TokenRepository(keyDao, tokenDao, productDao, offlineQueueDao)
+    }
+
+    val eventProcessor: EventProcessor by lazy {
+        EventProcessor(
+            secureStorage = secureStorage,
+            productRepository = productRepository,
+            tokenRepository = tokenRepository,
+            userProfileDao = userProfileDao
+        )
     }
 
     val nostrSyncManager by lazy {
@@ -48,9 +52,7 @@ class KianContainer(context: Context) {
             relayPool = relayPoolManager,
             userProfileDao = userProfileDao,
             relayDao = relayDao,
-            chatRepository = chatRepository,
-            productRepository = productRepository,
-            tokenRepository = tokenRepository
+            eventProcessor = eventProcessor
         )
     }
 }

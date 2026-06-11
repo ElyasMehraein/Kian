@@ -7,6 +7,7 @@ import java.util.Random
 object Nip59 {
     private const val KIND_GIFT_WRAP = 1059
     private const val KIND_GIFT_SEAL = 13
+    private val json = Json { ignoreUnknownKeys = true }
 
     fun giftWrap(
         innerEventJson: String,
@@ -40,7 +41,7 @@ object Nip59 {
         // 2. Wrap the Seal in a Gift Wrap (Kind 1059) using an ephemeral key
         val (ephemeralPriv, ephemeralPub) = KianKeys.generateKeyPair()
         val wrapCreatedAt = randomizedTimestamp()
-        val sealJson = Json.encodeToString(NostrEvent.serializer(), seal)
+        val sealJson = json.encodeToString(NostrEvent.serializer(), seal)
         val encryptedSeal = Nip44.encrypt(sealJson, ephemeralPriv, recipientPubKey)
         
         val wrapTags = listOf(listOf("p", KianKeys.bytesToHex(recipientPubKey)))
@@ -73,16 +74,28 @@ object Nip59 {
             
             // 1. Decrypt Wrap to get Seal
             val sealJson = Nip44.decrypt(wrap.content, recipientPrivKey, KianKeys.hexToBytes(wrap.pubkey))
-            val seal = Json.decodeFromString<NostrEvent>(sealJson)
+            val seal = json.decodeFromString<NostrEvent>(sealJson)
             
             if (seal.kind != KIND_GIFT_SEAL) return null
             
             // 2. Decrypt Seal to get Rumor (Inner Event)
             val innerJson = Nip44.decrypt(seal.content, recipientPrivKey, KianKeys.hexToBytes(seal.pubkey))
             
-            // The inner event is a "rumor" - it might not have an ID or Sig yet in standard NIP-59,
-            // but in Kian we expect it to be a valid NostrEvent-like structure.
-            return Json.decodeFromString<NostrEvent>(innerJson)
+            // The inner event is a "rumor"
+            val rumor = json.decodeFromString<NostrEvent>(innerJson)
+            
+            // Ensure the rumor has an ID for local storage and tracking
+            return if (rumor.id.isEmpty()) {
+                rumor.copy(id = KianKeys.computeEventId(
+                    pubkey = rumor.pubkey,
+                    createdAt = rumor.createdAt,
+                    kind = rumor.kind,
+                    tags = rumor.tags,
+                    content = rumor.content
+                ))
+            } else {
+                rumor
+            }
         } catch (e: Exception) {
             android.util.Log.e("Nip59", "Failed to unwrap", e)
             return null
@@ -91,7 +104,8 @@ object Nip59 {
 
     private fun randomizedTimestamp(): Long {
         val now = System.currentTimeMillis() / 1000
-        val window = 48 * 60 * 60 // 48 hours in seconds
-        return now - window + Random().nextInt(window * 2)
+        val window = 48 * 60 * 60 // 48 hours
+        // Amethyst style: random within a 4-day window centered on now - 2 days
+        return now - window + java.util.Random().nextInt(window * 2).toLong()
     }
 }

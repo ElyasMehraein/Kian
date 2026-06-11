@@ -65,10 +65,20 @@ object KianKeys {
     }
 
     fun computeSharedSecret(privKey: ByteArray, pubKey: ByteArray): ByteArray {
-        // secp256k1.pubKeyTweakMul returns a point, but we need ECDH
-        // The secp256k1-kmp library usually has a way to do ECDH.
-        // For Nostr NIP-44, we need the X-coordinate of the shared point.
-        return secp256k1.pubKeyTweakMul(pubKey, privKey).sliceArray(1..32)
+        return try {
+            // For Nostr NIP-44, we need the X-coordinate of the shared point.
+            // We ensure the pubKey is in a valid compressed format (33 bytes) 
+            // by prepending 0x02 if it's a 32-byte X-only pubkey.
+            val fullPubKey = if (pubKey.size == 32) {
+                byteArrayOf(0x02) + pubKey
+            } else {
+                pubKey
+            }
+            secp256k1.pubKeyTweakMul(fullPubKey, privKey).sliceArray(1..32)
+        } catch (e: Exception) {
+            android.util.Log.e("KianKeys", "Shared secret calculation failed", e)
+            throw e
+        }
     }
 
     fun computeEventId(
