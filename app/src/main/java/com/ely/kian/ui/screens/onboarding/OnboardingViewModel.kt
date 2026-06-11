@@ -74,6 +74,7 @@ class OnboardingViewModel(
                 )
                 mnemonicInput = ""
             } catch (e: Exception) {
+                android.util.Log.e("OnboardingViewModel", "Generation failed", e)
                 _events.emit(OnboardingEvent.Error("Generation failed: ${e.message}"))
             }
         }

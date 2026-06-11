@@ -11,7 +11,10 @@ object Bech32 {
     }
 
     fun decode(bech32: String): Pair<String, ByteArray> {
-        val (hrp, data) = decodeRaw(bech32)
+        val (hrp, dataWithChecksum) = decodeRaw(bech32)
+        if (dataWithChecksum.size < 6) throw Exception("Data too short")
+        if (!verifyChecksum(hrp, dataWithChecksum)) throw Exception("Invalid checksum")
+        val data = dataWithChecksum.copyOfRange(0, dataWithChecksum.size - 6)
         return hrp to convertBits(data, 5, 8, false)
     }
 
@@ -28,12 +31,20 @@ object Bech32 {
 
     private fun decodeRaw(bech32: String): Pair<String, ByteArray> {
         val pos = bech32.lastIndexOf('1')
-        val hrp = bech32.substring(0, pos)
+        if (pos < 1 || pos + 7 > bech32.length) throw Exception("Invalid separator position")
+        val hrp = bech32.substring(0, pos).lowercase()
         val data = ByteArray(bech32.length - pos - 1)
         for (i in 0 until data.size) {
-            data[i] = CHARSET.indexOf(bech32[pos + 1 + i]).toByte()
+            val char = bech32[pos + 1 + i].lowercaseChar()
+            val idx = CHARSET.indexOf(char)
+            if (idx == -1) throw Exception("Invalid character: $char")
+            data[i] = idx.toByte()
         }
         return hrp to data
+    }
+
+    private fun verifyChecksum(hrp: String, data: ByteArray): Boolean {
+        return polymod(hrpExpand(hrp) + data) == 1
     }
 
     private fun convertBits(data: ByteArray, fromBits: Int, toBits: Int, pad: Boolean): ByteArray {
@@ -65,7 +76,7 @@ object Bech32 {
         val poly = polymod(values) xor 1
         val checksum = ByteArray(6)
         for (i in 0 until 6) {
-            checksum[i] = ((poly shr (5 * (5 - i))) and 31).toByte()
+            checksum[i] = ((poly ushr (5 * (5 - i))) and 31).toByte()
         }
         return checksum
     }
@@ -84,10 +95,10 @@ object Bech32 {
         val generators = intArrayOf(0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3)
         var chk = 1
         for (v in values) {
-            val top = chk shr 25
+            val top = chk ushr 25
             chk = ((chk and 0x1ffffff) shl 5) xor (v.toInt() and 0xff)
             for (i in 0 until 5) {
-                if ((top shr i) and 1 != 0) {
+                if ((top ushr i) and 1 != 0) {
                     chk = chk xor generators[i]
                 }
             }

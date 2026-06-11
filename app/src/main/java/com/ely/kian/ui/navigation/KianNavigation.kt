@@ -93,8 +93,12 @@ fun KianScaffold() {
 
     LaunchedEffect(isLoggedIn) {
         if (isLoggedIn == false) {
-            navController.navigate("onboarding") {
-                popUpTo(0) { inclusive = true }
+            // Ensure we don't navigate before NavHost is ready or if already there
+            val hasGraph = try { navController.graph; true } catch (e: Exception) { false }
+            if (hasGraph && navController.currentDestination?.route != "onboarding") {
+                navController.navigate("onboarding") {
+                    popUpTo(0) { inclusive = true }
+                }
             }
         }
     }
@@ -145,7 +149,7 @@ fun KianScaffold() {
         ) { innerPadding ->
             NavHost(
                 navController = navController,
-                startDestination = Screen.Home.route,
+                startDestination = if (isLoggedIn == true) Screen.Home.route else "onboarding",
                 modifier = Modifier.padding(innerPadding)
             ) {
                 composable(Screen.Home.route) { 
