@@ -129,27 +129,27 @@ class MainViewModel(
     }
 
     fun logout(onComplete: () -> Unit = {}) {
-        viewModelScope.launch {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             try {
-                // 0. Stop Nostr syncing
+                // 0. Stop Nostr syncing first
                 try {
                     nostrSyncManager.stopSyncing()
                 } catch (e: Exception) {
                     Log.e("MainViewModel", "Failed to stop syncing", e)
                 }
 
-                // 1. Wipe all user-specific data from local database
-                try {
-                    database.clearAllTables()
-                } catch (e: Exception) {
-                    Log.e("MainViewModel", "Failed to clear database", e)
-                }
-                
-                // 2. Clear sensitive data from SecureStorage (Private Key, Mnemonic)
+                // 1. Clear sensitive data immediately so handleEvent can't process as "mine"
                 try {
                     secureStorage.clearAll()
                 } catch (e: Exception) {
                     Log.e("MainViewModel", "Failed to clear secure storage", e)
+                }
+                
+                // 2. Wipe all local database tables
+                try {
+                    database.clearAllTables()
+                } catch (e: Exception) {
+                    Log.e("MainViewModel", "Failed to clear database", e)
                 }
                 
                 // 3. Clear Nostr keys from DB (This triggers isLoggedIn = false)

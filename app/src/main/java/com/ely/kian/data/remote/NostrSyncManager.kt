@@ -4,11 +4,7 @@ import android.util.Log
 import com.ely.kian.data.local.dao.UserProfileDao
 import com.ely.kian.data.local.entities.Profile
 import com.ely.kian.data.remote.model.NostrEvent
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import kotlinx.serialization.json.*
 import okhttp3.Response
 import okhttp3.WebSocket
@@ -33,6 +29,8 @@ class NostrSyncManager(
     )
 
     fun startSyncing(myPubkey: String? = null) {
+        stopSyncing() // Ensure everything is stopped first
+        
         defaultRelays.forEach { url ->
             relayPool.connect(url, object : WebSocketListener() {
                 override fun onOpen(webSocket: WebSocket, response: Response) {
@@ -64,10 +62,10 @@ class NostrSyncManager(
     }
 
     fun stopSyncing() {
-        defaultRelays.forEach { url ->
-            relayPool.disconnect(url)
-        }
-        Log.d(TAG, "Syncing stopped")
+        relayPool.disconnectAll()
+        // Cancel any pending work in the sync scope to avoid processing old events
+        syncScope.coroutineContext[kotlinx.coroutines.Job]?.cancelChildren()
+        Log.d(TAG, "Syncing stopped and pending work cancelled")
     }
 
     private fun handleMessage(message: String) {
