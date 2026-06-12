@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -90,6 +91,7 @@ fun KianScaffold() {
     val showBottomBar = items.any { it.route == currentRoute }
 
     val isLoggedIn = viewModel.isLoggedIn
+    val totalUnreadCount by viewModel.totalUnreadCount.collectAsState()
 
     LaunchedEffect(isLoggedIn) {
         if (isLoggedIn == false) {
@@ -122,7 +124,24 @@ fun KianScaffold() {
                         val currentDestination = navBackStackEntry?.destination
                         items.forEach { screen ->
                             NavigationBarItem(
-                                icon = { Icon(screen.icon, contentDescription = null) },
+                                icon = {
+                                    if (screen == Screen.Chat && totalUnreadCount > 0) {
+                                        BadgedBox(
+                                            badge = {
+                                                Badge(
+                                                    containerColor = Color.Red,
+                                                    contentColor = Color.White
+                                                ) {
+                                                    Text(totalUnreadCount.toString())
+                                                }
+                                            }
+                                        ) {
+                                            Icon(screen.icon, contentDescription = null)
+                                        }
+                                    } else {
+                                        Icon(screen.icon, contentDescription = null)
+                                    }
+                                },
                                 label = { Text(screen.label) },
                                 selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
                                 onClick = {
@@ -160,7 +179,10 @@ fun KianScaffold() {
                 }
                 composable(Screen.Chat.route) {
                     val chatViewModel: ChatViewModel = viewModel(
-                        factory = ChatViewModel.provideFactory(app.container.chatRepository)
+                        factory = ChatViewModel.provideFactory(
+                            app.container.chatRepository,
+                            app.container.userProfileDao
+                        )
                     )
                     ChatInboxScreen(
                         viewModel = chatViewModel,
@@ -172,7 +194,10 @@ fun KianScaffold() {
                 composable(Screen.Chatroom.route) { backStackEntry ->
                     val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
                     val chatViewModel: ChatViewModel = viewModel(
-                        factory = ChatViewModel.provideFactory(app.container.chatRepository)
+                        factory = ChatViewModel.provideFactory(
+                            app.container.chatRepository,
+                            app.container.userProfileDao
+                        )
                     )
                     ChatroomScreen(
                         contactPubkey = roomId,

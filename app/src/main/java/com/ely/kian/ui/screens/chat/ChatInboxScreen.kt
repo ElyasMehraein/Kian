@@ -60,10 +60,15 @@ fun ChatInboxScreen(
                         ConversationItem(
                             conversation = conversation, 
                             colors = kianColors,
+                            viewModel = viewModel,
                             onClick = { onConversationClick(conversation.contactPubkey) },
                             onLongClick = { conversationToDelete = conversation.contactPubkey }
                         )
-                        HorizontalDivider(color = kianColors.panel, thickness = 0.5.dp)
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            color = kianColors.line.copy(alpha = 0.5f), 
+                            thickness = 0.5.dp
+                        )
                     }
                 }
             }
@@ -133,9 +138,21 @@ fun ChatInboxScreen(
 fun ConversationItem(
     conversation: Conversation,
     colors: com.ely.kian.ui.theme.KianColors,
+    viewModel: ChatViewModel,
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
+    var contactName by remember { mutableStateOf(conversation.contactPubkey.take(8) + "...") }
+    var pictureUrl by remember { mutableStateOf<String?>(null) }
+    
+    LaunchedEffect(conversation.contactPubkey) {
+        val profile = viewModel.getProfile(conversation.contactPubkey)
+        if (profile != null) {
+            contactName = profile.displayName ?: profile.name ?: contactName
+            pictureUrl = profile.picture
+        }
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -143,38 +160,69 @@ fun ConversationItem(
                 onClick = onClick,
                 onLongClick = onLongClick
             )
-            .padding(16.dp)
+            .padding(vertical = 12.dp, horizontal = 16.dp),
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
     ) {
-        // Avatar Placeholder
+        // Avatar Placeholder or Image
         Surface(
             shape = androidx.compose.foundation.shape.CircleShape,
             color = colors.panel,
-            modifier = Modifier.size(50.dp)
-        ) {}
+            modifier = Modifier.size(52.dp)
+        ) {
+            // Future: Coil image loading here
+        }
         
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(16.dp))
         
         Column(modifier = Modifier.weight(1f)) {
-            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween, 
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+            ) {
                 Text(
-                    text = conversation.contactPubkey.take(8) + "...",
+                    text = contactName,
                     fontWeight = FontWeight.Bold,
-                    color = colors.ink
+                    fontSize = 16.sp,
+                    color = colors.ink,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
                 )
                 Text(
                     text = formatTimestamp(conversation.lastTimestamp),
                     fontSize = 12.sp,
-                    color = colors.ink.copy(alpha = 0.6f)
+                    color = colors.muted
                 )
             }
             
-            Text(
-                text = conversation.lastMessage,
-                maxLines = 1,
-                fontSize = 14.sp,
-                color = colors.ink.copy(alpha = 0.7f),
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-            )
+            Spacer(modifier = Modifier.height(2.dp))
+            
+            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Text(
+                    text = conversation.lastMessage,
+                    maxLines = 1,
+                    fontSize = 14.sp,
+                    color = colors.ink.copy(alpha = 0.6f),
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                if (conversation.unreadCount > 0) {
+                    Surface(
+                        color = colors.accent,
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                        modifier = Modifier.padding(start = 8.dp)
+                    ) {
+                        Text(
+                            text = conversation.unreadCount.toString(),
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+            }
         }
     }
 }

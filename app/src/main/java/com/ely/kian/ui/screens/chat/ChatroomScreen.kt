@@ -39,9 +39,18 @@ fun ChatroomScreen(
     var textState by remember { mutableStateOf("") }
     var replyingTo by remember { mutableStateOf<ChatMessage?>(null) }
     
+    var contactName by remember { mutableStateOf(contactPubkey.take(8) + "...") }
+    
     val kianColors = KianTheme.colors
     val listState = androidx.compose.foundation.lazy.rememberLazyListState()
     val scope = rememberCoroutineScope()
+
+    LaunchedEffect(contactPubkey) {
+        val profile = viewModel.getProfile(contactPubkey)
+        if (profile != null) {
+            contactName = profile.displayName ?: profile.name ?: contactName
+        }
+    }
 
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
@@ -53,7 +62,12 @@ fun ChatroomScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(contactPubkey.take(8) + "...", color = kianColors.ink) },
+                title = { 
+                    Column {
+                        Text(contactName, color = kianColors.ink, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                        Text(contactPubkey.take(12) + "...", color = kianColors.muted, fontSize = 11.sp)
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = kianColors.ink)
@@ -72,7 +86,7 @@ fun ChatroomScreen(
                     onTextChange = { textState = it },
                     onSend = {
                         if (textState.isNotBlank()) {
-                            viewModel.sendMessage(contactPubkey, textState) // TODO: Add reply support to VM
+                            viewModel.sendMessage(contactPubkey, textState)
                             textState = ""
                             replyingTo = null
                         }
@@ -88,12 +102,12 @@ fun ChatroomScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 8.dp),
-            reverseLayout = false
+                .padding(horizontal = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             items(messages, key = { it.id }) { message ->
                 var showMenu by remember { mutableStateOf(false) }
-                val clipboard = LocalClipboard.current
+                val clipboard = androidx.compose.ui.platform.LocalClipboard.current
 
                 ChatBubbleLayout(
                     isMine = message.isMine,
@@ -103,26 +117,37 @@ fun ChatroomScreen(
                     val textColor = if (message.isMine) Color.White else kianColors.ink
                     
                     Column {
-                        Text(text = message.content, color = textColor, fontSize = 15.sp)
                         Text(
-                            text = formatTimestamp(message.createdAt),
-                            fontSize = 10.sp,
-                            color = textColor.copy(alpha = 0.6f)
+                            text = message.content, 
+                            color = textColor, 
+                            fontSize = 16.sp,
+                            lineHeight = 22.sp
                         )
-                        if (message.isMine) {
-                            Spacer(modifier = Modifier.width(4.dp))
-                            val icon = when (message.status) {
-                                "read" -> Icons.Default.DoneAll
-                                "delivered" -> Icons.Default.DoneAll
-                                else -> Icons.Default.Check
-                            }
-                            val tint = if (message.status == "read") Color(0xFF34D399) else textColor.copy(alpha = 0.5f)
-                            Icon(
-                                imageVector = icon,
-                                contentDescription = message.status,
-                                modifier = Modifier.size(14.dp),
-                                tint = tint
+                        Row(
+                            modifier = Modifier.align(Alignment.End).padding(top = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = formatTimestamp(message.createdAt),
+                                fontSize = 11.sp,
+                                color = textColor.copy(alpha = 0.7f)
                             )
+                            if (message.isMine) {
+                                Spacer(modifier = Modifier.width(6.dp))
+                                val icon = when (message.status) {
+                                    "read" -> Icons.Default.DoneAll
+                                    "delivered" -> Icons.Default.DoneAll
+                                    "sent" -> Icons.Default.Check
+                                    else -> Icons.Default.Check // pending or others
+                                }
+                                val tint = if (message.status == "read") Color(0xFF4ADE80) else textColor.copy(alpha = 0.6f)
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = message.status,
+                                    modifier = Modifier.size(17.dp),
+                                    tint = tint
+                                )
+                            }
                         }
                     }
                     

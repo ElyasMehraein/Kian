@@ -14,7 +14,11 @@ import com.ely.kian.data.remote.model.NostrEvent
 import com.ely.kian.crypto.KianKeys
 import com.ely.kian.crypto.SecureStorage
 import android.util.Log
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class MainViewModel(
@@ -24,6 +28,10 @@ class MainViewModel(
     private val secureStorage: SecureStorage,
     private val database: com.ely.kian.data.local.KianDatabase
 ) : ViewModel() {
+
+    val totalUnreadCount: StateFlow<Int> = database.chatDao().getTotalUnreadCount()
+        .map { it ?: 0 }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     companion object {
         fun provideFactory(

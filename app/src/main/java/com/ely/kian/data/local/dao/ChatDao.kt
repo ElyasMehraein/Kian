@@ -48,4 +48,7 @@ interface ChatDao {
 
     @Query("SELECT id FROM chat_messages WHERE contactPubkey = :contactPubkey AND pubkey = :myPubkey")
     suspend fun getOwnMessageIdsForContact(contactPubkey: String, myPubkey: String): List<String>
+
+    @Query("SELECT SUM(unreadCount) FROM conversations")
+    fun getTotalUnreadCount(): Flow<Int?>
 }

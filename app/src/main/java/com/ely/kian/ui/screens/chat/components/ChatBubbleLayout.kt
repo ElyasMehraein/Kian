@@ -27,29 +27,30 @@ fun ChatBubbleLayout(
     val bubbleColor = if (isMine) colors.accent else colors.panel
     
     val shape = RoundedCornerShape(
-        topStart = 16.dp,
-        topEnd = 16.dp,
-        bottomStart = if (isMine) 16.dp else 2.dp,
-        bottomEnd = if (isMine) 2.dp else 16.dp
+        topStart = 18.dp,
+        topEnd = 18.dp,
+        bottomStart = if (isMine) 18.dp else 4.dp,
+        bottomEnd = if (isMine) 4.dp else 18.dp
     )
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 2.dp),
+            .padding(vertical = 1.dp),
         contentAlignment = alignment
     ) {
         Surface(
             color = bubbleColor,
             shape = shape,
+            tonalElevation = if (isMine) 0.dp else 1.dp,
             modifier = Modifier
-                .widthIn(max = 300.dp)
+                .widthIn(max = 320.dp)
                 .combinedClickable(
                     onClick = { },
                     onLongClick = onLongClick
                 )
         ) {
-            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
                 content()
             }
         }
