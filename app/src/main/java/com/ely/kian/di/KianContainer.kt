@@ -32,7 +32,11 @@ class KianContainer(context: Context) {
     val relayDao get() = database.relayDao()
 
     val productRepository: ProductRepository by lazy {
-        ProductRepository(productDao, relayPoolManager, secureStorage)
+        ProductRepository(
+            productDao = productDao,
+            secureStorage = secureStorage,
+            syncManagerProvider = { nostrSyncManager }
+        )
     }
 
     val tokenRepository: TokenRepository by lazy {

@@ -9,7 +9,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -48,137 +49,199 @@ fun WalletScreen(onSendToken: () -> Unit, onProducerClick: (String) -> Unit) {
 
     val kianColors = KianTheme.colors
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Scaffold(
+        containerColor = kianColors.canvas,
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = onSendToken,
+                containerColor = kianColors.accent,
+                contentColor = Color.White,
+                shape = RoundedCornerShape(20.dp),
+                icon = { Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(20.dp)) },
+                text = { Text("Send Assets", fontWeight = FontWeight.Bold) }
+            )
+        }
+    ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(kianColors.canvas),
+                .padding(innerPadding),
             contentPadding = PaddingValues(horizontal = 20.dp, vertical = 24.dp)
         ) {
             item {
-                Text(
-                    text = "Wallet",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = kianColors.ink,
-                    modifier = Modifier.padding(bottom = 20.dp)
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 28.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "My Wallet",
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = kianColors.ink
+                        )
+                        Text(
+                            text = "Manage your digital trade assets",
+                            fontSize = 14.sp,
+                            color = kianColors.muted
+                        )
+                    }
+                    
+                    Surface(
+                        shape = CircleShape,
+                        color = kianColors.panel,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.QrCodeScanner, contentDescription = "Scan", tint = kianColors.ink)
+                        }
+                    }
+                }
+            }
+
+            // Summary Section
+            item {
+                Surface(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp),
+                    color = kianColors.accent,
+                    shape = RoundedCornerShape(24.dp)
+                ) {
+                    Column(modifier = Modifier.padding(24.dp)) {
+                        Text("Total Assets", color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp)
+                        Text(
+                            text = "${balances.size} Categories", 
+                            color = Color.White, 
+                            fontSize = 28.sp, 
+                            fontWeight = FontWeight.Black
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Info, contentDescription = null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "All assets are secured via Nostr UTXOs", 
+                                color = Color.White.copy(alpha = 0.8f), 
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+                }
             }
 
             item {
-                Text(
-                    text = "Token balances",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = kianColors.ink,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
+                SectionHeader("Token Balances", Icons.Default.Token)
             }
 
             if (balances.isEmpty()) {
-                item {
-                    Text(
-                        text = "No token balances yet.",
-                        fontSize = 15.sp,
-                        color = kianColors.muted,
-                        modifier = Modifier.padding(bottom = 24.dp)
-                    )
-                }
+                item { EmptyState("No assets found in your wallet.") }
             } else {
                 items(balances) { item ->
                     BalanceRow(item, onProducerClick = onProducerClick, formatAssetRef = viewModel::formatAssetRef)
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
-                item { Spacer(modifier = Modifier.height(14.dp)) }
             }
 
             item {
-                Text(
-                    text = "Token transfer activity",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = kianColors.ink,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
+                Spacer(modifier = Modifier.height(24.dp))
+                SectionHeader("Transfer Activity", Icons.Default.History)
                 
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(bottom = 12.dp)
+                    modifier = Modifier.padding(bottom = 16.dp)
                 ) {
                     val filters = listOf(
                         "all" to "All",
-                        "waiting_mint" to "Waiting",
+                        "waiting_mint" to "Pending",
                         "fulfilled" to "Completed",
-                        "rejected" to "Rejected",
-                        "offline" to "Offline"
+                        "rejected" to "Failed"
                     )
                     items(filters) { (id, label) ->
-                        SelectorChip(
+                        FilterChip(
                             label = label,
-                            active = activityFilter == id,
-                            onClick = { viewModel.setFilter(id) }
+                            selected = activityFilter == id,
+                            onClick = { viewModel.setFilter(id) },
+                            colors = kianColors
                         )
                     }
                 }
             }
 
             if (filteredPending.isEmpty()) {
-                item {
-                    Text(
-                        text = "No token transfer activity for this filter yet.",
-                        fontSize = 15.sp,
-                        color = kianColors.muted,
-                        modifier = Modifier.padding(bottom = 24.dp)
-                    )
-                }
+                item { EmptyState("No activity matching this filter.") }
             } else {
                 items(filteredPending) { item ->
                     PendingRow(item, formatAssetRef = viewModel::formatAssetRef)
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
-                item { Spacer(modifier = Modifier.height(14.dp)) }
             }
 
             item {
-                Text(
-                    text = "Spendable token entries",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = kianColors.ink,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
+                Spacer(modifier = Modifier.height(24.dp))
+                SectionHeader("Spendable UTXOs", Icons.Default.Token)
             }
 
             if (utxos.isEmpty()) {
-                item {
-                    Text(
-                        text = "No spendable token entries yet.",
-                        fontSize = 15.sp,
-                        color = kianColors.muted,
-                        modifier = Modifier.padding(bottom = 24.dp)
-                    )
-                }
+                item { EmptyState("No UTXOs available.") }
             } else {
                 items(utxos) { item ->
                     UtxoRow(item, label = viewModel.formatAssetRef(item.assetRef), formatAssetRef = viewModel::formatAssetRef)
                     Spacer(modifier = Modifier.height(10.dp))
                 }
-                item { Spacer(modifier = Modifier.height(14.dp)) }
             }
             
-            item { Spacer(modifier = Modifier.height(80.dp)) }
+            item { Spacer(modifier = Modifier.height(100.dp)) }
         }
+    }
+}
 
-        ExtendedFloatingActionButton(
-            onClick = onSendToken,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(bottom = 24.dp, end = 20.dp),
-            containerColor = kianColors.ink,
-            contentColor = kianColors.canvas,
-            shape = RoundedCornerShape(28.dp),
-            icon = { Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(20.dp)) },
-            text = { Text("Send Token", fontWeight = FontWeight.SemiBold) }
+@Composable
+fun SectionHeader(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
+    val kianColors = KianTheme.colors
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(bottom = 16.dp)
+    ) {
+        Icon(icon, contentDescription = null, tint = kianColors.accent, modifier = Modifier.size(20.dp))
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(
+            text = title,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = kianColors.ink
+        )
+    }
+}
+
+@Composable
+fun EmptyState(message: String) {
+    val kianColors = KianTheme.colors
+    Surface(
+        modifier = Modifier.fillMaxWidth().height(100.dp),
+        color = kianColors.panel.copy(alpha = 0.5f),
+        shape = RoundedCornerShape(16.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, kianColors.line.copy(alpha = 0.5f))
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(message, color = kianColors.muted, fontSize = 14.sp)
+        }
+    }
+}
+
+@Composable
+fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit, colors: com.ely.kian.ui.theme.KianColors) {
+    Surface(
+        onClick = onClick,
+        shape = CircleShape,
+        color = if (selected) colors.accent else colors.panel,
+        border = androidx.compose.foundation.BorderStroke(1.dp, if (selected) colors.accent else colors.line)
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (selected) Color.White else colors.muted
         )
     }
 }
@@ -190,49 +253,91 @@ fun BalanceRow(
     formatAssetRef: (String) -> String
 ) {
     val kianColors = KianTheme.colors
+    var producerName by remember { mutableStateOf(formatAssetRef(item.producer)) }
+    val context = LocalContext.current
+    val app = context.applicationContext as KianApp
+    
+    LaunchedEffect(item.producer) {
+        val profile = app.container.userProfileDao.getProfile(item.producer)
+        if (profile != null) {
+            producerName = profile.displayName ?: profile.name ?: producerName
+        }
+    }
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(20.dp),
         color = kianColors.panel,
-        border = androidx.compose.foundation.BorderStroke(1.dp, kianColors.line)
+        tonalElevation = 2.dp,
+        border = androidx.compose.foundation.BorderStroke(1.dp, kianColors.line.copy(alpha = 0.5f))
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            if (item.images.isNotEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(128.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(kianColors.line)
-                )
-                Spacer(modifier = Modifier.height(12.dp))
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = item.name, 
+                        fontSize = 20.sp, 
+                        fontWeight = FontWeight.ExtraBold, 
+                        color = kianColors.ink
+                    )
+                    if (item.description.isNotEmpty()) {
+                        Text(
+                            text = item.description,
+                            fontSize = 14.sp,
+                            color = kianColors.muted,
+                            maxLines = 2,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                }
+                
+                // Asset Badge
+                Surface(
+                    color = kianColors.accent,
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.padding(start = 16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = item.amount.toString(), 
+                            fontSize = 24.sp, 
+                            fontWeight = FontWeight.Black, 
+                            color = Color.White
+                        )
+                        Text(
+                            text = item.unit.lowercase(), 
+                            fontSize = 11.sp, 
+                            fontWeight = FontWeight.Bold, 
+                            color = Color.White.copy(alpha = 0.8f)
+                        )
+                    }
+                }
             }
             
-            Text(text = item.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = kianColors.ink)
-            Text(
-                text = item.description.ifEmpty { "No description" },
-                fontSize = 14.sp,
-                color = kianColors.muted,
-                lineHeight = 20.sp,
-                modifier = Modifier.padding(top = 4.dp)
-            )
-            
             if (item.categories.isNotEmpty()) {
-                Row(
-                    modifier = Modifier.padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                FlowRow(
+                    modifier = Modifier.padding(top = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    item.categories.take(3).forEach { category ->
+                    item.categories.forEach { category ->
                         Surface(
-                            shape = CircleShape,
-                            color = kianColors.line.copy(alpha = 0.5f),
-                            modifier = Modifier.padding(end = 4.dp)
+                            shape = RoundedCornerShape(8.dp),
+                            color = kianColors.accent.copy(alpha = 0.1f)
                         ) {
                             Text(
-                                text = category,
+                                text = "#$category",
                                 fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = kianColors.muted,
+                                fontWeight = FontWeight.Bold,
+                                color = kianColors.accent,
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                             )
                         }
@@ -240,29 +345,58 @@ fun BalanceRow(
                 }
             }
             
-            Row(
-                modifier = Modifier.padding(top = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(text = item.amount.toString(), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = kianColors.ink)
-                Text(text = item.unit, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = kianColors.muted)
-            }
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 16.dp),
+                color = kianColors.line.copy(alpha = 0.5f)
+            )
             
-            Surface(
-                modifier = Modifier
-                    .padding(top = 8.dp)
-                    .clickable { onProducerClick(item.producer) },
-                shape = CircleShape,
-                color = kianColors.infoSoft
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = "Producer: ${formatAssetRef(item.producer)}",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = kianColors.info,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-                )
+                Row(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .clickable { onProducerClick(item.producer) }
+                        .padding(end = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Producer Initial Circle
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(kianColors.line, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            producerName.take(1).uppercase(),
+                            color = kianColors.ink,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = "PRODUCER",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = kianColors.muted,
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            text = producerName,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = kianColors.ink
+                        )
+                    }
+                }
+                
+                IconButton(onClick = { /* TODO: Show detailed token history/UTXOs */ }) {
+                    Icon(Icons.Default.ChevronRight, contentDescription = "Details", tint = kianColors.muted)
+                }
             }
         }
     }
@@ -276,23 +410,54 @@ fun UtxoRow(item: TokenUtxo, label: String, formatAssetRef: (String) -> String) 
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        color = Color.Transparent,
-        border = androidx.compose.foundation.BorderStroke(1.dp, kianColors.line)
+        color = kianColors.panel.copy(alpha = 0.3f),
+        border = androidx.compose.foundation.BorderStroke(1.dp, kianColors.line.copy(alpha = 0.5f))
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Text(text = label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = kianColors.ink)
-            Text(
-                text = "${item.amount} • ${formatAssetRef(item.assetRef)}",
-                fontSize = 14.sp,
-                color = kianColors.muted,
-                modifier = Modifier.padding(top = 4.dp)
-            )
-            Text(
-                text = "Issued ${sdf.format(Date(item.createdAt * 1000))}",
-                fontSize = 12.sp,
-                color = kianColors.muted,
-                modifier = Modifier.padding(top = 4.dp)
-            )
+        Row(
+            modifier = Modifier.padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(kianColors.accent.copy(alpha = 0.1f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.Token, contentDescription = null, tint = kianColors.accent, modifier = Modifier.size(20.dp))
+            }
+            
+            Spacer(modifier = Modifier.width(16.dp))
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = label, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = kianColors.ink)
+                Text(
+                    text = "${item.amount} • ID: ${formatAssetRef(item.utxoId)}",
+                    fontSize = 12.sp,
+                    color = kianColors.muted,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                )
+                Text(
+                    text = "Received ${sdf.format(Date(item.createdAt * 1000))}",
+                    fontSize = 11.sp,
+                    color = kianColors.muted.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
+            
+            if (item.spent) {
+                Surface(
+                    color = kianColors.danger.copy(alpha = 0.1f),
+                    shape = CircleShape
+                ) {
+                    Text(
+                        "SPENT", 
+                        fontSize = 9.sp, 
+                        fontWeight = FontWeight.Bold, 
+                        color = kianColors.danger,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
         }
     }
 }
@@ -305,26 +470,61 @@ fun PendingRow(item: PendingItem, formatAssetRef: (String) -> String) {
         "fulfilled" -> HexColorPair(kianColors.successSoft, kianColors.success, kianColors.ink, kianColors.success, "Completed", "completed after issuer confirmation")
         "rejected" -> HexColorPair(kianColors.danger.copy(alpha = 0.1f), kianColors.danger, kianColors.ink, kianColors.danger, "Rejected", "rejected because another transfer was approved")
         "offline" -> HexColorPair(kianColors.panel, kianColors.muted, kianColors.ink, kianColors.muted, "Queued offline", "queued until a relay connection is available")
-        else -> HexColorPair(kianColors.warningSoft, kianColors.warning, kianColors.ink, kianColors.warning, "Waiting for issuer", "waiting for token issuer confirmation")
+        else -> HexColorPair(kianColors.warningSoft, kianColors.warning, kianColors.ink, kianColors.warning, "Waiting", "waiting for token issuer confirmation")
     }
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         color = containerColor,
-        border = androidx.compose.foundation.BorderStroke(1.dp, borderColor)
+        border = androidx.compose.foundation.BorderStroke(1.dp, borderColor.copy(alpha = 0.3f))
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Text(text = formatAssetRef(item.assetRef), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = textColor)
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(
+                    text = item.assetName, 
+                    fontSize = 16.sp, 
+                    fontWeight = FontWeight.Bold, 
+                    color = textColor
+                )
+                Text(
+                    text = label.uppercase(), 
+                    fontSize = 10.sp, 
+                    fontWeight = FontWeight.Black, 
+                    color = metaColor,
+                    letterSpacing = 1.sp
+                )
+            }
+            
             Text(
-                text = "${item.amount} $detail",
+                text = "${item.amount} units • $detail",
                 fontSize = 14.sp,
                 color = kianColors.muted,
                 modifier = Modifier.padding(top = 4.dp)
             )
-            Text(text = label, fontSize = 12.sp, color = metaColor, modifier = Modifier.padding(top = 4.dp))
-            Text(text = "Recipient: ${formatAssetRef(item.recipient)}", fontSize = 12.sp, color = metaColor, modifier = Modifier.padding(top = 4.dp))
-            Text(text = "Activity id: ${formatAssetRef(item.eventId)}", fontSize = 12.sp, color = metaColor, modifier = Modifier.padding(top = 4.dp))
+            
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = borderColor.copy(alpha = 0.1f))
+            
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Person, contentDescription = null, tint = kianColors.muted, modifier = Modifier.size(14.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "To: ${formatAssetRef(item.recipient)}", 
+                    fontSize = 12.sp, 
+                    color = kianColors.muted
+                )
+            }
+            
+            Row(modifier = Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Fingerprint, contentDescription = null, tint = kianColors.muted, modifier = Modifier.size(14.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "ID: ${formatAssetRef(item.eventId)}", 
+                    fontSize = 12.sp, 
+                    color = kianColors.muted,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                )
+            }
         }
     }
 }

@@ -5,6 +5,7 @@ import com.ely.kian.crypto.SecureStorage
 import com.ely.kian.data.local.dao.ProductDao
 import com.ely.kian.data.local.entities.Product
 import com.ely.kian.data.local.entities.ProductCategory
+import com.ely.kian.data.remote.NostrSyncManager
 import com.ely.kian.data.remote.RelayPoolManager
 import com.ely.kian.data.remote.model.NostrEvent
 import kotlinx.coroutines.flow.Flow
@@ -13,15 +14,11 @@ import kotlinx.serialization.json.*
 
 class ProductRepository(
     private val productDao: ProductDao,
-    private val relayPool: RelayPoolManager,
     private val secureStorage: SecureStorage,
+    private val syncManagerProvider: () -> NostrSyncManager,
     private val json: Json = Json { ignoreUnknownKeys = true }
 ) {
-    private val defaultRelays = listOf(
-        "wss://relay.damus.io",
-        "wss://nos.lol",
-        "wss://relay.nostr.band"
-    )
+    private val syncManager by lazy { syncManagerProvider() }
 
     fun getProducts(pubkey: String): Flow<List<Product>> = productDao.getProductsByProducer(pubkey)
 
@@ -129,11 +126,7 @@ class ProductRepository(
     }
 
     private fun publishEvent(event: NostrEvent) {
-        val eventJson = json.encodeToString(event)
-        val relayMessage = "[\"EVENT\", $eventJson]"
-        defaultRelays.forEach { url ->
-            relayPool.publish(url, relayMessage)
-        }
+        syncManager.publishEvent(event)
     }
 
     suspend fun handleProductEvent(event: NostrEvent) {

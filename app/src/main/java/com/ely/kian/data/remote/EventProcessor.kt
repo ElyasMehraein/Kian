@@ -37,7 +37,10 @@ class EventProcessor(
             62 -> handleVanish(event)
             1059 -> handleGiftWrap(event)
             30017, 30018 -> productRepository.handleProductEvent(event)
-            35001, 35002 -> tokenRepository.handleTokenEvent(event)
+            35001, 35002 -> {
+                Log.i(TAG, "Received token event: kind=${event.kind} id=${event.id.take(8)}")
+                tokenRepository.handleTokenEvent(event)
+            }
             else -> Log.w(TAG, "Unhandled event kind=${event.kind}")
         }
     }

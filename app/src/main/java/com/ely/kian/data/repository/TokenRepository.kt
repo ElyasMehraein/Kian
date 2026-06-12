@@ -3,6 +3,7 @@ package com.ely.kian.data.repository
 import com.ely.kian.crypto.KianKeys
 import com.ely.kian.crypto.SecureStorage
 import com.ely.kian.data.local.dao.*
+import com.ely.kian.data.local.entities.TokenDefinition
 import com.ely.kian.data.local.entities.TokenUtxo
 import com.ely.kian.data.remote.NostrSyncManager
 import com.ely.kian.data.remote.model.NostrEvent
@@ -25,6 +26,7 @@ data class PendingItem(
     val eventId: String,
     val utxoId: String,
     val assetRef: String,
+    val assetName: String,
     val amount: Long,
     val recipient: String,
     val status: String, // 'waiting_mint' | 'fulfilled' | 'rejected' | 'offline'
@@ -132,6 +134,7 @@ class TokenRepository(
                             eventId = item.eventId,
                             utxoId = "offline", // Extract from CBOR in real app
                             assetRef = "offline",
+                            assetName = "Offline Transfer",
                             amount = 0,
                             recipient = item.peerPubkey ?: "",
                             status = "offline",
@@ -225,7 +228,18 @@ class TokenRepository(
             put("unit", "unit")
             put("name", product.name)
             put("description", product.description ?: "")
-            put("images", product.images) // Already JSON
+            try {
+                val imagesArray = json.parseToJsonElement(product.images).jsonArray
+                put("images", imagesArray)
+            } catch (e: Exception) {
+                put("images", buildJsonArray { })
+            }
+            try {
+                val categoriesArray = json.parseToJsonElement(product.categories).jsonArray
+                put("categories", categoriesArray)
+            } catch (e: Exception) {
+                put("categories", buildJsonArray { })
+            }
         }.toString()
 
         val tags = listOf(
@@ -277,11 +291,27 @@ class TokenRepository(
             val myPubkey = keyDao.getKey()?.pubkey
             val recipient = event.tags.find { it.size >= 2 && it[0] == "p" }?.get(1) ?: event.pubkey
             
-            // Only save if it's for me
+            val contentObj = json.parseToJsonElement(event.content).jsonObject
+            
+            // If it's a Genesis, also save the definition for UI display
+            val definition = TokenDefinition(
+                assetId = dTag,
+                pubkey = event.pubkey,
+                productId = null, // Can be parsed from d-tag if needed
+                name = contentObj["name"]?.jsonPrimitive?.content ?: dTag,
+                description = contentObj["description"]?.jsonPrimitive?.contentOrNull,
+                images = contentObj["images"]?.toString() ?: "[]",
+                categories = contentObj["categories"]?.toString() ?: "[]",
+                unit = contentObj["unit"]?.jsonPrimitive?.content ?: "unit",
+                eventId = event.id,
+                createdAt = event.createdAt
+            )
+            tokenDao.upsertDefinition(definition)
+
+            // Only save UTXO if it's for me
             if (recipient != myPubkey) return
 
-            val content = json.parseToJsonElement(event.content).jsonObject
-            val amount = content["amount"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
+            val amount = contentObj["amount"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
             
             val utxo = TokenUtxo(
                 utxoId = event.id,
