@@ -1,6 +1,7 @@
 package com.ely.kian.ui.screens.chat
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -37,7 +38,8 @@ import kotlinx.serialization.json.Json
 fun ChatroomScreen(
     contactPubkey: String,
     viewModel: ChatViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onProfileClick: (String) -> Unit
 ) {
     val messages by viewModel.getMessages(contactPubkey).collectAsState()
     var textState by remember { mutableStateOf("") }
@@ -71,7 +73,9 @@ fun ChatroomScreen(
         topBar = {
             TopAppBar(
                 title = { 
-                    Column {
+                    Column(
+                        modifier = Modifier.clickable { onProfileClick(contactPubkey) }
+                    ) {
                         Text(contactName, color = kianColors.ink, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                         Text(contactPubkey.take(12) + "...", color = kianColors.muted, fontSize = 11.sp)
                     }
