@@ -16,7 +16,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ely.kian.KianApp
 import com.ely.kian.data.local.entities.Relay
+import com.ely.kian.data.remote.RelayPoolManager
 import com.ely.kian.ui.components.KianButton
 import com.ely.kian.ui.components.KianInput
 import com.ely.kian.ui.theme.KianTheme
@@ -24,15 +28,19 @@ import com.ely.kian.ui.theme.KianTheme
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RelayManagementScreen() {
+    val context = LocalContext.current
+    val app = context.applicationContext as KianApp
+    val viewModel: RelayViewModel = viewModel(
+        factory = RelayViewModel.provideFactory(
+            app.container.relayDao,
+            app.container.relayPoolManager,
+            app.container.nostrSyncManager
+        )
+    )
+
     val kianColors = KianTheme.colors
-    
-    // Famous test relay and some others as defaults
-    var relays by remember { mutableStateOf(listOf(
-        Relay("wss://relay.damus.io", true, true),
-        Relay("wss://nos.lol", true, true),
-        Relay("wss://relay.snort.social", true, true),
-        Relay("wss://eden.nostr.land", true, true)
-    )) }
+    val relays by viewModel.relays.collectAsState()
+    val connectionStates by viewModel.connectionStates.collectAsState()
     
     var showBottomSheet by remember { mutableStateOf(false) }
     var newRelayUrl by remember { mutableStateOf("") }
@@ -98,7 +106,7 @@ fun RelayManagementScreen() {
                     
                     KianButton(
                         text = "Reconnect All",
-                        onClick = { /* Simulated Reconnect */ },
+                        onClick = { viewModel.reconnectAll() },
                         modifier = Modifier.wrapContentWidth()
                     )
                 }
@@ -120,10 +128,14 @@ fun RelayManagementScreen() {
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.weight(1f)
             ) {
-                items(relays) { relay ->
-                    RelayItem(relay, onDelete = {
-                        relays = relays.filter { it.url != relay.url }
-                    })
+                items(relays, key = { it.url }) { relay ->
+                    RelayItem(
+                        relay = relay, 
+                        state = connectionStates[relay.url] ?: RelayPoolManager.ConnectionState.DISCONNECTED,
+                        onDelete = {
+                            viewModel.removeRelay(relay)
+                        }
+                    )
                 }
             }
         }
@@ -162,7 +174,7 @@ fun RelayManagementScreen() {
                         text = "Add Relay",
                         onClick = {
                             if (newRelayUrl.isNotBlank()) {
-                                relays = relays + Relay(newRelayUrl, true, true)
+                                viewModel.addRelay(newRelayUrl)
                                 newRelayUrl = ""
                                 showBottomSheet = false
                             }
@@ -176,8 +188,15 @@ fun RelayManagementScreen() {
 }
 
 @Composable
-fun RelayItem(relay: Relay, onDelete: () -> Unit) {
+fun RelayItem(relay: Relay, state: RelayPoolManager.ConnectionState, onDelete: () -> Unit) {
     val kianColors = KianTheme.colors
+    
+    val (statusText, statusColor) = when (state) {
+        RelayPoolManager.ConnectionState.CONNECTED -> "Online" to kianColors.success
+        RelayPoolManager.ConnectionState.CONNECTING -> "Connecting..." to kianColors.warning
+        RelayPoolManager.ConnectionState.DISCONNECTED -> "Offline" to kianColors.muted
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -193,9 +212,9 @@ fun RelayItem(relay: Relay, onDelete: () -> Unit) {
                 fontSize = 15.sp
             )
             Text(
-                text = "Online",
+                text = statusText,
                 fontSize = 13.sp,
-                color = kianColors.accent,
+                color = statusColor,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.padding(top = 2.dp)
             )

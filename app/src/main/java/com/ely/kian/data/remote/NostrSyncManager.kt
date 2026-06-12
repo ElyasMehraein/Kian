@@ -22,12 +22,7 @@ class NostrSyncManager(
     private val syncScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     
     private val defaultRelays = listOf(
-        "wss://relay.damus.io",
-        "wss://nos.lol",
-        "wss://relay.nostr.band",
-        "wss://relay.snort.social",
-        "wss://offchain.pub",
-        "wss://atlas.nostr.land"
+        "ws://192.168.1.14:8080"
     )
 
     fun startSyncing(myPubkey: String? = null) {
@@ -41,7 +36,26 @@ class NostrSyncManager(
         }
         
         syncScope.launch {
-            val allRelays = defaultRelays.toMutableSet()
+            val allRelays = mutableSetOf<String>()
+            
+            // 1. Fetch from Relay DAO (Global list)
+            try {
+                val savedRelays = relayDao?.getAllRelays()?.first() ?: emptyList()
+                if (savedRelays.isEmpty()) {
+                    // Seed with local relay if empty
+                    defaultRelays.forEach { 
+                        relayDao?.insertRelay(com.ely.kian.data.local.entities.Relay(it, true, true))
+                    }
+                    allRelays.addAll(defaultRelays)
+                } else {
+                    allRelays.addAll(savedRelays.map { it.url })
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to fetch saved relays", e)
+                allRelays.addAll(defaultRelays)
+            }
+
+            // 2. Fetch Inbox Relays for me
             if (myPubkey != null) {
                 try {
                     val inboxUrls = relayDao?.getDmInboxRelayUrls(myPubkey) ?: emptyList()
@@ -169,15 +183,22 @@ class NostrSyncManager(
         val eventJson = json.encodeToString(NostrEvent.serializer(), event)
         val message = "[\"EVENT\", $eventJson]"
         
-        val relaysToUse = if (!targetRelays.isNullOrEmpty()) {
-            (defaultRelays + targetRelays).distinct()
-        } else {
-            defaultRelays
-        }
+        syncScope.launch {
+            val relaysToUse = if (!targetRelays.isNullOrEmpty()) {
+                (defaultRelays + targetRelays).distinct()
+            } else {
+                try {
+                    val saved = relayDao?.getAllRelays()?.first()?.map { it.url } ?: emptyList()
+                    if (saved.isEmpty()) defaultRelays else saved
+                } catch (e: Exception) {
+                    defaultRelays
+                }
+            }
 
-        Log.d(TAG, "Publishing event kind=${event.kind} to ${relaysToUse.size} relays")
-        relaysToUse.forEach { url ->
-            relayPool.publish(url, message)
+            Log.d(TAG, "Publishing event kind=${event.kind} to ${relaysToUse.size} relays")
+            relaysToUse.forEach { url ->
+                relayPool.publish(url, message)
+            }
         }
     }
 }
