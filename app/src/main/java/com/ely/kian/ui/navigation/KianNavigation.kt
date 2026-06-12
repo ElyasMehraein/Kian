@@ -93,6 +93,12 @@ fun KianScaffold() {
     val isLoggedIn = viewModel.isLoggedIn
     val totalUnreadCount by viewModel.totalUnreadCount.collectAsState()
 
+    LaunchedEffect(Unit) {
+        app.container.tokenRepository.notifications.collect { message ->
+            android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
+
     LaunchedEffect(isLoggedIn) {
         if (isLoggedIn == false) {
             // Ensure we don't navigate before NavHost is ready or if already there

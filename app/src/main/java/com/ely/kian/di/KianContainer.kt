@@ -44,6 +44,7 @@ class KianContainer(context: Context) {
             keyDao = keyDao,
             tokenDao = tokenDao,
             productDao = productDao,
+            relayDao = relayDao,
             offlineQueueDao = offlineQueueDao,
             secureStorage = secureStorage,
             syncManagerProvider = { nostrSyncManager }

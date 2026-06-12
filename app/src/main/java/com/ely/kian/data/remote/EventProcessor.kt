@@ -22,26 +22,34 @@ class EventProcessor(
     private val TAG = "EventProcessor"
 
     suspend fun process(event: NostrEvent) {
-        Log.d(TAG, "Processing event kind=${event.kind} id=${event.id.take(8)}")
+        Log.d(TAG, "Processing event: kind=${event.kind} id=${event.id.take(8)} author=${event.pubkey.take(8)}")
         
-        when (event.kind) {
-            0 -> handleMetadata(event)
-            5 -> {
-                handleDeletion(event)
-                chatRepository.handleDeletion(event)
+        try {
+            when (event.kind) {
+                0 -> handleMetadata(event)
+                5 -> {
+                    handleDeletion(event)
+                    chatRepository.handleDeletion(event)
+                }
+                14 -> {
+                    Log.i(TAG, "Processing Chat Message (Kind 14)")
+                    chatRepository.handleChatMessage(event)
+                }
+                20001, 20002 -> chatRepository.handleReceipt(event)
+                62 -> handleVanish(event)
+                1059 -> {
+                    Log.i(TAG, "Processing GiftWrap (Kind 1059)")
+                    handleGiftWrap(event)
+                }
+                30017, 30018 -> productRepository.handleProductEvent(event)
+                35001, 35002 -> {
+                    Log.i(TAG, "Processing Token Event (Kind ${event.kind})")
+                    tokenRepository.handleTokenEvent(event)
+                }
+                else -> Log.w(TAG, "Unhandled event kind=${event.kind}")
             }
-            14 -> {
-                chatRepository.handleChatMessage(event)
-            }
-            20001, 20002 -> chatRepository.handleReceipt(event)
-            62 -> handleVanish(event)
-            1059 -> handleGiftWrap(event)
-            30017, 30018 -> productRepository.handleProductEvent(event)
-            35001, 35002 -> {
-                Log.i(TAG, "Received token event: kind=${event.kind} id=${event.id.take(8)}")
-                tokenRepository.handleTokenEvent(event)
-            }
-            else -> Log.w(TAG, "Unhandled event kind=${event.kind}")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error processing event kind=${event.kind}", e)
         }
     }
 

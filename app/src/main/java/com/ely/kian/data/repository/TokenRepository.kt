@@ -1,6 +1,7 @@
 package com.ely.kian.data.repository
 
 import com.ely.kian.crypto.KianKeys
+import com.ely.kian.crypto.Nip59
 import com.ely.kian.crypto.SecureStorage
 import com.ely.kian.data.local.dao.*
 import com.ely.kian.data.local.entities.TokenDefinition
@@ -37,12 +38,16 @@ class TokenRepository(
     private val keyDao: KeyDao,
     private val tokenDao: TokenDao,
     private val productDao: ProductDao,
+    private val relayDao: RelayDao,
     private val offlineQueueDao: OfflineQueueDao,
     private val secureStorage: SecureStorage,
     private val syncManagerProvider: () -> NostrSyncManager
 ) {
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
     private val syncManager by lazy { syncManagerProvider() }
+
+    private val _notifications = MutableSharedFlow<String>(replay = 0)
+    val notifications = _notifications.asSharedFlow()
 
     @OptIn(ExperimentalCoroutinesApi::class)
     fun getBalances(): Flow<List<BalanceItem>> {
@@ -273,7 +278,32 @@ class TokenRepository(
         )
         
         tokenDao.insertUtxo(utxo)
-        syncManager.publishEvent(event)
+
+        // 5. Wrap and Publish (NIP-59)
+        val rumorJson = json.encodeToString(NostrEvent.serializer(), event)
+        
+        // Wrap for Recipient
+        val giftWrapToRecipient = Nip59.giftWrap(
+            innerEventJson = rumorJson,
+            senderPrivKey = privKey,
+            recipientPubKey = KianKeys.hexToBytes(recipientPubkey),
+            innerEventPubkey = pubkey
+        )
+        
+        // Wrap for Sender (Self-sync)
+        val giftWrapToSelf = Nip59.giftWrap(
+            innerEventJson = rumorJson,
+            senderPrivKey = privKey,
+            recipientPubKey = KianKeys.hexToBytes(pubkey),
+            innerEventPubkey = pubkey
+        )
+
+        val recipientInbox = relayDao.getDmInboxRelayUrls(recipientPubkey)
+        val myOutbox = relayDao.getDmInboxRelayUrls(pubkey)
+        val targetRelays = (recipientInbox + myOutbox).distinct()
+
+        syncManager.publishEvent(giftWrapToRecipient, targetRelays)
+        syncManager.publishEvent(giftWrapToSelf, myOutbox)
     }
 
     suspend fun handleTokenEvent(event: com.ely.kian.data.remote.model.NostrEvent) {
@@ -324,6 +354,7 @@ class TokenRepository(
                 spent = false
             )
             tokenDao.insertUtxo(utxo)
+            _notifications.emit("New asset received: ${definition.name} (${amount} ${definition.unit})")
         } catch (e: Exception) {
             // Log error
         }
@@ -339,9 +370,9 @@ class TokenRepository(
             // Only save if it's for me
             if (pTag != myPubkey) return
 
-            val content = json.parseToJsonElement(event.content).jsonObject
-            val prevUtxoId = content["previous_utxo"]?.jsonPrimitive?.content
-            val amount = content["amount"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
+            val contentObj = json.parseToJsonElement(event.content).jsonObject
+            val prevUtxoId = contentObj["previous_utxo"]?.jsonPrimitive?.content
+            val amount = contentObj["amount"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
             
             if (prevUtxoId != null) {
                 tokenDao.markSpent(prevUtxoId)
@@ -358,6 +389,10 @@ class TokenRepository(
                 spent = false
             )
             tokenDao.insertUtxo(utxo)
+            
+            val parsed = parseAssetRef(aTag)
+            val name = parsed?.let { tokenDao.getDefinition(it.assetId, it.producer)?.name } ?: "Asset"
+            _notifications.emit("Token transfer completed: $name ($amount units)")
         } catch (e: Exception) {
             // Log error
         }
