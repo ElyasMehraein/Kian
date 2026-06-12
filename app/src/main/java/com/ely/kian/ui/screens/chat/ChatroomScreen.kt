@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import com.ely.kian.data.local.entities.ChatMessage
 import com.ely.kian.data.local.entities.Product
 import com.ely.kian.ui.components.util.setText
+import com.ely.kian.crypto.KianKeys
 import com.ely.kian.ui.screens.chat.components.ChatBubbleLayout
 import com.ely.kian.ui.theme.KianTheme
 import kotlinx.coroutines.launch
@@ -55,6 +56,14 @@ fun ChatroomScreen(
     val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState()
 
+    val contactNpub = remember(contactPubkey) {
+        try {
+            KianKeys.toNpub(KianKeys.hexToBytes(contactPubkey))
+        } catch (e: Exception) {
+            contactPubkey
+        }
+    }
+
     LaunchedEffect(contactPubkey) {
         val profile = viewModel.getProfile(contactPubkey)
         if (profile != null) {
@@ -77,7 +86,7 @@ fun ChatroomScreen(
                         modifier = Modifier.clickable { onProfileClick(contactPubkey) }
                     ) {
                         Text(contactName, color = kianColors.ink, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                        Text(contactPubkey.take(12) + "...", color = kianColors.muted, fontSize = 11.sp)
+                        Text(contactNpub.take(16) + "...", color = kianColors.muted, fontSize = 11.sp)
                     }
                 },
                 navigationIcon = {
