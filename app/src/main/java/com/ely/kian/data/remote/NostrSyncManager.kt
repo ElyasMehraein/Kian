@@ -14,9 +14,10 @@ class NostrSyncManager(
     private val relayPool: RelayPoolManager,
     private val userProfileDao: UserProfileDao,
     private val relayDao: com.ely.kian.data.local.dao.RelayDao? = null,
-    private val eventProcessor: EventProcessor,
+    private val eventProcessorProvider: () -> EventProcessor,
     private val json: Json = Json { ignoreUnknownKeys = true }
 ) {
+    private val eventProcessor by lazy { eventProcessorProvider() }
     private val TAG = "NostrSyncManager"
     private val syncScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     
@@ -174,6 +175,7 @@ class NostrSyncManager(
             defaultRelays
         }
 
+        Log.d(TAG, "Publishing event kind=${event.kind} to ${relaysToUse.size} relays")
         relaysToUse.forEach { url ->
             relayPool.publish(url, message)
         }

@@ -136,7 +136,8 @@ object Nip59 {
     private fun randomizedTimestamp(): Long {
         val now = System.currentTimeMillis() / 1000
         val window = 48 * 60 * 60 // 48 hours
-        // Amethyst style: random within a 4-day window centered on now - 2 days
-        return now - window + java.util.Random().nextInt(window * 2).toLong()
+        // NIP-59: SHOULD be a random time in the past.
+        // Random within the last 48 hours to avoid being rejected by relays for future dates.
+        return now - java.util.Random().nextInt(window).toLong()
     }
 }

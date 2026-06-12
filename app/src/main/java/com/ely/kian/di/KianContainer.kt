@@ -64,7 +64,7 @@ class KianContainer(context: Context) {
             relayPool = relayPoolManager,
             userProfileDao = userProfileDao,
             relayDao = relayDao,
-            eventProcessor = eventProcessor
+            eventProcessorProvider = { eventProcessor }
         )
     }
 }

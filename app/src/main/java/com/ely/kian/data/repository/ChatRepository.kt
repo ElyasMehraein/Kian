@@ -13,6 +13,8 @@ import com.ely.kian.data.remote.model.NostrEvent
 import com.ely.kian.data.local.dao.OfflineQueueDao
 import com.ely.kian.data.local.entities.OfflineQueue
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
 
@@ -25,6 +27,7 @@ class ChatRepository(
     private val json: Json = Json { ignoreUnknownKeys = true }
 ) {
     private val TAG = "ChatRepository"
+    private val repoMutex = Mutex()
 
     fun getMessages(contactPubkey: String): Flow<List<ChatMessage>> = 
         chatDao.getMessagesForContact(contactPubkey)
@@ -81,7 +84,7 @@ class ChatRepository(
             content = content,
             kind = kind,
             isMine = true,
-            status = "sent"
+            status = "pending" // Show as pending until confirmed by a relay
         )
         chatDao.insertMessage(message)
         updateConversation(contactPubkey, content, createdAt)
@@ -97,47 +100,68 @@ class ChatRepository(
     }
 
     suspend fun handleChatMessage(event: NostrEvent) {
-        val myPrivKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: return
-        val myPubKey = KianKeys.bytesToHex(KianKeys.getPubKey(KianKeys.hexToBytes(myPrivKeyHex)))
-        
-        // The contact is the person I'm talking to. 
-        // If I sent it, the contact is the 'p' tag. 
-        // If I received it, the contact is the sender (event.pubkey).
-        
-        val isMine = event.pubkey == myPubKey
-        val contactPubkey = if (isMine) {
-            event.tags.find { it.size >= 2 && it[0] == "p" }?.get(1) ?: return
-        } else {
-            event.pubkey
-        }
+        repoMutex.withLock {
+            // Check if message already exists
+            val existing = chatDao.getMessageById(event.id)
+            if (existing != null) {
+                // If it was pending, mark as sent now that we see it on a relay
+                if (existing.status == "pending") {
+                    chatDao.updateMessageStatus(event.id, "sent")
+                }
+                return@withLock
+            }
 
-        val message = ChatMessage(
-            id = event.id,
-            pubkey = event.pubkey,
-            contactPubkey = contactPubkey,
-            createdAt = event.createdAt,
-            content = event.content,
-            kind = event.kind,
-            isMine = isMine
-        )
-        
-        chatDao.insertMessage(message)
-        updateConversation(contactPubkey, event.content, event.createdAt, !isMine)
+            val myPrivKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: return@withLock
+            val myPubKey = KianKeys.bytesToHex(KianKeys.getPubKey(KianKeys.hexToBytes(myPrivKeyHex)))
+            
+            // The contact is the person I'm talking to. 
+            // If I sent it, the contact is the 'p' tag. 
+            // If I received it, the contact is the sender (event.pubkey).
+            
+            val isMine = event.pubkey == myPubKey
+            val contactPubkey = if (isMine) {
+                event.tags.find { it.size >= 2 && it[0] == "p" }?.get(1) ?: return@withLock
+            } else {
+                event.pubkey
+            }
 
-        if (!isMine) {
-            sendReceipt(contactPubkey, listOf(event.id), 20001) // Delivered
+            val message = ChatMessage(
+                id = event.id,
+                pubkey = event.pubkey,
+                contactPubkey = contactPubkey,
+                createdAt = event.createdAt,
+                content = event.content,
+                kind = event.kind,
+                isMine = isMine
+            )
+            
+            chatDao.insertMessage(message)
+            updateConversation(contactPubkey, event.content, event.createdAt, !isMine)
+
+            if (!isMine) {
+                sendReceipt(contactPubkey, listOf(event.id), 20001) // Delivered
+            }
         }
     }
 
     private suspend fun updateConversation(contactPubkey: String, lastMessage: String, timestamp: Long, incrementUnread: Boolean = false) {
-        // Simple upsert
-        val conversation = Conversation(
-            contactPubkey = contactPubkey,
-            lastMessage = lastMessage,
-            lastTimestamp = timestamp,
-            unreadCount = 0 // Needs proper logic to fetch current and increment
-        )
-        chatDao.upsertConversation(conversation)
+        val existing = chatDao.getConversation(contactPubkey)
+        if (existing == null) {
+            val conversation = Conversation(
+                contactPubkey = contactPubkey,
+                lastMessage = lastMessage,
+                lastTimestamp = timestamp,
+                unreadCount = if (incrementUnread) 1 else 0
+            )
+            chatDao.insertConversationInitial(conversation)
+        } else {
+            chatDao.updateConversationLastMessage(
+                contactPubkey = contactPubkey,
+                lastMessage = lastMessage,
+                lastTimestamp = timestamp,
+                unreadIncrement = if (incrementUnread) 1 else 0
+            )
+        }
     }
 
     suspend fun markAsRead(contactPubkey: String) {
@@ -194,21 +218,40 @@ class ChatRepository(
         val id = KianKeys.computeEventId(myPubKey, createdAt, 5, tags, content)
         val sig = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(id), myPrivKey))
 
-        val deletionEvent = NostrEvent(
-            id = id,
-            pubkey = myPubKey,
-            createdAt = createdAt,
-            kind = 5,
-            tags = tags,
-            content = content,
-            sig = sig
-        )
+        val deletionEvent = NostrEvent(id, myPubKey, createdAt, 5, tags, content, sig)
 
         // 2. Publish
         nostrSyncManager.publishEvent(deletionEvent)
 
         // 3. Delete locally
         chatDao.deleteMessageById(messageId)
+    }
+
+    suspend fun deleteConversationFull(contactPubkey: String) {
+        val myPrivKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: return
+        val myPrivKey = KianKeys.hexToBytes(myPrivKeyHex)
+        val myPubKey = KianKeys.bytesToHex(KianKeys.getPubKey(myPrivKey))
+
+        // 1. Get all own message IDs for this contact
+        val targetIds = chatDao.getOwnMessageIdsForContact(contactPubkey, myPubKey)
+        
+        if (targetIds.isNotEmpty()) {
+            // 2. Create a single Kind 5 Deletion Event for ALL messages
+            val createdAt = System.currentTimeMillis() / 1000
+            val tags = targetIds.map { listOf("e", it) }
+            val content = "Deleting conversation"
+            val id = KianKeys.computeEventId(myPubKey, createdAt, 5, tags, content)
+            val sig = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(id), myPrivKey))
+
+            val deletionEvent = NostrEvent(id, myPubKey, createdAt, 5, tags, content, sig)
+
+            // 3. Publish
+            nostrSyncManager.publishEvent(deletionEvent)
+        }
+
+        // 4. Delete everything locally
+        chatDao.deleteMessagesForContact(contactPubkey)
+        chatDao.deleteConversation(contactPubkey)
     }
 
     suspend fun handleDeletion(event: NostrEvent) {

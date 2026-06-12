@@ -1,14 +1,16 @@
 package com.ely.kian.ui.screens.chat
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -17,6 +19,7 @@ import com.ely.kian.ui.theme.KianTheme
 import java.text.SimpleDateFormat
 import java.util.*
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun ChatInboxScreen(
     viewModel: ChatViewModel,
@@ -25,6 +28,7 @@ fun ChatInboxScreen(
     val conversations by viewModel.conversations.collectAsState()
     val kianColors = KianTheme.colors
     var showStartChatDialog by remember { mutableStateOf(false) }
+    var conversationToDelete by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         containerColor = kianColors.canvas,
@@ -53,14 +57,41 @@ fun ChatInboxScreen(
             } else {
                 LazyColumn {
                     items(conversations) { conversation ->
-                        ConversationItem(conversation, kianColors) {
-                            onConversationClick(conversation.contactPubkey)
-                        }
+                        ConversationItem(
+                            conversation = conversation, 
+                            colors = kianColors,
+                            onClick = { onConversationClick(conversation.contactPubkey) },
+                            onLongClick = { conversationToDelete = conversation.contactPubkey }
+                        )
                         HorizontalDivider(color = kianColors.panel, thickness = 0.5.dp)
                     }
                 }
             }
         }
+    }
+
+    if (conversationToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { conversationToDelete = null },
+            title = { Text("Delete Conversation") },
+            text = { Text("Are you sure you want to delete this conversation? This will also request to delete your messages on Nostr relays.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteConversation(conversationToDelete!!)
+                        conversationToDelete = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { conversationToDelete = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     if (showStartChatDialog) {
@@ -97,16 +128,21 @@ fun ChatInboxScreen(
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun ConversationItem(
     conversation: Conversation,
     colors: com.ely.kian.ui.theme.KianColors,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            )
             .padding(16.dp)
     ) {
         // Avatar Placeholder

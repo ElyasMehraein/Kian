@@ -16,9 +16,14 @@ class ChatViewModel(private val repository: ChatRepository) : ViewModel() {
     val conversations: StateFlow<List<Conversation>> = repository.getConversations()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun getMessages(contactPubkey: String): StateFlow<List<ChatMessage>> = 
-        repository.getMessages(contactPubkey)
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    private val messagesCache = mutableMapOf<String, StateFlow<List<ChatMessage>>>()
+
+    fun getMessages(contactPubkey: String): StateFlow<List<ChatMessage>> {
+        return messagesCache.getOrPut(contactPubkey) {
+            repository.getMessages(contactPubkey)
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        }
+    }
 
     fun sendMessage(contactPubkey: String, content: String) {
         viewModelScope.launch {
@@ -35,6 +40,12 @@ class ChatViewModel(private val repository: ChatRepository) : ViewModel() {
     fun deleteMessage(messageId: String) {
         viewModelScope.launch {
             repository.deleteMessage(messageId)
+        }
+    }
+
+    fun deleteConversation(contactPubkey: String) {
+        viewModelScope.launch {
+            repository.deleteConversationFull(contactPubkey)
         }
     }
 
