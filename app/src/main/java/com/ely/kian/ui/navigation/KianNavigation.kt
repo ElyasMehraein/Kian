@@ -181,7 +181,9 @@ fun KianScaffold() {
                     val chatViewModel: ChatViewModel = viewModel(
                         factory = ChatViewModel.provideFactory(
                             app.container.chatRepository,
-                            app.container.userProfileDao
+                            app.container.userProfileDao,
+                            app.container.productRepository,
+                            app.container.tokenRepository
                         )
                     )
                     ChatInboxScreen(
@@ -196,7 +198,9 @@ fun KianScaffold() {
                     val chatViewModel: ChatViewModel = viewModel(
                         factory = ChatViewModel.provideFactory(
                             app.container.chatRepository,
-                            app.container.userProfileDao
+                            app.container.userProfileDao,
+                            app.container.productRepository,
+                            app.container.tokenRepository
                         )
                     )
                     ChatroomScreen(

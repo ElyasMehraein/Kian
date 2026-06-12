@@ -1,7 +1,11 @@
 package com.ely.kian.data.repository
 
+import com.ely.kian.crypto.KianKeys
+import com.ely.kian.crypto.SecureStorage
 import com.ely.kian.data.local.dao.*
 import com.ely.kian.data.local.entities.TokenUtxo
+import com.ely.kian.data.remote.NostrSyncManager
+import com.ely.kian.data.remote.model.NostrEvent
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.json.*
@@ -31,9 +35,12 @@ class TokenRepository(
     private val keyDao: KeyDao,
     private val tokenDao: TokenDao,
     private val productDao: ProductDao,
-    private val offlineQueueDao: OfflineQueueDao
+    private val offlineQueueDao: OfflineQueueDao,
+    private val secureStorage: SecureStorage,
+    private val syncManagerProvider: () -> NostrSyncManager
 ) {
     private val json = Json { ignoreUnknownKeys = true }
+    private val syncManager by lazy { syncManagerProvider() }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     fun getBalances(): Flow<List<BalanceItem>> {
@@ -199,8 +206,9 @@ class TokenRepository(
     }
 
     suspend fun mintProduct(recipientPubkey: String, productId: String, quantity: Long) {
-        val key = keyDao.getKey() ?: throw Exception("No key found")
-        val pubkey = key.pubkey
+        val privKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: throw Exception("No key found")
+        val privKey = KianKeys.hexToBytes(privKeyHex)
+        val pubkey = KianKeys.bytesToHex(KianKeys.getPubKey(privKey))
         val product = productDao.getProduct(productId, pubkey) ?: throw Exception("Product not found")
 
         if (product.pubkey != pubkey) {
@@ -209,13 +217,38 @@ class TokenRepository(
 
         // Logic for Kind 35001 (Genesis)
         val createdAt = System.currentTimeMillis() / 1000
-        val assetId = "ast_${product.id}_$createdAt"
-        val assetRef = "35001:$pubkey:$assetId"
+        val dTag = "ast_${product.id}_$createdAt"
+        val assetRef = "35001:$pubkey:$dTag"
         
-        val utxoId = "mint_$assetId" // Placeholder for signed event ID
-        
+        val content = buildJsonObject {
+            put("amount", quantity)
+            put("unit", "unit")
+            put("name", product.name)
+            put("description", product.description ?: "")
+            put("images", product.images) // Already JSON
+        }.toString()
+
+        val tags = listOf(
+            listOf("d", dTag),
+            listOf("p", recipientPubkey),
+            listOf("t", "trader") // Marking as commerce token
+        )
+
+        val id = KianKeys.computeEventId(pubkey, createdAt, 35001, tags, content)
+        val sig = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(id), privKey))
+
+        val event = NostrEvent(
+            id = id,
+            pubkey = pubkey,
+            createdAt = createdAt,
+            kind = 35001,
+            tags = tags,
+            content = content,
+            sig = sig
+        )
+
         val utxo = TokenUtxo(
-            utxoId = utxoId,
+            utxoId = id,
             assetRef = assetRef,
             producer = pubkey,
             owner = recipientPubkey,
@@ -226,8 +259,7 @@ class TokenRepository(
         )
         
         tokenDao.insertUtxo(utxo)
-        
-        // TODO: Publish Kind 35001 event
+        syncManager.publishEvent(event)
     }
 
     suspend fun handleTokenEvent(event: com.ely.kian.data.remote.model.NostrEvent) {
@@ -242,11 +274,14 @@ class TokenRepository(
         val assetRef = "35001:${event.pubkey}:$dTag"
         
         try {
+            val myPubkey = keyDao.getKey()?.pubkey
+            val recipient = event.tags.find { it.size >= 2 && it[0] == "p" }?.get(1) ?: event.pubkey
+            
+            // Only save if it's for me
+            if (recipient != myPubkey) return
+
             val content = json.parseToJsonElement(event.content).jsonObject
             val amount = content["amount"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
-            // In Genesis, the producer usually gives it to themselves or a specific recipient
-            // For simplicity, we assume the producer is the initial owner if no other info
-            val recipient = event.pubkey // In NIP-15/Kian, producer might name a recipient in tags
             
             val utxo = TokenUtxo(
                 utxoId = event.id,
@@ -269,6 +304,11 @@ class TokenRepository(
         val pTag = event.tags.find { it.size >= 2 && it[0] == "p" }?.get(1) ?: return
         
         try {
+            val myPubkey = keyDao.getKey()?.pubkey
+            
+            // Only save if it's for me
+            if (pTag != myPubkey) return
+
             val content = json.parseToJsonElement(event.content).jsonObject
             val prevUtxoId = content["previous_utxo"]?.jsonPrimitive?.content
             val amount = content["amount"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L

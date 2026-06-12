@@ -6,16 +6,19 @@ import androidx.lifecycle.viewModelScope
 import com.ely.kian.data.local.dao.UserProfileDao
 import com.ely.kian.data.local.entities.ChatMessage
 import com.ely.kian.data.local.entities.Conversation
+import com.ely.kian.data.local.entities.Product
 import com.ely.kian.data.local.entities.Profile
 import com.ely.kian.data.repository.ChatRepository
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
+import com.ely.kian.data.repository.ProductRepository
+import com.ely.kian.data.repository.TokenRepository
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class ChatViewModel(
     private val repository: ChatRepository,
-    private val userProfileDao: UserProfileDao
+    private val userProfileDao: UserProfileDao,
+    private val productRepository: ProductRepository,
+    private val tokenRepository: TokenRepository
 ) : ViewModel() {
 
     val conversations: StateFlow<List<Conversation>> = repository.getConversations()
@@ -27,6 +30,35 @@ class ChatViewModel(
         return messagesCache.getOrPut(contactPubkey) {
             repository.getMessages(contactPubkey)
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        }
+    }
+
+    fun getMyProducts(): Flow<List<Product>> {
+        return flow {
+            val key = repository.getOwnPubkey()
+            if (key != null) {
+                emitAll(productRepository.getProducts(key))
+            } else {
+                emit(emptyList())
+            }
+        }
+    }
+
+    fun sendProductAsToken(contactPubkey: String, productId: String, quantity: Long) {
+        viewModelScope.launch {
+            try {
+                tokenRepository.mintProduct(contactPubkey, productId, quantity)
+                
+                // Fetch the product name to include in the notification message
+                val ownPubkey = repository.getOwnPubkey() ?: return@launch
+                val products = productRepository.getProducts(ownPubkey).first()
+                val product = products.find { it.id == productId }
+                val productName = product?.name ?: "a product"
+
+                repository.sendMessage(contactPubkey, "🎁 Sent you $quantity tokens for: $productName")
+            } catch (e: Exception) {
+                android.util.Log.e("ChatViewModel", "Failed to mint product", e)
+            }
         }
     }
 
@@ -61,11 +93,13 @@ class ChatViewModel(
     companion object {
         fun provideFactory(
             repository: ChatRepository,
-            userProfileDao: UserProfileDao
+            userProfileDao: UserProfileDao,
+            productRepository: ProductRepository,
+            tokenRepository: TokenRepository
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return ChatViewModel(repository, userProfileDao) as T
+                return ChatViewModel(repository, userProfileDao, productRepository, tokenRepository) as T
             }
         }
     }

@@ -36,7 +36,14 @@ class KianContainer(context: Context) {
     }
 
     val tokenRepository: TokenRepository by lazy {
-        TokenRepository(keyDao, tokenDao, productDao, offlineQueueDao)
+        TokenRepository(
+            keyDao = keyDao,
+            tokenDao = tokenDao,
+            productDao = productDao,
+            offlineQueueDao = offlineQueueDao,
+            secureStorage = secureStorage,
+            syncManagerProvider = { nostrSyncManager }
+        )
     }
 
     val chatRepository: ChatRepository by lazy {

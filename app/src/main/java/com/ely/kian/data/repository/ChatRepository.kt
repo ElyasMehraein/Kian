@@ -35,6 +35,11 @@ class ChatRepository(
     fun getConversations(): Flow<List<Conversation>> = 
         chatDao.getConversations()
 
+    suspend fun getOwnPubkey(): String? {
+        val privKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: return null
+        return KianKeys.bytesToHex(KianKeys.getPubKey(KianKeys.hexToBytes(privKeyHex)))
+    }
+
     suspend fun sendMessage(contactPubkey: String, content: String) {
         val myPrivKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: return
         val myPrivKey = KianKeys.hexToBytes(myPrivKeyHex)
