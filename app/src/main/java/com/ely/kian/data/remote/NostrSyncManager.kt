@@ -62,7 +62,7 @@ class NostrSyncManager(
                 Log.d(TAG, "Connected to $url")
                 
                 // 1. Trader sync (Global for market)
-                val traderFilter = """{"kinds": [0, 10050], "#t": ["trader"], "limit": 100}"""
+                val traderFilter = """{"kinds": [0, 10002, 10050], "#t": ["trader"], "limit": 100}"""
                 relayPool.subscribe(url, "trader_sync", traderFilter)
                 
                 if (myPubkey != null) {
@@ -70,7 +70,15 @@ class NostrSyncManager(
                     val inboxRelayFilter = """{"kinds": [0, 3, 10002, 10050], "authors": ["$myPubkey"], "limit": 5}"""
                     relayPool.subscribe(url, "my_meta_sync", inboxRelayFilter)
                     
-                    // 3. Product/Token events (Self)
+                    // 3. Direct Messages (GiftWrap)
+                    val dmFilter = """{"kinds": [1059], "#p": ["$myPubkey"], "since": ${System.currentTimeMillis() / 1000 - 86400 * 7}}"""
+                    relayPool.subscribe(url, "my_dm_sync", dmFilter)
+
+                    // 4. Receipts and Status (Kind 20001, 20002)
+                    val receiptFilter = """{"kinds": [20001, 20002], "#p": ["$myPubkey"], "limit": 50}"""
+                    relayPool.subscribe(url, "my_receipts_sync", receiptFilter)
+                    
+                    // 5. Product/Token events (Self)
                     val inventoryFilter = """{"kinds": [30017, 30018, 35001], "authors": ["$myPubkey"]}"""
                     relayPool.subscribe(url, "my_inventory_sync", inventoryFilter)
                 }
@@ -113,12 +121,18 @@ class NostrSyncManager(
         // Handle sync-manager specific tasks (like updating relay lists)
         when (event.kind) {
             3 -> handleFollowList(event)
-            10050 -> handleInboxRelays(event)
+            10050, 10002 -> handleInboxRelays(event)
         }
     }
 
     private fun handleInboxRelays(event: NostrEvent) {
-        val relayUrls = event.tags.filter { it.size >= 2 && it[0] == "relay" }.map { it[1] }
+        val relayUrls = if (event.kind == 10050) {
+            event.tags.filter { it.size >= 2 && it[0] == "relay" }.map { it[1] }
+        } else {
+            // NIP-65
+            event.tags.filter { it.size >= 2 && it[0] == "r" }.map { it[1] }
+        }
+        
         if (relayUrls.isNotEmpty()) {
             syncScope.launch {
                 val dmInboxRelays = relayUrls.map { url ->
@@ -129,7 +143,7 @@ class NostrSyncManager(
                     )
                 }
                 relayDao?.replaceDmInboxRelays(event.pubkey, dmInboxRelays)
-                Log.d(TAG, "Saved ${relayUrls.size} inbox relays for ${event.pubkey}")
+                Log.d(TAG, "Saved ${relayUrls.size} relays (kind=${event.kind}) for ${event.pubkey}")
             }
         }
     }
@@ -150,10 +164,17 @@ class NostrSyncManager(
         }
     }
 
-    fun publishEvent(event: NostrEvent) {
+    fun publishEvent(event: NostrEvent, targetRelays: List<String>? = null) {
         val eventJson = json.encodeToString(NostrEvent.serializer(), event)
         val message = "[\"EVENT\", $eventJson]"
-        defaultRelays.forEach { url ->
+        
+        val relaysToUse = if (!targetRelays.isNullOrEmpty()) {
+            (defaultRelays + targetRelays).distinct()
+        } else {
+            defaultRelays
+        }
+
+        relaysToUse.forEach { url ->
             relayPool.publish(url, message)
         }
     }

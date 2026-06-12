@@ -15,9 +15,40 @@ object Nip59 {
         recipientPubKey: ByteArray,
         innerEventPubkey: String
     ): NostrEvent {
+        // 0. Parse rumor and sign it (Amethyst style for extra reliability)
+        val rumor = try {
+            val element = json.parseToJsonElement(innerEventJson).jsonObject
+            val tags = element["tags"]?.jsonArray?.map { tag ->
+                tag.jsonArray.map { it.jsonPrimitive.content }
+            } ?: emptyList()
+            
+            val id = KianKeys.computeEventId(
+                pubkey = innerEventPubkey,
+                createdAt = element["created_at"]!!.jsonPrimitive.long,
+                kind = element["kind"]!!.jsonPrimitive.int,
+                tags = tags,
+                content = element["content"]!!.jsonPrimitive.content
+            )
+            val sig = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(id), senderPrivKey))
+            
+            NostrEvent(
+                id = id,
+                pubkey = innerEventPubkey,
+                createdAt = element["created_at"]!!.jsonPrimitive.long,
+                kind = element["kind"]!!.jsonPrimitive.int,
+                tags = tags,
+                content = element["content"]!!.jsonPrimitive.content,
+                sig = sig
+            )
+        } catch (e: Exception) {
+            json.decodeFromString<NostrEvent>(innerEventJson)
+        }
+
+        val signedRumorJson = json.encodeToString(NostrEvent.serializer(), rumor)
+
         // 1. Create the Seal (Kind 13)
         val sealCreatedAt = randomizedTimestamp()
-        val encryptedRumor = Nip44.encrypt(innerEventJson, senderPrivKey, recipientPubKey)
+        val encryptedRumor = Nip44.encrypt(signedRumorJson, senderPrivKey, recipientPubKey)
         
         val sealId = KianKeys.computeEventId(
             pubkey = innerEventPubkey,

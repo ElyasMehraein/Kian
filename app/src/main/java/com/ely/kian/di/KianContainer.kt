@@ -9,6 +9,7 @@ import com.ely.kian.data.remote.NostrSyncManager
 import com.ely.kian.data.remote.RelayPoolManager
 import com.ely.kian.data.repository.ProductRepository
 import com.ely.kian.data.repository.TokenRepository
+import com.ely.kian.data.repository.ChatRepository
 
 class KianContainer(context: Context) {
     val secureStorage = SecureStorage(context)
@@ -38,12 +39,23 @@ class KianContainer(context: Context) {
         TokenRepository(keyDao, tokenDao, productDao, offlineQueueDao)
     }
 
+    val chatRepository: ChatRepository by lazy {
+        ChatRepository(
+            chatDao = database.chatDao(),
+            relayDao = database.relayDao(),
+            offlineQueueDao = database.offlineQueueDao(),
+            secureStorage = secureStorage,
+            nostrSyncManager = nostrSyncManager
+        )
+    }
+
     val eventProcessor: EventProcessor by lazy {
         EventProcessor(
             secureStorage = secureStorage,
             productRepository = productRepository,
             tokenRepository = tokenRepository,
-            userProfileDao = userProfileDao
+            userProfileDao = userProfileDao,
+            chatRepository = chatRepository
         )
     }
 

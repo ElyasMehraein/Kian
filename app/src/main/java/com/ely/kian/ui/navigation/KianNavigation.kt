@@ -40,21 +40,27 @@ import com.ely.kian.ui.screens.merchant.MerchantProfileScreen
 import com.ely.kian.ui.screens.profile.ProfileEditScreen
 import com.ely.kian.ui.screens.cart.CartScreen
 import com.ely.kian.ui.screens.relays.RelayManagementScreen
+import com.ely.kian.ui.screens.chat.ChatInboxScreen
+import com.ely.kian.ui.screens.chat.ChatroomScreen
+import com.ely.kian.ui.screens.chat.ChatViewModel
 import com.ely.kian.ui.theme.KianTheme
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     object Home : Screen("home", "Home", Icons.Default.Home)
+    object Chat : Screen("chat", "Chat", Icons.Default.Chat)
     object Wallet : Screen("wallet", "Wallet", Icons.Default.Wallet)
     object Products : Screen("products", "Products", Icons.Default.Inventory)
     
     // Sub-screens
     object MerchantProfile : Screen("merchant/{pubkey}", "Merchant", Icons.Default.Person)
+    object Chatroom : Screen("chat/{roomId}", "Chatroom", Icons.Default.Chat)
     object Cart : Screen("cart", "Cart", Icons.Default.ShoppingCart)
     object Backups : Screen("backups", "Backups", Icons.Default.Backup)
 }
 
 val items = listOf(
     Screen.Home,
+    Screen.Chat,
     Screen.Wallet,
     Screen.Products,
 )
@@ -152,6 +158,28 @@ fun KianScaffold() {
                         navController.navigate("merchant/$pubkey")
                     }) 
                 }
+                composable(Screen.Chat.route) {
+                    val chatViewModel: ChatViewModel = viewModel(
+                        factory = ChatViewModel.provideFactory(app.container.chatRepository)
+                    )
+                    ChatInboxScreen(
+                        viewModel = chatViewModel,
+                        onConversationClick = { roomId ->
+                            navController.navigate("chat/$roomId")
+                        }
+                    )
+                }
+                composable(Screen.Chatroom.route) { backStackEntry ->
+                    val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
+                    val chatViewModel: ChatViewModel = viewModel(
+                        factory = ChatViewModel.provideFactory(app.container.chatRepository)
+                    )
+                    ChatroomScreen(
+                        contactPubkey = roomId,
+                        viewModel = chatViewModel,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
                 composable(Screen.Wallet.route) { 
                     WalletScreen(
                         onSendToken = { navController.navigate("tokens/send") },
@@ -192,7 +220,8 @@ fun KianScaffold() {
                         ownPubkey = viewModel.ownPubkey,
                         onBack = { navController.popBackStack() },
                         onCart = { navController.navigate("cart") },
-                        onEdit = { navController.navigate("profile/edit") }
+                        onEdit = { navController.navigate("profile/edit") },
+                        onMessage = { pubkey -> navController.navigate("chat/$pubkey") }
                     ) 
                 }
                 composable("profile/edit") {
@@ -224,7 +253,8 @@ fun KianScaffold() {
                         ownPubkey = viewModel.ownPubkey,
                         onBack = { navController.popBackStack() },
                         onCart = { navController.navigate("cart") },
-                        onEdit = { navController.navigate("profile/edit") }
+                        onEdit = { navController.navigate("profile/edit") },
+                        onMessage = { pk -> navController.navigate("chat/$pk") }
                     )
                 }
                 

@@ -16,6 +16,7 @@ class EventProcessor(
     private val productRepository: ProductRepository,
     private val tokenRepository: TokenRepository,
     private val userProfileDao: UserProfileDao,
+    private val chatRepository: com.ely.kian.data.repository.ChatRepository,
     private val json: Json = Json { ignoreUnknownKeys = true }
 ) {
     private val TAG = "EventProcessor"
@@ -25,7 +26,14 @@ class EventProcessor(
         
         when (event.kind) {
             0 -> handleMetadata(event)
-            5 -> handleDeletion(event)
+            5 -> {
+                handleDeletion(event)
+                chatRepository.handleDeletion(event)
+            }
+            14 -> {
+                chatRepository.handleChatMessage(event)
+            }
+            20001, 20002 -> chatRepository.handleReceipt(event)
             62 -> handleVanish(event)
             1059 -> handleGiftWrap(event)
             30017, 30018 -> productRepository.handleProductEvent(event)

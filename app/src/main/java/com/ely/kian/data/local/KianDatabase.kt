@@ -17,7 +17,9 @@ import com.ely.kian.data.local.entities.*
         com.ely.kian.data.local.entities.Review::class,
         com.ely.kian.data.local.entities.OfflineQueue::class,
         com.ely.kian.data.local.entities.Relay::class,
-        com.ely.kian.data.local.entities.DmInboxRelay::class
+        com.ely.kian.data.local.entities.DmInboxRelay::class,
+        com.ely.kian.data.local.entities.ChatMessage::class,
+        com.ely.kian.data.local.entities.Conversation::class
     ],
     version = 1,
     exportSchema = false
@@ -30,4 +32,5 @@ abstract class KianDatabase : RoomDatabase() {
     abstract fun reviewDao(): ReviewDao
     abstract fun offlineQueueDao(): OfflineQueueDao
     abstract fun relayDao(): RelayDao
+    abstract fun chatDao(): ChatDao
 }

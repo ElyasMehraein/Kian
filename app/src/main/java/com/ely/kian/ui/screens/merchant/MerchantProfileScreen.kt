@@ -48,6 +48,7 @@ fun MerchantProfileScreen(
     onBack: () -> Unit,
     onCart: () -> Unit,
     onEdit: () -> Unit = {},
+    onMessage: (String) -> Unit = {},
     ownPubkey: String? = null,
     viewModel: MerchantProfileViewModel = viewModel(
         factory = MerchantProfileViewModel.provideFactory(
@@ -118,6 +119,11 @@ fun MerchantProfileScreen(
                             type = com.ely.kian.ui.components.ButtonType.Soft
                         )
                     } else {
+                        KianButton(
+                            text = "Message",
+                            onClick = { onMessage(pubkey) },
+                            type = com.ely.kian.ui.components.ButtonType.Soft
+                        )
                         KianButton(
                             text = "Write review",
                             onClick = {},
