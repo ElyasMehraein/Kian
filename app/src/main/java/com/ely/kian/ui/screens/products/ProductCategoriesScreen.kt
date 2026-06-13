@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ely.kian.data.local.entities.ProductCategory
 import com.ely.kian.ui.components.KianButton
+import com.ely.kian.ui.components.ScreenHeader
 import com.ely.kian.ui.theme.KianTheme
 
 @Composable
@@ -42,31 +43,13 @@ fun ProductCategoriesScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(kianColors.canvas)
-            .statusBarsPadding()
-            .padding(horizontal = 20.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        Row(
-            modifier = Modifier.padding(top = 14.dp, bottom = 24.dp).fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Category management", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = kianColors.ink)
-                Text(
-                    "Build your category tree up to 5 levels deep, then use it on the products page.",
-                    fontSize = 14.sp,
-                    color = kianColors.muted,
-                    modifier = Modifier.padding(top = 6.dp)
-                )
-            }
-            IconButton(
-                onClick = onNavigateBack,
-                modifier = Modifier.background(kianColors.panel, CircleShape).size(44.dp)
-            ) {
-                Icon(Icons.Default.Close, contentDescription = "Back", modifier = Modifier.size(22.dp), tint = kianColors.ink)
-            }
-        }
+        ScreenHeader(
+            title = "Category management",
+            subtitle = "Build your category tree up to 5 levels deep, then use it on the products page.",
+            onBack = onNavigateBack
+        )
 
         // Add root category
         Column(

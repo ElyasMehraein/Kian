@@ -26,6 +26,7 @@ import com.ely.kian.data.local.entities.Product
 import com.ely.kian.data.local.entities.ProductCategory
 import com.ely.kian.ui.components.KianButton
 import com.ely.kian.ui.components.KianChip
+import com.ely.kian.ui.components.ScreenHeader
 import com.ely.kian.ui.theme.KianTheme
 import kotlinx.serialization.json.Json
 
@@ -71,6 +72,7 @@ fun ProductManagerScreen(
 
     Scaffold(
         containerColor = kianColors.canvas,
+        contentWindowInsets = WindowInsets(0.dp),
         floatingActionButton = {
             if (pubkey != null) {
                 FloatingActionButton(
@@ -91,22 +93,11 @@ fun ProductManagerScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .statusBarsPadding()
         ) {
             // Header
-            Text(
-                text = "Manage products",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = kianColors.ink,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp)
-            )
-
-            Text(
-                text = if (pubkey != null) "Tap the + button to create a product, edit one from the list, or filter by category." else "Create keys first.",
-                fontSize = 15.sp,
-                color = kianColors.muted,
-                modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 16.dp)
+            ScreenHeader(
+                title = "Manage products",
+                subtitle = if (pubkey != null) "Tap the + button to create a product, edit one from the list, or filter by category." else "Create keys first."
             )
 
             // Category Filter Bar

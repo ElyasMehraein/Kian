@@ -23,6 +23,7 @@ import com.ely.kian.data.local.entities.Relay
 import com.ely.kian.data.remote.RelayPoolManager
 import com.ely.kian.ui.components.KianButton
 import com.ely.kian.ui.components.KianInput
+import com.ely.kian.ui.components.ScreenHeader
 import com.ely.kian.ui.theme.KianTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,6 +49,7 @@ fun RelayManagementScreen() {
 
     Scaffold(
         containerColor = kianColors.canvas,
+        contentWindowInsets = WindowInsets(0.dp),
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showBottomSheet = true },
@@ -63,16 +65,9 @@ fun RelayManagementScreen() {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .statusBarsPadding()
         ) {
             // Header
-            Text(
-                text = "Relay Management",
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-                color = kianColors.ink,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp)
-            )
+            ScreenHeader(title = "Relay Management")
 
             // Overall Status Section
             Surface(

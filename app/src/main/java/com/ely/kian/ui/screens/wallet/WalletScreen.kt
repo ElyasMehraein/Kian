@@ -25,6 +25,7 @@ import com.ely.kian.KianApp
 import com.ely.kian.data.local.entities.TokenUtxo
 import com.ely.kian.data.repository.BalanceItem
 import com.ely.kian.data.repository.PendingItem
+import com.ely.kian.ui.components.ScreenHeader as KianScreenHeader
 import com.ely.kian.ui.theme.KianTheme
 import java.text.SimpleDateFormat
 import java.util.*
@@ -51,6 +52,7 @@ fun WalletScreen(onSendToken: () -> Unit, onProducerClick: (String) -> Unit) {
 
     Scaffold(
         containerColor = kianColors.canvas,
+        contentWindowInsets = WindowInsets(0.dp),
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = onSendToken,
@@ -66,32 +68,24 @@ fun WalletScreen(onSendToken: () -> Unit, onProducerClick: (String) -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 24.dp)
+            contentPadding = PaddingValues(bottom = 24.dp)
         ) {
             item {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 28.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
-                        Text(
-                            text = "My Wallet",
-                            fontSize = 32.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = kianColors.ink
-                        )
-                        Text(
-                            text = "Manage your digital trade assets",
-                            fontSize = 14.sp,
-                            color = kianColors.muted
-                        )
-                    }
+                    KianScreenHeader(
+                        title = "My Wallet",
+                        subtitle = "Manage your digital trade assets",
+                        modifier = Modifier.weight(1f)
+                    )
                     
                     Surface(
                         shape = CircleShape,
                         color = kianColors.panel,
-                        modifier = Modifier.size(48.dp)
+                        modifier = Modifier.padding(end = 20.dp).size(48.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(Icons.Default.QrCodeScanner, contentDescription = "Scan", tint = kianColors.ink)
@@ -103,7 +97,7 @@ fun WalletScreen(onSendToken: () -> Unit, onProducerClick: (String) -> Unit) {
             // Summary Section
             item {
                 Surface(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 32.dp),
                     color = kianColors.accent,
                     shape = RoundedCornerShape(24.dp)
                 ) {

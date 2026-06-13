@@ -53,6 +53,7 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     object Chat : Screen("chat", "Chat", Icons.Default.Chat)
     object Wallet : Screen("wallet", "Wallet", Icons.Default.Wallet)
     object Products : Screen("products", "Products", Icons.Default.Inventory)
+    object Profile : Screen("profile", "Profile", Icons.Default.Person)
     
     // Sub-screens
     object MerchantProfile : Screen("merchant/{pubkey}", "Merchant", Icons.Default.Person)
@@ -66,6 +67,7 @@ val items = listOf(
     Screen.Chat,
     Screen.Wallet,
     Screen.Products,
+    Screen.Profile,
 )
 
 @Composable
@@ -134,7 +136,13 @@ fun KianScaffold() {
                         items.forEach { screen ->
                             NavigationBarItem(
                                 icon = {
-                                    if (screen == Screen.Chat && totalUnreadCount > 0) {
+                                    if (screen == Screen.Profile) {
+                                        InitialAvatar(
+                                            name = userProfile?.displayName ?: userProfile?.name ?: "",
+                                            pictureUrl = userProfile?.picture,
+                                            size = 24.dp
+                                        )
+                                    } else if (screen == Screen.Chat && totalUnreadCount > 0) {
                                         BadgedBox(
                                             badge = {
                                                 Badge(
@@ -175,9 +183,7 @@ fun KianScaffold() {
             NavHost(
                 navController = navController,
                 startDestination = if (isLoggedIn == true) Screen.Home.route else "onboarding",
-                modifier = Modifier
-                    .padding(innerPadding)
-                    .then(if (showBottomBar) Modifier.padding(top = 25.dp) else Modifier),
+                modifier = Modifier.padding(innerPadding),
                 enterTransition = { androidx.compose.animation.EnterTransition.None },
                 exitTransition = { androidx.compose.animation.ExitTransition.None },
                 popEnterTransition = { androidx.compose.animation.EnterTransition.None },
@@ -260,11 +266,11 @@ fun KianScaffold() {
                     )
                 }
                 
-                composable("profile") { 
+                composable(Screen.Profile.route) { 
                     MerchantProfileScreen(
                         pubkey = viewModel.ownPubkey ?: "",
                         ownPubkey = viewModel.ownPubkey,
-                        onBack = { navController.popBackStack() },
+                        onBack = { /* No back on main tab */ },
                         onCart = { navController.navigate("cart") },
                         onEdit = { navController.navigate("profile/edit") },
                         onMessage = { pubkey -> navController.navigate("chat/$pubkey") }
@@ -314,17 +320,6 @@ fun KianScaffold() {
         }
 
         if (showBottomBar) {
-            InitialAvatar(
-                name = userProfile?.displayName ?: userProfile?.name ?: "",
-                pictureUrl = userProfile?.picture,
-                size = 48.dp,
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .statusBarsPadding()
-                    .padding(top = 18.dp, start = 20.dp)
-                    .clickable { navController.navigate("profile") }
-            )
-
             AppMenuButton(
                 modifier = Modifier
                     .align(Alignment.TopEnd)

@@ -28,6 +28,7 @@ import android.widget.Toast
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ely.kian.KianApp
+import com.ely.kian.ui.components.ScreenHeader
 import com.ely.kian.ui.theme.KianTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -46,44 +47,22 @@ fun BackupScreen(onBack: () -> Unit) {
     }
     
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Backup & Recovery", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = kianColors.canvas,
-                    titleContentColor = kianColors.ink
-                )
-            )
-        },
-        containerColor = kianColors.canvas
+        containerColor = kianColors.canvas,
+        contentWindowInsets = WindowInsets(0.dp)
     ) { padding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
-            contentPadding = PaddingValues(24.dp),
+            contentPadding = PaddingValues(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
             item {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = "🔐 Backup & Recovery",
-                        fontSize = 30.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = kianColors.ink
-                    )
-                    Text(
-                        text = "End-to-End Encrypted Backups",
-                        color = kianColors.muted,
-                        fontSize = 16.sp,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
+                ScreenHeader(
+                    title = "Backup & Recovery",
+                    subtitle = "End-to-End Encrypted Backups",
+                    onBack = onBack
+                )
             }
 
             // Auto Backup Status Card

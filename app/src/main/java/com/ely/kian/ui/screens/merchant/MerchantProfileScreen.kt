@@ -68,6 +68,7 @@ fun MerchantProfileScreen(
 
     Scaffold(
         containerColor = kianColors.canvas,
+        contentWindowInsets = WindowInsets(0.dp),
         topBar = {
             TopAppBar(
                 title = { },

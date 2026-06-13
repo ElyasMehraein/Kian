@@ -17,6 +17,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ely.kian.KianApp
 import com.ely.kian.ui.components.KianChip
 import com.ely.kian.ui.components.MerchantCard
+import com.ely.kian.ui.components.ScreenHeader
 import com.ely.kian.ui.theme.KianTheme
 
 @Composable
@@ -36,18 +37,10 @@ fun HomeScreen(
     val sortOptions = listOf("All", "Nearest", "Top Rated", "Verified")
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .statusBarsPadding()
+        modifier = Modifier.fillMaxSize()
     ) {
         // Header
-        Text(
-            text = "Merchants",
-            fontSize = 32.sp,
-            fontWeight = FontWeight.Bold,
-            color = kianColors.ink,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp)
-        )
+        ScreenHeader(title = "Merchants")
 
         // Sort Chips
         LazyRow(

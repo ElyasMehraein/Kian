@@ -15,6 +15,7 @@ import com.ely.kian.KianApp
 import com.ely.kian.ui.components.InitialAvatar
 import com.ely.kian.ui.components.KianButton
 import com.ely.kian.ui.components.KianInput
+import com.ely.kian.ui.components.ScreenHeader
 import com.ely.kian.ui.theme.KianTheme
 import androidx.compose.ui.Alignment
 
@@ -36,21 +37,13 @@ fun ProfileEditScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .statusBarsPadding()
             .verticalScroll(scrollState)
-            .padding(horizontal = 20.dp, vertical = 24.dp)
+            .padding(bottom = 24.dp)
     ) {
-        Text(
-            text = "Edit profile",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            color = kianColors.ink
-        )
-        Text(
-            text = if (viewModel.pubkey != null) "Update your public profile metadata." else "Create keys first.",
-            fontSize = 15.sp,
-            color = kianColors.ink.copy(alpha = 0.5f),
-            modifier = Modifier.padding(top = 6.dp, bottom = 16.dp)
+        ScreenHeader(
+            title = "Edit profile",
+            subtitle = if (viewModel.pubkey != null) "Update your public profile metadata." else "Create keys first.",
+            onBack = onBack
         )
 
         InitialAvatar(
@@ -66,7 +59,7 @@ fun ProfileEditScreen(
             value = viewModel.displayName,
             onValueChange = { viewModel.displayName = it },
             placeholder = "Display name",
-            modifier = Modifier.padding(bottom = 12.dp)
+            modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 12.dp)
         )
 
         KianInput(
@@ -76,32 +69,32 @@ fun ProfileEditScreen(
             singleLine = false,
             modifier = Modifier
                 .heightIn(min = 120.dp)
-                .padding(bottom = 12.dp)
+                .padding(horizontal = 20.dp).padding(bottom = 12.dp)
         )
 
         KianInput(
             value = viewModel.picture,
             onValueChange = { viewModel.picture = it },
             placeholder = "Avatar URL",
-            modifier = Modifier.padding(bottom = 12.dp)
+            modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 12.dp)
         )
 
         KianInput(
             value = viewModel.nip05,
             onValueChange = { viewModel.nip05 = it },
             placeholder = "NIP-05",
-            modifier = Modifier.padding(bottom = 12.dp)
+            modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 12.dp)
         )
 
         KianInput(
             value = viewModel.geohash,
             onValueChange = { viewModel.geohash = it },
             placeholder = "Geohash",
-            modifier = Modifier.padding(bottom = 16.dp)
+            modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 16.dp)
         )
 
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             KianButton(

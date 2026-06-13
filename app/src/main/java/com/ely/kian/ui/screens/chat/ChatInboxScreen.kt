@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ely.kian.data.local.entities.Conversation
 import com.ely.kian.ui.components.InitialAvatar
+import com.ely.kian.ui.components.ScreenHeader
 import com.ely.kian.ui.theme.KianTheme
 import java.text.SimpleDateFormat
 import java.util.*
@@ -35,6 +36,7 @@ fun ChatInboxScreen(
 
     Scaffold(
         containerColor = kianColors.canvas,
+        contentWindowInsets = WindowInsets(0.dp),
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showStartChatDialog = true },
@@ -46,12 +48,7 @@ fun ChatInboxScreen(
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
-            Text(
-                text = "Messages",
-                style = MaterialTheme.typography.headlineMedium,
-                color = kianColors.ink,
-                modifier = Modifier.padding(16.dp)
-            )
+            ScreenHeader(title = "Messages")
             
             if (conversations.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
