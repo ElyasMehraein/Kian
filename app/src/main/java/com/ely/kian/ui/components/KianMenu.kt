@@ -88,11 +88,6 @@ fun AppMenuDialog(
                     )
 
                     MenuItem(
-                        icon = Icons.Default.Person,
-                        label = "My Profile",
-                        onClick = { onNavigate("profile"); onDismiss() }
-                    )
-                    MenuItem(
                         icon = Icons.Default.Wifi,
                         label = "Relay Management",
                         onClick = { onNavigate("relays"); onDismiss() }

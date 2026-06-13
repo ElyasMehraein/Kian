@@ -12,9 +12,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ely.kian.KianApp
+import com.ely.kian.ui.components.InitialAvatar
 import com.ely.kian.ui.components.KianButton
 import com.ely.kian.ui.components.KianInput
 import com.ely.kian.ui.theme.KianTheme
+import androidx.compose.ui.Alignment
 
 @Composable
 fun ProfileEditScreen(
@@ -49,6 +51,15 @@ fun ProfileEditScreen(
             fontSize = 15.sp,
             color = kianColors.ink.copy(alpha = 0.5f),
             modifier = Modifier.padding(top = 6.dp, bottom = 16.dp)
+        )
+
+        InitialAvatar(
+            name = viewModel.displayName,
+            pictureUrl = viewModel.picture,
+            size = 80.dp,
+            modifier = Modifier
+                .padding(bottom = 24.dp)
+                .align(Alignment.CenterHorizontally)
         )
 
         KianInput(

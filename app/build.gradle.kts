@@ -62,6 +62,9 @@ dependencies {
     implementation(libs.bip39)
     implementation(libs.androidx.security.crypto)
     
+    // Images
+    implementation(libs.coil.compose)
+    
     // Networking
     implementation(libs.okhttp)
     implementation(libs.kotlinx.serialization.json)

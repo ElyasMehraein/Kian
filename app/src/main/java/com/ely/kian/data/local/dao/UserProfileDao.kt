@@ -13,6 +13,9 @@ interface UserProfileDao {
     @Query("SELECT * FROM profiles WHERE pubkey = :pubkey")
     suspend fun getProfile(pubkey: String): Profile?
 
+    @Query("SELECT * FROM profiles WHERE pubkey = :pubkey")
+    fun getProfileFlow(pubkey: String): Flow<Profile?>
+
     @Query("SELECT * FROM profiles WHERE pubkey IN (:pubkeys)")
     suspend fun getProfiles(pubkeys: List<String>): List<Profile>
 

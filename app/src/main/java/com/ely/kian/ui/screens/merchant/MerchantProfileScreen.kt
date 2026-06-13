@@ -99,7 +99,7 @@ fun MerchantProfileScreen(
         ) {
             item {
                 val name = profile?.displayName ?: profile?.name ?: "Merchant"
-                InitialAvatar(name = name, size = 88.dp)
+                InitialAvatar(name = name, pictureUrl = profile?.picture, size = 88.dp)
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(text = name, fontSize = 28.sp, fontWeight = FontWeight.Bold, color = kianColors.ink)
                 Text(text = pubkey.take(16) + "...", fontSize = 13.sp, color = kianColors.ink.copy(alpha = 0.5f))

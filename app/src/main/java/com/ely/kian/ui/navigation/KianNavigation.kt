@@ -1,5 +1,6 @@
 package com.ely.kian.ui.navigation
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -26,6 +27,7 @@ import androidx.navigation.compose.rememberNavController
 import com.ely.kian.ui.components.AppMenuButton
 import com.ely.kian.ui.components.AppMenuDialog
 import com.ely.kian.ui.components.LogoutConfirmationDialog
+import com.ely.kian.ui.components.InitialAvatar
 import com.ely.kian.KianApp
 import com.ely.kian.ui.MainViewModel
 import com.ely.kian.ui.screens.home.HomeScreen
@@ -92,6 +94,7 @@ fun KianScaffold() {
 
     val isLoggedIn = viewModel.isLoggedIn
     val totalUnreadCount by viewModel.totalUnreadCount.collectAsState()
+    val userProfile by viewModel.userProfile.collectAsState()
 
     LaunchedEffect(Unit) {
         app.container.tokenRepository.notifications.collect { message ->
@@ -172,7 +175,9 @@ fun KianScaffold() {
             NavHost(
                 navController = navController,
                 startDestination = if (isLoggedIn == true) Screen.Home.route else "onboarding",
-                modifier = Modifier.padding(innerPadding),
+                modifier = Modifier
+                    .padding(innerPadding)
+                    .then(if (showBottomBar) Modifier.padding(top = 25.dp) else Modifier),
                 enterTransition = { androidx.compose.animation.EnterTransition.None },
                 exitTransition = { androidx.compose.animation.ExitTransition.None },
                 popEnterTransition = { androidx.compose.animation.EnterTransition.None },
@@ -309,6 +314,17 @@ fun KianScaffold() {
         }
 
         if (showBottomBar) {
+            InitialAvatar(
+                name = userProfile?.displayName ?: userProfile?.name ?: "",
+                pictureUrl = userProfile?.picture,
+                size = 48.dp,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .statusBarsPadding()
+                    .padding(top = 18.dp, start = 20.dp)
+                    .clickable { navController.navigate("profile") }
+            )
+
             AppMenuButton(
                 modifier = Modifier
                     .align(Alignment.TopEnd)

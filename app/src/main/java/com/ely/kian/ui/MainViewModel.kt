@@ -21,6 +21,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+
 class MainViewModel(
     private val keyDao: KeyDao,
     private val userProfileDao: UserProfileDao,
@@ -32,6 +35,16 @@ class MainViewModel(
     val totalUnreadCount: StateFlow<Int> = database.chatDao().getTotalUnreadCount()
         .map { it ?: 0 }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    val userProfile: StateFlow<Profile?> = keyDao.getKeyFlow()
+        .flatMapLatest { key ->
+            if (key != null) {
+                userProfileDao.getProfileFlow(key.pubkey)
+            } else {
+                flowOf(null)
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     companion object {
         fun provideFactory(
@@ -65,17 +78,19 @@ class MainViewModel(
                     ownPubkey = key?.pubkey
                     if (key != null) {
                         nostrSyncManager.startSyncing(key.pubkey)
-                        try {
-                            val profile = userProfileDao.getProfile(key.pubkey)
-                            accountMode = if (profile?.isTrader == true) "merchant" else "business"
-                        } catch (e: Exception) {
-                            android.util.Log.e("MainViewModel", "Profile fetch failed", e)
-                        }
                     }
                 }
             } catch (e: Exception) {
                 isLoggedIn = false
                 android.util.Log.e("MainViewModel", "Auth flow failed", e)
+            }
+        }
+        
+        viewModelScope.launch {
+            userProfile.collectLatest { profile ->
+                if (profile != null) {
+                    accountMode = if (profile.isTrader) "merchant" else "business"
+                }
             }
         }
     }

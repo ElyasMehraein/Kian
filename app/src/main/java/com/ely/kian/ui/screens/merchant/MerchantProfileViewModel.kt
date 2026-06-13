@@ -5,8 +5,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.ely.kian.data.local.dao.UserProfileDao
 import com.ely.kian.data.local.entities.Profile
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class MerchantProfileViewModel(
@@ -15,20 +16,10 @@ class MerchantProfileViewModel(
     private val userProfileDao: UserProfileDao
 ) : ViewModel() {
 
-    private val _profile = MutableStateFlow<Profile?>(null)
-    val profile: StateFlow<Profile?> = _profile
+    val profile: StateFlow<Profile?> = userProfileDao.getProfileFlow(pubkey)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val isOwnProfile: Boolean = pubkey == ownPubkey
-
-    init {
-        loadProfile()
-    }
-
-    private fun loadProfile() {
-        viewModelScope.launch {
-            _profile.value = userProfileDao.getProfile(pubkey)
-        }
-    }
 
     companion object {
         fun provideFactory(pubkey: String, ownPubkey: String?, userProfileDao: UserProfileDao): ViewModelProvider.Factory = object : ViewModelProvider.Factory {

@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ely.kian.data.local.entities.Conversation
+import com.ely.kian.ui.components.InitialAvatar
 import com.ely.kian.ui.theme.KianTheme
 import java.text.SimpleDateFormat
 import java.util.*
@@ -167,16 +168,12 @@ fun ConversationItem(
             .padding(vertical = 12.dp, horizontal = 16.dp),
         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
     ) {
-        // Avatar Placeholder or Image
-        Surface(
-            shape = androidx.compose.foundation.shape.CircleShape,
-            color = colors.panel,
-            modifier = Modifier
-                .size(52.dp)
-                .clickable { onProfileClick() }
-        ) {
-            // Future: Coil image loading here
-        }
+        InitialAvatar(
+            name = contactName,
+            pictureUrl = pictureUrl,
+            size = 52.dp,
+            modifier = Modifier.clickable { onProfileClick() }
+        )
         
         Spacer(modifier = Modifier.width(16.dp))
         
