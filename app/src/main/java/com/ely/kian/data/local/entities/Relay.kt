@@ -8,7 +8,8 @@ import androidx.room.PrimaryKey
 data class Relay(
     @PrimaryKey val url: String,
     val readEnabled: Boolean = true,
-    val writeEnabled: Boolean = true
+    val writeEnabled: Boolean = true,
+    val isActive: Boolean = true
 )
 
 @Entity(

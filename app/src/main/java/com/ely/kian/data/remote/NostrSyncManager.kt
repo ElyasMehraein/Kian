@@ -22,7 +22,8 @@ class NostrSyncManager(
     private val syncScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     
     private val defaultRelays = listOf(
-        "ws://192.168.1.14:8080"
+        "ws://192.168.1.14:8080",
+        "wss://relay.damus.io"
     )
 
     fun startSyncing(myPubkey: String? = null) {
@@ -44,11 +45,12 @@ class NostrSyncManager(
                 if (savedRelays.isEmpty()) {
                     // Seed with local relay if empty
                     defaultRelays.forEach { 
-                        relayDao?.insertRelay(com.ely.kian.data.local.entities.Relay(it, true, true))
+                        relayDao?.insertRelay(com.ely.kian.data.local.entities.Relay(it, true, true, true))
                     }
                     allRelays.addAll(defaultRelays)
                 } else {
-                    allRelays.addAll(savedRelays.map { it.url })
+                    // Filter only active relays
+                    allRelays.addAll(savedRelays.filter { it.isActive }.map { it.url })
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to fetch saved relays", e)
@@ -188,8 +190,12 @@ class NostrSyncManager(
                 (defaultRelays + targetRelays).distinct()
             } else {
                 try {
-                    val saved = relayDao?.getAllRelays()?.first()?.map { it.url } ?: emptyList()
-                    if (saved.isEmpty()) defaultRelays else saved
+                    val saved = relayDao?.getAllRelays()?.first() ?: emptyList()
+                    if (saved.isEmpty()) {
+                        defaultRelays 
+                    } else {
+                        saved.filter { it.isActive }.map { it.url }
+                    }
                 } catch (e: Exception) {
                     defaultRelays
                 }

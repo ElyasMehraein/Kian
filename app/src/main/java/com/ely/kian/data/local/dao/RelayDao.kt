@@ -19,6 +19,9 @@ interface RelayDao {
     @Query("UPDATE relays SET readEnabled = :read, writeEnabled = :write WHERE url = :url")
     suspend fun updateRelaySettings(url: String, read: Boolean, write: Boolean)
 
+    @Query("UPDATE relays SET isActive = :active WHERE url = :url")
+    suspend fun updateRelayActiveState(url: String, active: Boolean)
+
     // DM Inbox Relays
     @Query("DELETE FROM dm_inbox_relays WHERE pubkey = :pubkey")
     suspend fun deleteDmInboxRelays(pubkey: String)

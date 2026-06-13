@@ -26,10 +26,21 @@ class RelayViewModel(
 
     fun addRelay(url: String) {
         viewModelScope.launch {
-            val relay = Relay(url, readEnabled = true, writeEnabled = true)
+            val relay = Relay(url, readEnabled = true, writeEnabled = true, isActive = true)
             relayDao.insertRelay(relay)
             // Re-start syncing to include new relay
             nostrSyncManager.startSyncing()
+        }
+    }
+
+    fun toggleRelay(relay: Relay, active: Boolean) {
+        viewModelScope.launch {
+            relayDao.updateRelayActiveState(relay.url, active)
+            if (active) {
+                nostrSyncManager.startSyncing() // Re-connect if activated
+            } else {
+                relayPoolManager.disconnect(relay.url) // Disconnect if deactivated
+            }
         }
     }
 

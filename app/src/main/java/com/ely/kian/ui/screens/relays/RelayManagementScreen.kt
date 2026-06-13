@@ -129,6 +129,9 @@ fun RelayManagementScreen() {
                         state = connectionStates[relay.url] ?: RelayPoolManager.ConnectionState.DISCONNECTED,
                         onDelete = {
                             viewModel.removeRelay(relay)
+                        },
+                        onToggle = { active ->
+                            viewModel.toggleRelay(relay, active)
                         }
                     )
                 }
@@ -183,7 +186,12 @@ fun RelayManagementScreen() {
 }
 
 @Composable
-fun RelayItem(relay: Relay, state: RelayPoolManager.ConnectionState, onDelete: () -> Unit) {
+fun RelayItem(
+    relay: Relay, 
+    state: RelayPoolManager.ConnectionState, 
+    onDelete: () -> Unit,
+    onToggle: (Boolean) -> Unit
+) {
     val kianColors = KianTheme.colors
     
     val (statusText, statusColor) = when (state) {
@@ -214,6 +222,19 @@ fun RelayItem(relay: Relay, state: RelayPoolManager.ConnectionState, onDelete: (
                 modifier = Modifier.padding(top = 2.dp)
             )
         }
+
+        Switch(
+            checked = relay.isActive,
+            onCheckedChange = onToggle,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = kianColors.canvas,
+                checkedTrackColor = kianColors.ink,
+                uncheckedThumbColor = kianColors.muted,
+                uncheckedTrackColor = kianColors.panel
+            )
+        )
+
+        Spacer(modifier = Modifier.width(8.dp))
         
         IconButton(
             onClick = onDelete,
