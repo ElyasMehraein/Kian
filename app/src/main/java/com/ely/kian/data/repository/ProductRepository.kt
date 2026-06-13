@@ -29,7 +29,8 @@ class ProductRepository(
         name: String,
         description: String,
         images: List<String>,
-        categories: List<String>
+        categories: List<String>,
+        isShowcase: Boolean? = null
     ) {
         val privKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: return
         val privKey = KianKeys.hexToBytes(privKeyHex)
@@ -37,10 +38,13 @@ class ProductRepository(
 
         val productId = id ?: "product-${System.currentTimeMillis()}"
         val createdAt = System.currentTimeMillis() / 1000
+        
+        val finalIsShowcase = isShowcase ?: id?.let { productDao.getProduct(it, pubKeyHex)?.isShowcase } ?: false
 
         val content = buildJsonObject {
             put("name", name)
             put("description", description)
+            put("showcase", finalIsShowcase)
             putJsonArray("images") { images.forEach { add(JsonPrimitive(it)) } }
             putJsonArray("categories") { categories.forEach { add(JsonPrimitive(it)) } }
         }.toString()
@@ -69,7 +73,7 @@ class ProductRepository(
             categories = json.encodeToString(categories),
             geohash = null,
             eventId = eventId,
-            isShowcase = id?.let { productDao.getProduct(it, pubKeyHex)?.isShowcase } ?: false,
+            isShowcase = finalIsShowcase,
             createdAt = createdAt
         )
 
@@ -102,20 +106,45 @@ class ProductRepository(
     }
 
     suspend fun saveCategory(name: String, parentId: String?, level: Int) {
-        val pubKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY)?.let {
-            KianKeys.bytesToHex(KianKeys.getPubKey(KianKeys.hexToBytes(it)))
-        } ?: return
+        val privKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: return
+        val privKey = KianKeys.hexToBytes(privKeyHex)
+        val pubKeyHex = KianKeys.bytesToHex(KianKeys.getPubKey(privKey))
+
+        val categoryId = "category-${System.currentTimeMillis()}"
+        val createdAt = System.currentTimeMillis() / 1000
+
+        val content = buildJsonObject {
+            put("name", name)
+            put("parent", parentId)
+            put("level", level)
+        }.toString()
+
+        val tags = listOf(listOf("d", categoryId))
+
+        val eventId = KianKeys.computeEventId(pubKeyHex, createdAt, 30017, tags, content)
+        val sig = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(eventId), privKey))
+
+        val event = NostrEvent(
+            id = eventId,
+            pubkey = pubKeyHex,
+            createdAt = createdAt,
+            kind = 30017,
+            tags = tags,
+            content = content,
+            sig = sig
+        )
 
         val category = ProductCategory(
-            id = "category-${System.currentTimeMillis()}",
+            id = categoryId,
             pubkey = pubKeyHex,
             name = name,
             parentId = parentId,
             level = level,
-            createdAt = System.currentTimeMillis() / 1000
+            createdAt = createdAt
         )
 
         productDao.upsertCategory(category)
+        publishEvent(event)
     }
 
     suspend fun deleteCategoryBranch(ids: List<String>) {
@@ -132,7 +161,14 @@ class ProductRepository(
         } ?: return
 
         val existing = productDao.getProduct(productId, pubKeyHex) ?: return
-        productDao.upsertProduct(existing.copy(isShowcase = isShowcase))
+        saveProduct(
+            id = existing.id,
+            name = existing.name,
+            description = existing.description ?: "",
+            images = json.decodeFromString(existing.images),
+            categories = json.decodeFromString(existing.categories),
+            isShowcase = isShowcase
+        )
     }
 
     private fun publishEvent(event: NostrEvent) {
@@ -140,8 +176,13 @@ class ProductRepository(
     }
 
     suspend fun handleProductEvent(event: NostrEvent) {
-        if (event.kind != 30018) return
-        
+        when (event.kind) {
+            30018 -> handleProductKind18(event)
+            30017 -> handleCategoryKind17(event)
+        }
+    }
+
+    private suspend fun handleProductKind18(event: NostrEvent) {
         try {
             val dTag = event.tags.find { it.size >= 2 && it[0] == "d" }?.get(1) ?: event.id
             val content = json.parseToJsonElement(event.content).jsonObject
@@ -155,9 +196,29 @@ class ProductRepository(
                 categories = content["categories"]?.toString() ?: "[]",
                 geohash = null,
                 eventId = event.id,
+                isShowcase = content["showcase"]?.jsonPrimitive?.boolean ?: false,
                 createdAt = event.createdAt
             )
             productDao.upsertProduct(product)
+        } catch (e: Exception) {
+            // Log error
+        }
+    }
+
+    private suspend fun handleCategoryKind17(event: NostrEvent) {
+        try {
+            val dTag = event.tags.find { it.size >= 2 && it[0] == "d" }?.get(1) ?: event.id
+            val content = json.parseToJsonElement(event.content).jsonObject
+            
+            val category = ProductCategory(
+                id = dTag,
+                pubkey = event.pubkey,
+                name = content["name"]?.jsonPrimitive?.content ?: "Unknown Category",
+                parentId = content["parent"]?.jsonPrimitive?.contentOrNull,
+                level = content["level"]?.jsonPrimitive?.intOrNull ?: 1,
+                createdAt = event.createdAt
+            )
+            productDao.upsertCategory(category)
         } catch (e: Exception) {
             // Log error
         }

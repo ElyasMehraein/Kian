@@ -63,7 +63,8 @@ fun MerchantProfileScreen(
             ownPubkey,
             (LocalContext.current.applicationContext as KianApp).container.userProfileDao,
             (LocalContext.current.applicationContext as KianApp).container.productRepository,
-            (LocalContext.current.applicationContext as KianApp).container.reviewDao
+            (LocalContext.current.applicationContext as KianApp).container.reviewDao,
+            (LocalContext.current.applicationContext as KianApp).container.nostrSyncManager
         )
     )
 ) {

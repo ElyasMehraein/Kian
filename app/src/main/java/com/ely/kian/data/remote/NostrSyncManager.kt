@@ -114,6 +114,23 @@ class NostrSyncManager(
         Log.d(TAG, "Syncing stopped and pending work cancelled")
     }
 
+    fun requestMerchantData(pubkey: String) {
+        syncScope.launch {
+            val filter = """{"kinds": [30017, 30018, 30019, 10002, 0], "authors": ["$pubkey"]}"""
+            relayPool.getAllConnectedUrls().forEach { url ->
+                relayPool.subscribe(url, "merchant_data_$pubkey", filter)
+            }
+        }
+    }
+
+    fun stopRequestingMerchantData(pubkey: String) {
+        syncScope.launch {
+            relayPool.getAllConnectedUrls().forEach { url ->
+                relayPool.unsubscribe(url, "merchant_data_$pubkey")
+            }
+        }
+    }
+
     private fun handleMessage(message: String) {
         try {
             val element = json.parseToJsonElement(message)

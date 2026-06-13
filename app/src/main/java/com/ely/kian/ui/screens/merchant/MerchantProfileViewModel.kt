@@ -9,6 +9,7 @@ import com.ely.kian.data.local.entities.Profile
 import com.ely.kian.data.local.entities.Product
 import com.ely.kian.data.local.entities.ProductCategory
 import com.ely.kian.data.local.entities.Review
+import com.ely.kian.data.remote.NostrSyncManager
 import com.ely.kian.data.repository.ProductRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -21,8 +22,18 @@ class MerchantProfileViewModel(
     private val ownPubkey: String?,
     private val userProfileDao: UserProfileDao,
     private val productRepository: ProductRepository,
-    private val reviewDao: ReviewDao
+    private val reviewDao: ReviewDao,
+    private val nostrSyncManager: NostrSyncManager
 ) : ViewModel() {
+
+    init {
+        nostrSyncManager.requestMerchantData(pubkey)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        nostrSyncManager.stopRequestingMerchantData(pubkey)
+    }
 
     val profile: StateFlow<Profile?> = userProfileDao.getProfileFlow(pubkey)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
@@ -45,11 +56,12 @@ class MerchantProfileViewModel(
             ownPubkey: String?, 
             userProfileDao: UserProfileDao, 
             productRepository: ProductRepository,
-            reviewDao: ReviewDao
+            reviewDao: ReviewDao,
+            nostrSyncManager: NostrSyncManager
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return MerchantProfileViewModel(pubkey, ownPubkey, userProfileDao, productRepository, reviewDao) as T
+                return MerchantProfileViewModel(pubkey, ownPubkey, userProfileDao, productRepository, reviewDao, nostrSyncManager) as T
             }
         }
     }

@@ -137,4 +137,15 @@ class RelayPoolManager {
         val message = "[\"REQ\", \"$subscriptionId\", $filtersJson]"
         publish(url, message)
     }
+
+    fun unsubscribe(url: String, subscriptionId: String) {
+        val message = "[\"CLOSE\", \"$subscriptionId\"]"
+        publish(url, message)
+    }
+
+    fun getAllConnectedUrls(): List<String> {
+        return synchronized(connectionStates) {
+            connectionStates.filter { it.value == ConnectionState.CONNECTED }.keys.toList()
+        }
+    }
 }
