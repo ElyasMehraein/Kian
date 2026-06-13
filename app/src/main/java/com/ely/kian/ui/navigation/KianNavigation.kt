@@ -223,7 +223,10 @@ fun KianScaffold() {
                     ChatroomScreen(
                         contactPubkey = roomId,
                         viewModel = chatViewModel,
-                        onBack = { navController.popBackStack() }
+                        onBack = { navController.popBackStack() },
+                        onProfileClick = { pubkey ->
+                            navController.navigate("merchant/$pubkey")
+                        }
                     )
                 }
                 composable(Screen.Wallet.route) { 
