@@ -11,6 +11,8 @@ data class Profile(
     val displayName: String?,
     val about: String?,
     val picture: String?,
+    val banner: String?,
+    val website: String?,
     val nip05: String?,
     val geohash: String?,
     val rawJson: String,

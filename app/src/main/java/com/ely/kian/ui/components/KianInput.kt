@@ -16,6 +16,7 @@ fun KianInput(
     onValueChange: (String) -> Unit,
     placeholder: String,
     modifier: Modifier = Modifier,
+    label: String? = null,
     isError: Boolean = false,
     singleLine: Boolean = true
 ) {
@@ -25,6 +26,7 @@ fun KianInput(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier.fillMaxWidth(),
+        label = label?.let { { Text(it) } },
         placeholder = { Text(text = placeholder) },
         isError = isError,
         singleLine = singleLine,

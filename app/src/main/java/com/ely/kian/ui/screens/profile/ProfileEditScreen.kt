@@ -31,7 +31,6 @@ fun ProfileEditScreen(
         )
     )
 ) {
-    val kianColors = KianTheme.colors
     val scrollState = rememberScrollState()
 
     Column(
@@ -42,12 +41,12 @@ fun ProfileEditScreen(
     ) {
         ScreenHeader(
             title = "Edit profile",
-            subtitle = if (viewModel.pubkey != null) "Update your public profile metadata." else "Create keys first.",
+            subtitle = if (viewModel.pubkey != null) "Update your Nostr profile metadata." else "Create keys first.",
             onBack = onBack
         )
 
         InitialAvatar(
-            name = viewModel.displayName,
+            name = viewModel.displayName.ifBlank { viewModel.name },
             pictureUrl = viewModel.picture,
             size = 80.dp,
             modifier = Modifier
@@ -55,60 +54,80 @@ fun ProfileEditScreen(
                 .align(Alignment.CenterHorizontally)
         )
 
-        KianInput(
-            value = viewModel.displayName,
-            onValueChange = { viewModel.displayName = it },
-            placeholder = "Display name",
-            modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 12.dp)
-        )
-
-        KianInput(
-            value = viewModel.about,
-            onValueChange = { viewModel.about = it },
-            placeholder = "Bio",
-            singleLine = false,
-            modifier = Modifier
-                .heightIn(min = 120.dp)
-                .padding(horizontal = 20.dp).padding(bottom = 12.dp)
-        )
-
-        KianInput(
-            value = viewModel.picture,
-            onValueChange = { viewModel.picture = it },
-            placeholder = "Avatar URL",
-            modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 12.dp)
-        )
-
-        KianInput(
-            value = viewModel.nip05,
-            onValueChange = { viewModel.nip05 = it },
-            placeholder = "NIP-05",
-            modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 12.dp)
-        )
-
-        KianInput(
-            value = viewModel.geohash,
-            onValueChange = { viewModel.geohash = it },
-            placeholder = "Geohash",
-            modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 16.dp)
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        Column(
+            modifier = Modifier.padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            KianButton(
-                text = "Cancel",
-                onClick = onBack,
-                type = com.ely.kian.ui.components.ButtonType.Secondary,
-                modifier = Modifier.weight(1f)
+            KianInput(
+                value = viewModel.name,
+                onValueChange = { viewModel.name = it },
+                placeholder = "Username (e.g. alice)",
+                label = "Username"
             )
-            KianButton(
-                text = if (viewModel.isSaving) "Saving..." else "Save profile",
-                onClick = { viewModel.saveProfile(onBack) },
-                enabled = viewModel.pubkey != null && !viewModel.isSaving,
-                modifier = Modifier.weight(1f)
+
+            KianInput(
+                value = viewModel.displayName,
+                onValueChange = { viewModel.displayName = it },
+                placeholder = "Display Name",
+                label = "Display Name"
             )
+
+            KianInput(
+                value = viewModel.about,
+                onValueChange = { viewModel.about = it },
+                placeholder = "About Me",
+                label = "Bio",
+                singleLine = false,
+                modifier = Modifier.heightIn(min = 100.dp)
+            )
+
+            KianInput(
+                value = viewModel.picture,
+                onValueChange = { viewModel.picture = it },
+                placeholder = "Avatar URL",
+                label = "Picture URL"
+            )
+
+            KianInput(
+                value = viewModel.banner,
+                onValueChange = { viewModel.banner = it },
+                placeholder = "Banner URL",
+                label = "Banner URL"
+            )
+
+            KianInput(
+                value = viewModel.website,
+                onValueChange = { viewModel.website = it },
+                placeholder = "https://example.com",
+                label = "Website"
+            )
+
+            KianInput(
+                value = viewModel.nip05,
+                onValueChange = { viewModel.nip05 = it },
+                placeholder = "user@domain.com",
+                label = "Nostr Verification (NIP-05)"
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                KianButton(
+                    text = "Cancel",
+                    onClick = onBack,
+                    type = com.ely.kian.ui.components.ButtonType.Secondary,
+                    modifier = Modifier.weight(1f)
+                )
+                KianButton(
+                    text = if (viewModel.isSaving) "Saving..." else "Save Profile",
+                    onClick = { viewModel.saveProfile(onBack) },
+                    enabled = viewModel.pubkey != null && !viewModel.isSaving,
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
         
         Spacer(modifier = Modifier.height(32.dp))

@@ -14,6 +14,7 @@ import com.ely.kian.data.remote.model.NostrEvent
 import com.ely.kian.crypto.KianKeys
 import com.ely.kian.crypto.SecureStorage
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.*
 
 class ProfileEditViewModel(
     private val keyDao: KeyDao,
@@ -22,11 +23,13 @@ class ProfileEditViewModel(
     private val secureStorage: SecureStorage
 ) : ViewModel() {
 
+    var name by mutableStateOf("")
     var displayName by mutableStateOf("")
     var about by mutableStateOf("")
     var picture by mutableStateOf("")
+    var banner by mutableStateOf("")
+    var website by mutableStateOf("")
     var nip05 by mutableStateOf("")
-    var geohash by mutableStateOf("")
     
     var isSaving by mutableStateOf(false)
     var pubkey by mutableStateOf<String?>(null)
@@ -44,11 +47,13 @@ class ProfileEditViewModel(
             if (pubkey != null) {
                 val profile = userProfileDao.getProfile(pubkey!!)
                 existingProfile = profile
+                name = profile?.name ?: ""
                 displayName = profile?.displayName ?: ""
                 about = profile?.about ?: ""
                 picture = profile?.picture ?: ""
+                banner = profile?.banner ?: ""
+                website = profile?.website ?: ""
                 nip05 = profile?.nip05 ?: ""
-                geohash = profile?.geohash ?: ""
             }
         }
     }
@@ -62,12 +67,14 @@ class ProfileEditViewModel(
             val now = System.currentTimeMillis() / 1000
             val profile = Profile(
                 pubkey = currentPubkey,
-                name = existingProfile?.name,
+                name = name.ifBlank { null },
                 displayName = displayName.ifBlank { null },
                 about = about.ifBlank { null },
                 picture = picture.ifBlank { null },
+                banner = banner.ifBlank { null },
+                website = website.ifBlank { null },
                 nip05 = nip05.ifBlank { null },
-                geohash = geohash.ifBlank { null },
+                geohash = existingProfile?.geohash,
                 rawJson = existingProfile?.rawJson ?: "{}",
                 isTrader = existingProfile?.isTrader ?: false,
                 createdAt = existingProfile?.createdAt ?: now,
@@ -75,12 +82,20 @@ class ProfileEditViewModel(
             )
             
             userProfileDao.upsert(profile)
-            isSaving = false
-            onSuccess()
             
             // Publish to Nostr
             val tags = if (profile.isTrader) listOf(listOf("t", "trader")) else emptyList()
-            val content = """{"display_name": "${profile.displayName ?: ""}", "about": "${profile.about ?: ""}", "picture": "${profile.picture ?: ""}", "nip05": "${profile.nip05 ?: ""}", "geohash": "${profile.geohash ?: ""}"}"""
+            
+            val contentObj = buildJsonObject {
+                put("name", profile.name ?: "")
+                put("display_name", profile.displayName ?: "")
+                put("about", profile.about ?: "")
+                put("picture", profile.picture ?: "")
+                put("banner", profile.banner ?: "")
+                put("website", profile.website ?: "")
+                put("nip05", profile.nip05 ?: "")
+            }
+            val content = contentObj.toString()
             
             val id = KianKeys.computeEventId(currentPubkey, now, 0, tags, content)
             val privKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: return@launch
@@ -97,6 +112,9 @@ class ProfileEditViewModel(
                 sig = sig
             )
             nostrSyncManager.publishEvent(event)
+            
+            isSaving = false
+            onSuccess()
         }
     }
 

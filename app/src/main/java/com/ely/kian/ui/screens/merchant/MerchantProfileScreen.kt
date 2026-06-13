@@ -2,6 +2,7 @@ package com.ely.kian.ui.screens.merchant
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -13,7 +14,10 @@ import androidx.compose.material.icons.filled.AddShoppingCart
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.*
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,14 +29,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.animation.core.*
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.util.lerp
 import androidx.compose.ui.unit.IntOffset
 import com.ely.kian.KianApp
 import com.ely.kian.data.local.entities.Product
@@ -72,6 +75,7 @@ fun MerchantProfileScreen(
     val products by viewModel.products.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val isOwnProfile = viewModel.isOwnProfile
+    val uriHandler = LocalUriHandler.current
     
     var cartIconPosition by remember { mutableStateOf(Offset.Zero) }
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -106,20 +110,20 @@ fun MerchantProfileScreen(
                     title = { },
                     navigationIcon = {
                         if (!isOwnProfile) {
-                            IconButton(onClick = onBack, modifier = Modifier.background(kianColors.canvas.copy(alpha = 0.8f), RoundedCornerShape(12.dp))) {
+                            IconButton(onClick = onBack, modifier = Modifier.background(kianColors.canvas.copy(alpha = 0.6f), RoundedCornerShape(12.dp))) {
                                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = kianColors.ink)
                             }
                         }
                     },
                     actions = {
-                        IconButton(onClick = { /* Share */ }, modifier = Modifier.background(kianColors.canvas.copy(alpha = 0.8f), RoundedCornerShape(12.dp))) {
+                        IconButton(onClick = { /* Share */ }, modifier = Modifier.background(kianColors.canvas.copy(alpha = 0.6f), RoundedCornerShape(12.dp))) {
                             Icon(Icons.Default.Share, contentDescription = "Share", tint = kianColors.ink)
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         IconButton(
                             onClick = onCart,
                             modifier = Modifier
-                                .background(kianColors.canvas.copy(alpha = 0.8f), RoundedCornerShape(12.dp))
+                                .background(kianColors.canvas.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
                                 .onGloballyPositioned { cartIconPosition = it.positionInWindow() }
                         ) {
                             Icon(Icons.Default.ShoppingCart, contentDescription = "Cart", tint = kianColors.ink)
@@ -135,12 +139,23 @@ fun MerchantProfileScreen(
             ) {
                 item {
                     // Header / Cover area
-                    Box(modifier = Modifier.fillMaxWidth().height(160.dp).background(kianColors.accentSoft.copy(alpha = 0.4f)))
+                    Box(modifier = Modifier.fillMaxWidth().height(180.dp)) {
+                        if (!profile?.banner.isNullOrBlank()) {
+                            AsyncImage(
+                                model = profile?.banner,
+                                contentDescription = "Banner",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Box(modifier = Modifier.fillMaxSize().background(kianColors.accentSoft.copy(alpha = 0.4f)))
+                        }
+                    }
                     
                     Column(
                         modifier = Modifier
                             .padding(horizontal = 20.dp)
-                            .offset(y = (-44).dp)
+                            .offset(y = (-50).dp)
                     ) {
                         InitialAvatar(
                             name = profile?.displayName ?: profile?.name ?: "Merchant", 
@@ -151,19 +166,47 @@ fun MerchantProfileScreen(
                         
                         Spacer(modifier = Modifier.height(12.dp))
                         
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = profile?.displayName ?: profile?.name ?: "Merchant", 
+                                fontSize = 28.sp, 
+                                fontWeight = FontWeight.Bold, 
+                                color = kianColors.ink
+                            )
+                            if (!profile?.nip05.isNullOrBlank()) {
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Icon(
+                                    imageVector = Icons.Default.Verified, 
+                                    contentDescription = "Verified", 
+                                    tint = Color(0xFF3B82F6),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+                        
                         Text(
-                            text = profile?.displayName ?: profile?.name ?: "Merchant", 
-                            fontSize = 28.sp, 
-                            fontWeight = FontWeight.Bold, 
-                            color = kianColors.ink
-                        )
-                        Text(
-                            text = "@" + pubkey.take(12) + "...", 
+                            text = if (!profile?.name.isNullOrBlank()) "@${profile?.name}" else "@" + pubkey.take(12) + "...", 
                             fontSize = 14.sp, 
                             color = kianColors.muted,
                             fontWeight = FontWeight.Medium
                         )
                         
+                        if (!profile?.website.isNullOrBlank()) {
+                            Row(
+                                modifier = Modifier.padding(top = 8.dp).clickable { uriHandler.openUri(profile?.website!!) },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.Language, contentDescription = null, tint = kianColors.accent, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = profile?.website!!.removePrefix("https://").removePrefix("http://"),
+                                    fontSize = 14.sp,
+                                    color = kianColors.accent,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+
                         Spacer(modifier = Modifier.height(16.dp))
                         
                         Text(

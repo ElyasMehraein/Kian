@@ -93,6 +93,8 @@ class EventProcessor(
                 displayName = content["display_name"]?.jsonPrimitive?.contentOrNull ?: content["name"]?.jsonPrimitive?.contentOrNull,
                 about = content["about"]?.jsonPrimitive?.contentOrNull,
                 picture = content["picture"]?.jsonPrimitive?.contentOrNull,
+                banner = content["banner"]?.jsonPrimitive?.contentOrNull,
+                website = content["website"]?.jsonPrimitive?.contentOrNull,
                 nip05 = content["nip05"]?.jsonPrimitive?.contentOrNull,
                 geohash = content["geohash"]?.jsonPrimitive?.contentOrNull,
                 rawJson = event.content,
