@@ -10,35 +10,38 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddShoppingCart
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.animation.core.*
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.util.lerp
+import androidx.compose.ui.unit.IntOffset
 import com.ely.kian.KianApp
 import com.ely.kian.data.local.entities.Product
 import com.ely.kian.ui.components.InitialAvatar
 import com.ely.kian.ui.components.KianButton
 import com.ely.kian.ui.theme.KianTheme
 import coil.compose.AsyncImage
-import androidx.compose.ui.layout.ContentScale
 import kotlinx.serialization.json.Json
-
-data class ProductInfo(
-    val id: String,
-    val name: String,
-    val description: String,
-    val price: String,
-    val image: String? = null
-)
+import kotlin.math.roundToInt
 
 data class ReviewInfo(
     val author: String,
@@ -67,125 +70,260 @@ fun MerchantProfileScreen(
     val kianColors = KianTheme.colors
     val profile by viewModel.profile.collectAsState()
     val products by viewModel.products.collectAsState()
+    val categories by viewModel.categories.collectAsState()
     val isOwnProfile = viewModel.isOwnProfile
     
-    // For now keeping empty lists if not fetching from DB yet
-    val reviews = emptyList<ReviewInfo>()
+    var cartIconPosition by remember { mutableStateOf(Offset.Zero) }
+    var selectedTab by remember { mutableIntStateOf(0) }
+    
+    // Animation states
+    var flyingImage by remember { mutableStateOf<String?>(null) }
+    var flyingStart by remember { mutableStateOf(Offset.Zero) }
+    var isFlying by remember { mutableStateOf(false) }
 
-    Scaffold(
-        containerColor = kianColors.canvas,
-        contentWindowInsets = WindowInsets(0.dp),
-        topBar = {
-            TopAppBar(
-                title = { },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack, 
-                            contentDescription = "Back",
-                            tint = kianColors.ink
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onCart) {
-                        Icon(
-                            imageVector = Icons.Default.ShoppingCart, 
-                            contentDescription = "Cart", 
-                            tint = kianColors.ink.copy(alpha = 0.5f)
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
-            )
+    val animProgress = remember { Animatable(0f) }
+
+    LaunchedEffect(isFlying) {
+        if (isFlying) {
+            animProgress.snapTo(0f)
+            animProgress.animateTo(1f, animationSpec = tween(800, easing = FastOutSlowInEasing))
+            isFlying = false
+            flyingImage = null
         }
-    ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(paddingValues),
-            contentPadding = PaddingValues(20.dp)
-        ) {
-            item {
-                val name = profile?.displayName ?: profile?.name ?: "Merchant"
-                InitialAvatar(name = name, pictureUrl = profile?.picture, size = 88.dp)
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(text = name, fontSize = 28.sp, fontWeight = FontWeight.Bold, color = kianColors.ink)
-                Text(text = pubkey.take(16) + "...", fontSize = 13.sp, color = kianColors.ink.copy(alpha = 0.5f))
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = profile?.about ?: "No bio yet.", 
-                    fontSize = 15.sp, 
-                    lineHeight = 24.sp, 
-                    color = kianColors.ink
+    }
+
+    val reviews = listOf(
+        ReviewInfo("Sina", 5, "Excellent products, very high quality!"),
+        ReviewInfo("Sarah", 4, "Fast delivery and great support.")
+    )
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            containerColor = kianColors.canvas,
+            contentWindowInsets = WindowInsets(0.dp),
+            topBar = {
+                TopAppBar(
+                    title = { },
+                    navigationIcon = {
+                        if (!isOwnProfile) {
+                            IconButton(onClick = onBack, modifier = Modifier.background(kianColors.canvas.copy(alpha = 0.8f), RoundedCornerShape(12.dp))) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = kianColors.ink)
+                            }
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { /* Share */ }, modifier = Modifier.background(kianColors.canvas.copy(alpha = 0.8f), RoundedCornerShape(12.dp))) {
+                            Icon(Icons.Default.Share, contentDescription = "Share", tint = kianColors.ink)
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = onCart,
+                            modifier = Modifier
+                                .background(kianColors.canvas.copy(alpha = 0.8f), RoundedCornerShape(12.dp))
+                                .onGloballyPositioned { cartIconPosition = it.positionInWindow() }
+                        ) {
+                            Icon(Icons.Default.ShoppingCart, contentDescription = "Cart", tint = kianColors.ink)
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
                 )
-                
-                Row(modifier = Modifier.padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    if (isOwnProfile) {
-                        KianButton(
-                            text = "Edit profile",
-                            onClick = onEdit,
-                            type = com.ely.kian.ui.components.ButtonType.Soft
+            }
+        ) { paddingValues ->
+            LazyColumn(
+                modifier = Modifier.fillMaxSize().padding(paddingValues)
+            ) {
+                item {
+                    // Header / Cover area
+                    Box(modifier = Modifier.fillMaxWidth().height(160.dp).background(kianColors.accentSoft.copy(alpha = 0.4f)))
+                    
+                    Column(
+                        modifier = Modifier
+                            .padding(horizontal = 20.dp)
+                            .offset(y = (-44).dp)
+                    ) {
+                        InitialAvatar(
+                            name = profile?.displayName ?: profile?.name ?: "Merchant", 
+                            pictureUrl = profile?.picture, 
+                            size = 100.dp,
+                            modifier = Modifier.border(4.dp, kianColors.canvas, RoundedCornerShape(50.dp))
                         )
-                    } else {
-                        KianButton(
-                            text = "Message",
-                            onClick = { onMessage(pubkey) },
-                            type = com.ely.kian.ui.components.ButtonType.Soft
+                        
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        Text(
+                            text = profile?.displayName ?: profile?.name ?: "Merchant", 
+                            fontSize = 28.sp, 
+                            fontWeight = FontWeight.Bold, 
+                            color = kianColors.ink
                         )
-                        KianButton(
-                            text = "Write review",
-                            onClick = {},
-                            type = com.ely.kian.ui.components.ButtonType.Secondary
+                        Text(
+                            text = "@" + pubkey.take(12) + "...", 
+                            fontSize = 14.sp, 
+                            color = kianColors.muted,
+                            fontWeight = FontWeight.Medium
+                        )
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        Text(
+                            text = profile?.about ?: "Professional Merchant on Kian Network.", 
+                            fontSize = 15.sp, 
+                            lineHeight = 22.sp, 
+                            color = kianColors.ink.copy(alpha = 0.8f)
+                        )
+                        
+                        // Stats Row
+                        Row(
+                            modifier = Modifier.padding(top = 24.dp).fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            ProfileStat(label = "Products", value = products.size.toString())
+                            ProfileStat(label = "Followers", value = "1.2k")
+                            ProfileStat(label = "Rating", value = "4.9", icon = Icons.Default.Star)
+                        }
+
+                        // Action Buttons
+                        Row(modifier = Modifier.padding(top = 24.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            if (isOwnProfile) {
+                                KianButton(
+                                    text = "Edit Profile",
+                                    onClick = onEdit,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            } else {
+                                KianButton(
+                                    text = "Message",
+                                    onClick = { onMessage(pubkey) },
+                                    modifier = Modifier.weight(1f)
+                                )
+                                KianButton(
+                                    text = "Follow",
+                                    onClick = {},
+                                    type = com.ely.kian.ui.components.ButtonType.Secondary,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Sticky Tabs
+                item {
+                    TabRow(
+                        selectedTabIndex = selectedTab,
+                        containerColor = kianColors.canvas,
+                        contentColor = kianColors.accent,
+                        divider = { HorizontalDivider(color = kianColors.line) },
+                        indicator = { tabPositions ->
+                            TabRowDefaults.SecondaryIndicator(
+                                Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                                color = kianColors.accent
+                            )
+                        },
+                        modifier = Modifier.offset(y = (-20).dp)
+                    ) {
+                        Tab(
+                            selected = selectedTab == 0,
+                            onClick = { selectedTab = 0 },
+                            text = { Text("Showcase", fontWeight = FontWeight.Bold) }
+                        )
+                        Tab(
+                            selected = selectedTab == 1,
+                            onClick = { selectedTab = 1 },
+                            text = { Text("Reviews", fontWeight = FontWeight.Bold) }
                         )
                     }
                 }
+
+                if (selectedTab == 0) {
+                    if (products.isEmpty()) {
+                        item {
+                            Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
+                                Text("No showcase products.", color = kianColors.muted)
+                            }
+                        }
+                    } else {
+                        items(products) { product ->
+                            val productCats = remember(product, categories) {
+                                try {
+                                    val ids = Json.decodeFromString<List<String>>(product.categories)
+                                    categories.filter { it.id in ids }
+                                } catch (e: Exception) { emptyList() }
+                            }
+                            
+                            Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
+                                ProductCard(
+                                    product = product,
+                                    categories = productCats,
+                                    onAddToCart = { qty, pos, img ->
+                                        flyingImage = img
+                                        flyingStart = pos
+                                        isFlying = true
+                                    }
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    items(reviews) { review ->
+                        Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
+                            ReviewCard(review)
+                        }
+                    }
+                }
                 
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(text = "Products", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = kianColors.ink)
-                }
-                Spacer(modifier = Modifier.height(12.dp))
+                item { Spacer(modifier = Modifier.height(100.dp)) }
             }
+        }
 
-            if (products.isEmpty()) {
-                item {
-                    Text(text = "No products found", color = kianColors.ink.copy(alpha = 0.5f))
-                }
-            } else {
-                items(products) { product ->
-                    ProductCard(product)
-                    Spacer(modifier = Modifier.height(10.dp))
-                }
-            }
+        // Flying animation overlay
+        if (flyingImage != null) {
+            val offsetX = androidx.compose.ui.util.lerp(flyingStart.x, cartIconPosition.x, animProgress.value)
+            val offsetY = androidx.compose.ui.util.lerp(flyingStart.y, cartIconPosition.y, animProgress.value)
+            val scale = androidx.compose.ui.util.lerp(1f, 0.1f, animProgress.value)
+            val alpha = androidx.compose.ui.util.lerp(1f, 0f, animProgress.value)
 
-            item {
-                Spacer(modifier = Modifier.height(24.dp))
-                Text(text = "Reviews", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = kianColors.ink)
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-
-            if (reviews.isEmpty()) {
-                item {
-                    Text(text = "No reviews yet", color = kianColors.ink.copy(alpha = 0.5f))
-                }
-            } else {
-                items(reviews) { review ->
-                    ReviewCard(review)
-                    Spacer(modifier = Modifier.height(10.dp))
-                }
-            }
+            AsyncImage(
+                model = flyingImage,
+                contentDescription = null,
+                modifier = Modifier
+                    .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
+                    .size(60.dp)
+                    .scale(scale)
+                    .alpha(alpha)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(kianColors.line),
+                contentScale = ContentScale.Crop
+            )
         }
     }
 }
 
 @Composable
-fun ProductCard(product: Product) {
+fun ProfileStat(label: String, value: String, icon: androidx.compose.ui.graphics.vector.ImageVector? = null) {
+    val colors = KianTheme.colors
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (icon != null) {
+                Icon(icon, contentDescription = null, tint = Color(0xFFFFB800), modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+            }
+            Text(text = value, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = colors.ink)
+        }
+        Text(text = label, fontSize = 12.sp, color = colors.muted, fontWeight = FontWeight.Medium)
+    }
+}
+
+@Composable
+fun ProductCard(
+    product: Product,
+    categories: List<com.ely.kian.data.local.entities.ProductCategory>,
+    onAddToCart: (Int, Offset, String?) -> Unit
+) {
     val kianColors = KianTheme.colors
-    var inCart by remember { mutableStateOf(false) }
+    var quantity by remember { mutableIntStateOf(1) }
+    var itemPosition by remember { mutableStateOf(Offset.Zero) }
 
     val imageUrls = remember(product.images) {
         try { Json.decodeFromString<List<String>>(product.images) } catch (e: Exception) { emptyList<String>() }
@@ -194,18 +332,43 @@ fun ProductCard(product: Product) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(kianColors.panel, RoundedCornerShape(12.dp))
-            .border(1.dp, kianColors.line, RoundedCornerShape(12.dp))
-            .padding(14.dp)
+            .background(kianColors.panel, RoundedCornerShape(24.dp))
+            .border(1.dp, kianColors.line, RoundedCornerShape(24.dp))
+            .padding(16.dp)
+            .onGloballyPositioned { itemPosition = it.positionInWindow() }
     ) {
+        // Categories at the top
+        if (categories.isNotEmpty()) {
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.padding(bottom = 12.dp)
+            ) {
+                items(categories) { cat ->
+                    Surface(
+                        color = kianColors.accent.copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = cat.name,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = kianColors.accent,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        // Image Carousel
         if (imageUrls.size == 1) {
             AsyncImage(
                 model = imageUrls.first(),
                 contentDescription = product.name,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .height(200.dp)
+                    .clip(RoundedCornerShape(16.dp))
                     .background(kianColors.line),
                 contentScale = ContentScale.Crop
             )
@@ -219,41 +382,77 @@ fun ProductCard(product: Product) {
                         model = url,
                         contentDescription = product.name,
                         modifier = Modifier
-                            .width(260.dp)
-                            .height(180.dp)
-                            .clip(RoundedCornerShape(12.dp))
+                            .width(280.dp)
+                            .height(200.dp)
+                            .clip(RoundedCornerShape(16.dp))
                             .background(kianColors.line),
                         contentScale = ContentScale.Crop
                     )
                 }
             }
         } else {
-            Box(modifier = Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(12.dp)).background(kianColors.line))
+            Box(modifier = Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(16.dp)).background(kianColors.line))
         }
         
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(text = product.name, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = kianColors.ink)
-        Text(text = product.description ?: "", fontSize = 14.sp, color = kianColors.ink.copy(alpha = 0.6f), modifier = Modifier.padding(top = 4.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         
-        Spacer(modifier = Modifier.height(12.dp))
+        Text(text = product.name, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = kianColors.ink)
+        Text(
+            text = product.description ?: "", 
+            fontSize = 14.sp, 
+            color = kianColors.ink.copy(alpha = 0.6f), 
+            modifier = Modifier.padding(top = 4.dp),
+            maxLines = 3,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+        )
         
-        Button(
-            onClick = { inCart = !inCart },
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = if (inCart) Color(0xFFECFDF5) else kianColors.ink,
-                contentColor = if (inCart) Color(0xFF065F46) else kianColors.canvas
-            ),
-            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
-            modifier = Modifier.align(Alignment.Start)
+        Spacer(modifier = Modifier.height(20.dp))
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(
-                    imageVector = if (inCart) Icons.Default.CheckCircle else Icons.Default.AddShoppingCart,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
+            // Quantity Selector
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .background(kianColors.line.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                    .padding(4.dp)
+            ) {
+                IconButton(
+                    onClick = { if (quantity > 1) quantity-- },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Text("-", fontWeight = FontWeight.Bold, color = kianColors.ink)
+                }
+                Text(
+                    text = quantity.toString(),
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                    fontWeight = FontWeight.Bold,
+                    color = kianColors.ink
                 )
-                Text(text = if (inCart) "Added to cart" else "Add to cart", fontWeight = FontWeight.Bold)
+                IconButton(
+                    onClick = { quantity++ },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Text("+", fontWeight = FontWeight.Bold, color = kianColors.ink)
+                }
+            }
+
+            Button(
+                onClick = { onAddToCart(quantity, itemPosition, imageUrls.firstOrNull()) },
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = kianColors.ink,
+                    contentColor = kianColors.canvas
+                ),
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Default.AddShoppingCart, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Text(text = "Add to Cart", fontWeight = FontWeight.Bold)
+                }
             }
         }
     }
@@ -265,11 +464,17 @@ fun ReviewCard(review: ReviewInfo) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(kianColors.panel, RoundedCornerShape(12.dp))
-            .border(1.dp, kianColors.line, RoundedCornerShape(12.dp))
-            .padding(14.dp)
+            .background(kianColors.panel, RoundedCornerShape(20.dp))
+            .border(1.dp, kianColors.line, RoundedCornerShape(20.dp))
+            .padding(16.dp)
     ) {
-        Text(text = "Rating: ${review.rating}/5", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = kianColors.ink)
-        Text(text = review.comment, fontSize = 14.sp, color = kianColors.ink.copy(alpha = 0.6f), modifier = Modifier.padding(top = 4.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(text = review.author, fontWeight = FontWeight.Bold, color = kianColors.ink, modifier = Modifier.weight(1f))
+            repeat(review.rating) {
+                Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFB800), modifier = Modifier.size(14.dp))
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(text = review.comment, fontSize = 14.sp, color = kianColors.ink.copy(alpha = 0.7f), lineHeight = 20.sp)
     }
 }

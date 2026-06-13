@@ -342,22 +342,29 @@ fun ProductRow(
                 color = kianColors.muted,
                 modifier = Modifier.padding(top = 6.dp)
             )
+            
             if (categoryName != null) {
-                Text(
-                    text = categoryName.uppercase(),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = kianColors.accent,
-                    letterSpacing = 1.sp,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
+                Spacer(modifier = Modifier.height(10.dp))
+                Surface(
+                    color = kianColors.accent.copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = categoryName.uppercase(),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = kianColors.accent,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
             }
+
             Text(
                 text = "Tap to edit",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = kianColors.accent,
-                modifier = Modifier.padding(top = 8.dp)
+                modifier = Modifier.padding(top = 10.dp)
             )
         }
         
