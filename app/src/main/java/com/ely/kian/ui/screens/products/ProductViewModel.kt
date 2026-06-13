@@ -86,6 +86,12 @@ class ProductViewModel(
         }
     }
 
+    fun toggleShowcase(product: Product, isShowcase: Boolean) {
+        viewModelScope.launch {
+            productRepository.updateShowcase(product.id, isShowcase)
+        }
+    }
+
     fun saveCategory(name: String, parent: ProductCategory?) {
         viewModelScope.launch {
             productRepository.saveCategory(name, parent?.id, (parent?.level ?: 0) + 1)

@@ -1,64 +1,64 @@
-# ساختار پایگاه داده (Database Schema)
+# Database Schema
 
-پایگاه داده کیان با استفاده از **Room Persistence Library** پیاده‌سازی شده است. در اینجا جزئیات جداول و فیلدهای هر کدام بر اساس کدهای فعلی پروژه آورده شده است.
+The Kian database is implemented using the **Room Persistence Library**. Below are the details of the tables and fields for each, based on the current project code.
 
-## جداول و موجودیت‌ها (Entities)
+## Entities and Tables
 
-### 1. `profiles` (جدول پروفایل‌ها)
-ذخیره اطلاعات مربوط به کاربران و فروشندگان.
-- `pubkey` (PK): کلید عمومی کاربر.
-- `name`, `displayName`: نام کاربری و نام نمایشی.
-- `about`, `picture`: توضیحات و تصویر پروفایل.
-- `nip05`, `geohash`: اطلاعات تاییدیه و موقعیت جغرافیایی.
-- `isTrader`: وضعیت فروشنده بودن (Boolean).
-- `rawJson`: محتوای کامل رویداد Kind 0.
-- `createdAt`, `updatedAt`: زمان‌های ایجاد و بروزرسانی.
+### 1. `profiles` (Profiles Table)
+Stores information related to users and merchants.
+- `pubkey` (PK): User's public key.
+- `name`, `displayName`: Username and display name.
+- `about`, `picture`: Description and profile picture.
+- `nip05`, `geohash`: Verification info and geographic location.
+- `isTrader`: Merchant status (Boolean).
+- `rawJson`: Full content of the Kind 0 event.
+- `createdAt`, `updatedAt`: Creation and update timestamps.
 
-### 2. `chat_messages` (جدول پیام‌های چت)
-- `id` (PK): شناسه رویداد.
-- `pubkey`: فرستنده پیام.
-- `contactPubkey`: کلید عمومی طرف مقابل گفتگو.
-- `content`: محتوای پیام (رمزگشایی شده).
-- `kind`: نوع رویداد Nostr.
-- `isMine`: آیا پیام توسط کاربر فعلی ارسال شده؟
-- `status`: وضعیت پیام (`sent`, `delivered`, `read`).
-- `createdAt`: زمان ارسال پیام.
+### 2. `chat_messages` (Chat Messages Table)
+- `id` (PK): Event ID.
+- `pubkey`: Message sender.
+- `contactPubkey`: Public key of the other party in the conversation.
+- `content`: Message content (decrypted).
+- `kind`: Nostr event type.
+- `isMine`: Whether the message was sent by the current user.
+- `status`: Message status (`sent`, `delivered`, `read`).
+- `createdAt`: Time the message was sent.
 
-### 3. `conversations` (خلاصه گفتگوها)
-- `contactPubkey` (PK): کلید عمومی مخاطب.
-- `lastMessage`: آخرین پیام رد و بدل شده.
-- `lastTimestamp`: زمان آخرین فعالیت.
-- `unreadCount`: تعداد پیام‌های خوانده نشده.
+### 3. `conversations` (Conversation Summaries)
+- `contactPubkey` (PK): Contact's public key.
+- `lastMessage`: The last exchanged message.
+- `lastTimestamp`: Time of the last activity.
+- `unreadCount`: Number of unread messages.
 
-### 4. `products` (محصولات فروشگاه)
-- `id`, `pubkey` (Composite PK): شناسه محصول و مالک آن.
-- `name`, `description`: مشخصات محصول.
-- `images`, `categories`: لیست تصاویر و دسته‌بندی‌ها (به صورت JSON).
-- `geohash`: موقعیت جغرافیایی محصول.
-- `eventId`: شناسه رویداد Kind 30018.
+### 4. `products` (Store Products)
+- `id`, `pubkey` (Composite PK): Product ID and owner ID.
+- `name`, `description`: Product specifications.
+- `images`, `categories`: List of images and categories (as JSON).
+- `geohash`: Geographic location of the product.
+- `eventId`: Kind 30018 event ID.
 
-### 5. `token_utxos` (مدیریت دارایی‌ها)
-- `utxoId` (PK): شناسه منحصر به فرد UTXO.
-- `assetRef`: ارجاع به دارایی مربوطه.
-- `producer`, `owner`: تولیدکننده و مالک فعلی.
-- `amount`: مقدار دارایی.
-- `spent`: آیا این توکن مصرف شده است؟ (Boolean).
+### 5. `token_utxos` (Asset Management)
+- `utxoId` (PK): Unique UTXO ID.
+- `assetRef`: Reference to the respective asset.
+- `producer`, `owner`: Producer and current owner.
+- `amount`: Asset amount.
+- `spent`: Whether this token has been spent (Boolean).
 
-### 6. `offline_queue` (صف ارسال آفلاین)
-- `eventId` (PK): شناسه رویداد در انتظار ارسال.
-- `cborPayload`: محتوای فشرده شده برای ارسال آفلاین.
-- `relayUrls`: لیست رله‌های هدف (JSON).
-- `retryCount`: تعداد تلاش‌های مجدد برای ارسال.
+### 6. `offline_queue` (Offline Transmission Queue)
+- `eventId` (PK): ID of the event awaiting transmission.
+- `cborPayload`: Compressed content for offline transmission.
+- `relayUrls`: List of target relays (JSON).
+- `retryCount`: Number of retries for transmission.
 
-### 7. `reviews` (نظرات و امتیازها)
-- `pubkey`, `targetPubkey` (Composite PK): نظردهنده و هدف نظر.
-- `rating`: امتیاز (۱ تا ۵).
-- `comment`: متن نظر.
+### 7. `reviews` (Reviews and Ratings)
+- `pubkey`, `targetPubkey` (Composite PK): Reviewer and target of the review.
+- `rating`: Rating (1 to 5).
+- `comment`: Review text.
 
 ---
 
-## نکات فنی (Technical Notes)
+## Technical Notes
 
-- **Indexing**: ایندکس‌های بهینه برای ستون‌هایی مثل `contactPubkey`, `owner`, و `pubkey` ایجاد شده تا سرعت جستجو در حجم بالای داده حفظ شود.
-- **Data Types**: برای ذخیره لیست‌ها (مثل تصاویر) از JSON String استفاده می‌شود که در لایه DAO مدیریت می‌گردد.
-- **Destructive Migration**: به دلیل فاز توسعه، تغییر در هر یک از این کلاس‌ها منجر به پاک شدن دیتابیس قدیمی و ایجاد نسخه جدید می‌شود.
+- **Indexing**: Optimized indexes are created for columns such as `contactPubkey`, `owner`, and `pubkey` to maintain search speed with large data volumes.
+- **Data Types**: JSON strings are used to store lists (like images), managed at the DAO layer.
+- **Destructive Migration**: Due to the development phase, changes to any of these classes lead to clearing the old database and creating a new version.

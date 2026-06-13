@@ -69,6 +69,7 @@ class ProductRepository(
             categories = json.encodeToString(categories),
             geohash = null,
             eventId = eventId,
+            isShowcase = id?.let { productDao.getProduct(it, pubKeyHex)?.isShowcase } ?: false,
             createdAt = createdAt
         )
 
@@ -123,6 +124,15 @@ class ProductRepository(
         } ?: return
 
         productDao.deleteCategories(pubKeyHex, ids)
+    }
+
+    suspend fun updateShowcase(productId: String, isShowcase: Boolean) {
+        val pubKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY)?.let {
+            KianKeys.bytesToHex(KianKeys.getPubKey(KianKeys.hexToBytes(it)))
+        } ?: return
+
+        val existing = productDao.getProduct(productId, pubKeyHex) ?: return
+        productDao.upsertProduct(existing.copy(isShowcase = isShowcase))
     }
 
     private fun publishEvent(event: NostrEvent) {

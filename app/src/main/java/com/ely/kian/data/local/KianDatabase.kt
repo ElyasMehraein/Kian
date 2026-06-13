@@ -21,7 +21,7 @@ import com.ely.kian.data.local.entities.*
         com.ely.kian.data.local.entities.ChatMessage::class,
         com.ely.kian.data.local.entities.Conversation::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class KianDatabase : RoomDatabase() {

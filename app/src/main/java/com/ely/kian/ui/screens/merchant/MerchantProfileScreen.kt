@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -23,9 +24,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ely.kian.KianApp
+import com.ely.kian.data.local.entities.Product
 import com.ely.kian.ui.components.InitialAvatar
 import com.ely.kian.ui.components.KianButton
 import com.ely.kian.ui.theme.KianTheme
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+import kotlinx.serialization.json.Json
 
 data class ProductInfo(
     val id: String,
@@ -54,16 +59,17 @@ fun MerchantProfileScreen(
         factory = MerchantProfileViewModel.provideFactory(
             pubkey,
             ownPubkey,
-            (LocalContext.current.applicationContext as KianApp).container.userProfileDao
+            (LocalContext.current.applicationContext as KianApp).container.userProfileDao,
+            (LocalContext.current.applicationContext as KianApp).container.productRepository
         )
     )
 ) {
     val kianColors = KianTheme.colors
     val profile by viewModel.profile.collectAsState()
+    val products by viewModel.products.collectAsState()
     val isOwnProfile = viewModel.isOwnProfile
     
     // For now keeping empty lists if not fetching from DB yet
-    val products = emptyList<ProductInfo>()
     val reviews = emptyList<ReviewInfo>()
 
     Scaffold(
@@ -177,9 +183,13 @@ fun MerchantProfileScreen(
 }
 
 @Composable
-fun ProductCard(product: ProductInfo) {
+fun ProductCard(product: Product) {
     val kianColors = KianTheme.colors
     var inCart by remember { mutableStateOf(false) }
+
+    val imageUrls = remember(product.images) {
+        try { Json.decodeFromString<List<String>>(product.images) } catch (e: Exception) { emptyList<String>() }
+    }
     
     Column(
         modifier = Modifier
@@ -188,11 +198,42 @@ fun ProductCard(product: ProductInfo) {
             .border(1.dp, kianColors.line, RoundedCornerShape(12.dp))
             .padding(14.dp)
     ) {
-        Box(modifier = Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(12.dp)).background(kianColors.line))
+        if (imageUrls.size == 1) {
+            AsyncImage(
+                model = imageUrls.first(),
+                contentDescription = product.name,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(kianColors.line),
+                contentScale = ContentScale.Crop
+            )
+        } else if (imageUrls.size > 1) {
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(imageUrls) { url ->
+                    AsyncImage(
+                        model = url,
+                        contentDescription = product.name,
+                        modifier = Modifier
+                            .width(260.dp)
+                            .height(180.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(kianColors.line),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            }
+        } else {
+            Box(modifier = Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(12.dp)).background(kianColors.line))
+        }
+        
         Spacer(modifier = Modifier.height(12.dp))
         Text(text = product.name, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = kianColors.ink)
-        Text(text = product.description, fontSize = 14.sp, color = kianColors.ink.copy(alpha = 0.6f), modifier = Modifier.padding(top = 4.dp))
-        Text(text = "Requirement: ${product.price}", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = kianColors.accent, modifier = Modifier.padding(top = 4.dp))
+        Text(text = product.description ?: "", fontSize = 14.sp, color = kianColors.ink.copy(alpha = 0.6f), modifier = Modifier.padding(top = 4.dp))
         
         Spacer(modifier = Modifier.height(12.dp))
         

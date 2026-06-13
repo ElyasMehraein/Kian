@@ -17,11 +17,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import com.ely.kian.data.local.entities.Product
 import com.ely.kian.data.local.entities.ProductCategory
 import com.ely.kian.ui.components.KianButton
@@ -147,7 +150,8 @@ fun ProductManagerScreen(
                             editingProduct = it
                             showBottomSheet = true
                         },
-                        onDelete = { viewModel.deleteProduct(it) }
+                        onDelete = { viewModel.deleteProduct(it) },
+                        onToggleShowcase = { product, isShowcase -> viewModel.toggleShowcase(product, isShowcase) }
                     )
                 }
             }
@@ -282,9 +286,14 @@ fun ProductRow(
     product: Product,
     categoryName: String?,
     onEdit: (Product) -> Unit,
-    onDelete: (Product) -> Unit
+    onDelete: (Product) -> Unit,
+    onToggleShowcase: (Product, Boolean) -> Unit
 ) {
     val kianColors = KianTheme.colors
+    val imageUrls = remember(product.images) {
+        try { Json.decodeFromString<List<String>>(product.images) } catch (e: Exception) { emptyList<String>() }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -293,6 +302,39 @@ fun ProductRow(
             .padding(14.dp)
     ) {
         Column(modifier = Modifier.clickable { onEdit(product) }) {
+            if (imageUrls.size == 1) {
+                AsyncImage(
+                    model = imageUrls.first(),
+                    contentDescription = product.name,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(kianColors.line),
+                    contentScale = ContentScale.Crop
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            } else if (imageUrls.size > 1) {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(imageUrls) { url ->
+                        AsyncImage(
+                            model = url,
+                            contentDescription = product.name,
+                            modifier = Modifier
+                                .width(280.dp)
+                                .height(180.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(kianColors.line),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
             Text(text = product.name, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = kianColors.ink)
             Text(
                 text = product.description ?: "No description",
@@ -319,19 +361,46 @@ fun ProductRow(
             )
         }
         
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         
-        Button(
-            onClick = { onDelete(product) },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = kianColors.danger.copy(alpha = 0.1f),
-                contentColor = kianColors.danger
-            ),
-            shape = RoundedCornerShape(12.dp),
-            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
-            modifier = Modifier.height(40.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Delete product", fontWeight = FontWeight.SemiBold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Switch(
+                    checked = product.isShowcase,
+                    onCheckedChange = { onToggleShowcase(product, it) },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = kianColors.canvas,
+                        checkedTrackColor = kianColors.accent,
+                        uncheckedThumbColor = kianColors.muted,
+                        uncheckedTrackColor = kianColors.line
+                    ),
+                    modifier = Modifier.scale(0.8f)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "Showcase",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = kianColors.ink
+                )
+            }
+
+            Button(
+                onClick = { onDelete(product) },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = kianColors.danger.copy(alpha = 0.1f),
+                    contentColor = kianColors.danger
+                ),
+                shape = RoundedCornerShape(12.dp),
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+                modifier = Modifier.height(40.dp)
+            ) {
+                Text("Delete product", fontWeight = FontWeight.SemiBold)
+            }
         }
     }
 }

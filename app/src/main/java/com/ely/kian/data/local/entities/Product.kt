@@ -18,6 +18,7 @@ data class Product(
     val categories: String, // JSON array
     val geohash: String?,
     val eventId: String,
+    val isShowcase: Boolean = false,
     val createdAt: Long
 )
 
