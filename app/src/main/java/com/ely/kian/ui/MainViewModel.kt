@@ -13,16 +13,10 @@ import com.ely.kian.data.remote.NostrSyncManager
 import com.ely.kian.data.remote.model.NostrEvent
 import com.ely.kian.crypto.KianKeys
 import com.ely.kian.crypto.SecureStorage
+import com.ely.kian.data.local.DemoDataSeeder
 import android.util.Log
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 
 class MainViewModel(
     private val keyDao: KeyDao,
@@ -32,19 +26,30 @@ class MainViewModel(
     private val database: com.ely.kian.data.local.KianDatabase
 ) : ViewModel() {
 
-    val totalUnreadCount: StateFlow<Int> = database.chatDao().getTotalUnreadCount()
-        .map { it ?: 0 }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+    // Wrap in catch to prevent crashes during DB integrity issues
+    val totalUnreadCount: StateFlow<Int> = try {
+        database.chatDao().getTotalUnreadCount()
+            .map { it ?: 0 }
+            .catch { emit(0) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+    } catch (e: Exception) {
+        MutableStateFlow(0)
+    }
 
-    val userProfile: StateFlow<Profile?> = keyDao.getKeyFlow()
-        .flatMapLatest { key ->
-            if (key != null) {
-                userProfileDao.getProfileFlow(key.pubkey)
-            } else {
-                flowOf(null)
+    val userProfile: StateFlow<Profile?> = try {
+        keyDao.getKeyFlow()
+            .flatMapLatest { key ->
+                if (key != null) {
+                    userProfileDao.getProfileFlow(key.pubkey)
+                } else {
+                    flowOf(null)
+                }
             }
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+            .catch { emit(null) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    } catch (e: Exception) {
+        MutableStateFlow(null)
+    }
 
     companion object {
         fun provideFactory(
@@ -78,11 +83,13 @@ class MainViewModel(
                     ownPubkey = key?.pubkey
                     if (key != null) {
                         nostrSyncManager.startSyncing(key.pubkey)
+                        // Seed demo data if it's a test account (Optional check)
+                        DemoDataSeeder.seedIfTestAccount(key.pubkey, userProfileDao, database.productDao())
                     }
                 }
             } catch (e: Exception) {
                 isLoggedIn = false
-                android.util.Log.e("MainViewModel", "Auth flow failed", e)
+                Log.e("MainViewModel", "Auth flow failed", e)
             }
         }
         
@@ -115,6 +122,8 @@ class MainViewModel(
                     displayName = null,
                     about = null,
                     picture = null,
+                    banner = null,
+                    website = null,
                     nip05 = null,
                     geohash = null,
                     rawJson = "{}",
@@ -153,28 +162,24 @@ class MainViewModel(
     fun logout(onComplete: () -> Unit = {}) {
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             try {
-                // 0. Stop Nostr syncing first
                 try {
                     nostrSyncManager.stopSyncing()
                 } catch (e: Exception) {
                     Log.e("MainViewModel", "Failed to stop syncing", e)
                 }
 
-                // 1. Clear sensitive data immediately so handleEvent can't process as "mine"
                 try {
                     secureStorage.clearAll()
                 } catch (e: Exception) {
                     Log.e("MainViewModel", "Failed to clear secure storage", e)
                 }
                 
-                // 2. Wipe all local database tables
                 try {
                     database.clearAllTables()
                 } catch (e: Exception) {
                     Log.e("MainViewModel", "Failed to clear database", e)
                 }
                 
-                // 3. Clear Nostr keys from DB (This triggers isLoggedIn = false)
                 try {
                     keyDao.clearKeys()
                 } catch (e: Exception) {
@@ -202,7 +207,6 @@ class MainViewModel(
                         }
                     }
                     
-                    // Trigger share intent
                     val authority = "${context.packageName}.fileprovider"
                     val uri = androidx.core.content.FileProvider.getUriForFile(
                         context,

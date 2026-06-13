@@ -287,7 +287,15 @@ fun KianScaffold() {
                     PrivateKeyScreen(viewModel = privateKeyViewModel, onContinue = { navController.popBackStack() })
                 }
                 composable("onboarding") {
-                    val onboardingViewModel: OnboardingViewModel = viewModel(factory = OnboardingViewModel.provideFactory(app.container.keyDao, app.container.secureStorage))
+                    val onboardingViewModel: OnboardingViewModel = viewModel(
+                        factory = OnboardingViewModel.provideFactory(
+                            app.container.keyDao,
+                            app.container.userProfileDao,
+                            app.container.productDao,
+                            app.container.reviewDao,
+                            app.container.secureStorage
+                        )
+                    )
                     OnboardingScreen(
                         onSuccess = {
                             navController.navigate(Screen.Home.route) {
