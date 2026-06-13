@@ -23,7 +23,7 @@ class NostrSyncManager(
     
     private val defaultRelays = listOf(
         "ws://192.168.1.14:8080",
-        "wss://relay.damus.io"
+//        "wss://relay.damus.io"
     )
 
     fun startSyncing(myPubkey: String? = null) {
