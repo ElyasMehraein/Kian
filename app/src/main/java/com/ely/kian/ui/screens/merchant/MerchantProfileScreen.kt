@@ -25,6 +25,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
@@ -131,7 +132,7 @@ fun MerchantProfileScreen(
             ) {
                 item {
                     // Header / Cover area
-                    Box(modifier = Modifier.fillMaxWidth().height(180.dp)) {
+                    Box(modifier = Modifier.fillMaxWidth().height(200.dp)) {
                         if (!profile?.banner.isNullOrBlank()) {
                             AsyncImage(
                                 model = profile?.banner,
@@ -140,20 +141,40 @@ fun MerchantProfileScreen(
                                 contentScale = ContentScale.Crop
                             )
                         } else {
-                            Box(modifier = Modifier.fillMaxSize().background(kianColors.accentSoft.copy(alpha = 0.4f)))
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        Brush.verticalGradient(
+                                            colors = listOf(kianColors.accent, kianColors.accentSoft)
+                                        )
+                                    )
+                            )
                         }
+                        // Bottom overlay for transition
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(40.dp)
+                                .align(Alignment.BottomCenter)
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(Color.Transparent, kianColors.canvas)
+                                    )
+                                )
+                        )
                     }
                     
                     Column(
                         modifier = Modifier
                             .padding(horizontal = 20.dp)
-                            .offset(y = (-50).dp)
+                            .offset(y = (-60).dp)
                     ) {
                         InitialAvatar(
                             name = profile?.displayName ?: profile?.name ?: "Merchant", 
                             pictureUrl = profile?.picture, 
-                            size = 100.dp,
-                            modifier = Modifier.border(4.dp, kianColors.canvas, RoundedCornerShape(50.dp))
+                            size = 110.dp,
+                            modifier = Modifier.border(4.dp, kianColors.canvas, RoundedCornerShape(55.dp))
                         )
                         
                         Spacer(modifier = Modifier.height(12.dp))
@@ -185,13 +206,13 @@ fun MerchantProfileScreen(
                         
                         if (!profile?.website.isNullOrBlank()) {
                             Row(
-                                modifier = Modifier.padding(top = 8.dp).clickable { uriHandler.openUri(profile?.website!!) },
+                                modifier = Modifier.padding(top = 10.dp).clickable { uriHandler.openUri(profile?.website!!) },
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(Icons.Default.Language, contentDescription = null, tint = kianColors.accent, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = profile?.website!!.removePrefix("https://").removePrefix("http://"),
+                                    text = profile?.website!!.removePrefix("https://").removePrefix("http://").removeSuffix("/"),
                                     fontSize = 14.sp,
                                     color = kianColors.accent,
                                     fontWeight = FontWeight.SemiBold
@@ -213,27 +234,27 @@ fun MerchantProfileScreen(
                             modifier = Modifier.padding(top = 24.dp).fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            ProfileStat(label = "Products", value = products.size.toString())
-                            ProfileStat(label = "Followers", value = "1.2k")
-                            ProfileStat(label = "Rating", value = "4.9", icon = Icons.Default.Star)
+                            ProfileStat(label = "محصولات", value = products.size.toString())
+                            ProfileStat(label = "دنبال‌کننده", value = "1.2k")
+                            ProfileStat(label = "امتیاز", value = "4.9", icon = Icons.Default.Star)
                         }
 
                         // Action Buttons
                         Row(modifier = Modifier.padding(top = 24.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             if (isOwnProfile) {
                                 KianButton(
-                                    text = "Edit Profile",
+                                    text = "ویرایش پروفایل",
                                     onClick = onEdit,
                                     modifier = Modifier.weight(1f)
                                 )
                             } else {
                                 KianButton(
-                                    text = "Message",
+                                    text = "گفتگو",
                                     onClick = { onMessage(pubkey) },
                                     modifier = Modifier.weight(1f)
                                 )
                                 KianButton(
-                                    text = "Follow",
+                                    text = "دنبال کردن",
                                     onClick = {},
                                     type = com.ely.kian.ui.components.ButtonType.Secondary,
                                     modifier = Modifier.weight(1f)
@@ -256,17 +277,17 @@ fun MerchantProfileScreen(
                                 color = kianColors.accent
                             )
                         },
-                        modifier = Modifier.offset(y = (-20).dp)
+                        modifier = Modifier.offset(y = (-30).dp)
                     ) {
                         Tab(
                             selected = selectedTab == 0,
                             onClick = { selectedTab = 0 },
-                            text = { Text("Showcase", fontWeight = FontWeight.Bold) }
+                            text = { Text("ویترین", fontWeight = FontWeight.Bold) }
                         )
                         Tab(
                             selected = selectedTab == 1,
                             onClick = { selectedTab = 1 },
-                            text = { Text("Reviews", fontWeight = FontWeight.Bold) }
+                            text = { Text("نظرات", fontWeight = FontWeight.Bold) }
                         )
                     }
                 }
@@ -275,7 +296,7 @@ fun MerchantProfileScreen(
                     if (products.isEmpty()) {
                         item {
                             Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
-                                Text("No showcase products.", color = kianColors.muted)
+                                Text("محصولی در ویترین موجود نیست.", color = kianColors.muted)
                             }
                         }
                     } else {
@@ -304,7 +325,7 @@ fun MerchantProfileScreen(
                     if (reviews.isEmpty()) {
                         item {
                             Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
-                                Text("No reviews yet.", color = kianColors.muted)
+                                Text("نظری ثبت نشده است.", color = kianColors.muted)
                             }
                         }
                     } else {
@@ -332,10 +353,10 @@ fun MerchantProfileScreen(
                 contentDescription = null,
                 modifier = Modifier
                     .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
-                    .size(60.dp)
+                    .size(70.dp)
                     .scale(scale)
                     .alpha(alpha)
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(12.dp))
                     .background(kianColors.line),
                 contentScale = ContentScale.Crop
             )
@@ -352,9 +373,9 @@ fun ProfileStat(label: String, value: String, icon: androidx.compose.ui.graphics
                 Icon(icon, contentDescription = null, tint = Color(0xFFFFB800), modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(4.dp))
             }
-            Text(text = value, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = colors.ink)
+            Text(text = value, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = colors.ink)
         }
-        Text(text = label, fontSize = 12.sp, color = colors.muted, fontWeight = FontWeight.Medium)
+        Text(text = label, fontSize = 13.sp, color = colors.muted, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -410,7 +431,7 @@ fun ProductCard(
                 contentDescription = product.name,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
+                    .height(220.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(kianColors.line),
                 contentScale = ContentScale.Crop
@@ -425,8 +446,8 @@ fun ProductCard(
                         model = url,
                         contentDescription = product.name,
                         modifier = Modifier
-                            .width(280.dp)
-                            .height(200.dp)
+                            .width(300.dp)
+                            .height(220.dp)
                             .clip(RoundedCornerShape(16.dp))
                             .background(kianColors.line),
                         contentScale = ContentScale.Crop
@@ -434,18 +455,19 @@ fun ProductCard(
                 }
             }
         } else {
-            Box(modifier = Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(16.dp)).background(kianColors.line))
+            Box(modifier = Modifier.fillMaxWidth().height(220.dp).clip(RoundedCornerShape(16.dp)).background(kianColors.line))
         }
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        Text(text = product.name, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = kianColors.ink)
+        Text(text = product.name, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = kianColors.ink)
         Text(
             text = product.description ?: "", 
-            fontSize = 14.sp, 
+            fontSize = 15.sp, 
             color = kianColors.ink.copy(alpha = 0.6f), 
             modifier = Modifier.padding(top = 4.dp),
             maxLines = 3,
+            lineHeight = 22.sp,
             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
         )
         
@@ -490,11 +512,11 @@ fun ProductCard(
                     containerColor = kianColors.ink,
                     contentColor = kianColors.canvas
                 ),
-                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp)
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Default.AddShoppingCart, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Text(text = "Add to Cart", fontWeight = FontWeight.Bold)
+                    Icon(Icons.Default.AddShoppingCart, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Text(text = "افزودن به سبد", fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -507,17 +529,17 @@ fun ReviewCard(review: Review) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(kianColors.panel, RoundedCornerShape(20.dp))
-            .border(1.dp, kianColors.line, RoundedCornerShape(20.dp))
-            .padding(16.dp)
+            .background(kianColors.panel, RoundedCornerShape(24.dp))
+            .border(1.dp, kianColors.line, RoundedCornerShape(24.dp))
+            .padding(18.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(text = review.authorName ?: "Anonymous", fontWeight = FontWeight.Bold, color = kianColors.ink, modifier = Modifier.weight(1f))
+            Text(text = review.authorName ?: "کاربر ناشناس", fontWeight = FontWeight.Bold, color = kianColors.ink, modifier = Modifier.weight(1f))
             repeat(review.rating) {
-                Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFB800), modifier = Modifier.size(14.dp))
+                Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFB800), modifier = Modifier.size(16.dp))
             }
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(text = review.comment ?: "", fontSize = 14.sp, color = kianColors.ink.copy(alpha = 0.7f), lineHeight = 20.sp)
+        Spacer(modifier = Modifier.height(10.dp))
+        Text(text = review.comment ?: "", fontSize = 14.sp, color = kianColors.ink.copy(alpha = 0.7f), lineHeight = 22.sp)
     }
 }
