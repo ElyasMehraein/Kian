@@ -77,6 +77,7 @@ fun HomeScreen(
                         bio = merchant.profile.about ?: "No bio yet.",
                         rating = "${merchant.title} (${merchant.socialRating})",
                         distance = if (merchant.distanceKm != null) "${merchant.distanceKm} km" else "Distance unknown",
+                        pictureUrl = merchant.profile.picture,
                         onClick = { onMerchantClick(merchant.pubkey) }
                     )
                 }

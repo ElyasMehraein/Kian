@@ -22,6 +22,7 @@ fun MerchantCard(
     bio: String,
     rating: String,
     distance: String,
+    pictureUrl: String? = null,
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {}
 ) {
@@ -43,7 +44,7 @@ fun MerchantCard(
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            InitialAvatar(name = name, size = 48.dp)
+            InitialAvatar(name = name, pictureUrl = pictureUrl, size = 48.dp)
             
             Spacer(modifier = Modifier.width(12.dp))
             
