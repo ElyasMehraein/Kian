@@ -1,13 +1,11 @@
 package com.ely.kian.ui.screens.chat
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -26,8 +24,7 @@ import java.util.*
 @Composable
 fun ChatInboxScreen(
     viewModel: ChatViewModel,
-    onConversationClick: (String) -> Unit,
-    onProfileClick: (String) -> Unit
+    onConversationClick: (String) -> Unit
 ) {
     val conversations by viewModel.conversations.collectAsState()
     val kianColors = KianTheme.colors
@@ -62,8 +59,7 @@ fun ChatInboxScreen(
                             colors = kianColors,
                             viewModel = viewModel,
                             onClick = { onConversationClick(conversation.contactPubkey) },
-                            onLongClick = { conversationToDelete = conversation.contactPubkey },
-                            onProfileClick = { onProfileClick(conversation.contactPubkey) }
+                            onLongClick = { conversationToDelete = conversation.contactPubkey }
                         )
                         HorizontalDivider(
                             modifier = Modifier.padding(horizontal = 16.dp),
@@ -141,8 +137,7 @@ fun ConversationItem(
     colors: com.ely.kian.ui.theme.KianColors,
     viewModel: ChatViewModel,
     onClick: () -> Unit,
-    onLongClick: () -> Unit,
-    onProfileClick: () -> Unit
+    onLongClick: () -> Unit
 ) {
     var contactName by remember { mutableStateOf(conversation.contactPubkey.take(8) + "...") }
     var pictureUrl by remember { mutableStateOf<String?>(null) }
@@ -168,8 +163,7 @@ fun ConversationItem(
         InitialAvatar(
             name = contactName,
             pictureUrl = pictureUrl,
-            size = 52.dp,
-            modifier = Modifier.clickable { onProfileClick() }
+            size = 52.dp
         )
         
         Spacer(modifier = Modifier.width(16.dp))
@@ -187,9 +181,7 @@ fun ConversationItem(
                     color = colors.ink,
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable { onProfileClick() }
+                    modifier = Modifier.weight(1f)
                 )
                 Text(
                     text = formatTimestamp(conversation.lastTimestamp),
