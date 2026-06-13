@@ -17,6 +17,7 @@ import com.ely.kian.data.local.DemoDataSeeder
 import android.util.Log
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.*
 
 class MainViewModel(
     private val keyDao: KeyDao,
@@ -138,7 +139,17 @@ class MainViewModel(
             
             // Publish metadata event to Nostr
             val tags = if (mode == "merchant") listOf(listOf("t", "trader")) else emptyList()
-            val content = """{"display_name": "${updatedProfile.displayName ?: ""}", "about": "${updatedProfile.about ?: ""}"}"""
+            
+            val contentObj = buildJsonObject {
+                put("name", updatedProfile.name ?: "")
+                put("display_name", updatedProfile.displayName ?: "")
+                put("about", updatedProfile.about ?: "")
+                put("picture", updatedProfile.picture ?: "")
+                put("banner", updatedProfile.banner ?: "")
+                put("website", updatedProfile.website ?: "")
+                put("nip05", updatedProfile.nip05 ?: "")
+            }
+            val content = contentObj.toString()
             val createdAt = System.currentTimeMillis() / 1000
             
             val id = KianKeys.computeEventId(pubkey, createdAt, 0, tags, content)
