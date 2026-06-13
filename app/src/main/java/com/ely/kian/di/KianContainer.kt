@@ -15,11 +15,15 @@ class KianContainer(private val context: Context) {
     val secureStorage = SecureStorage(context)
     val relayPoolManager = RelayPoolManager()
 
+    // Using a more robust way to handle DB creation in development
     val database: KianDatabase by lazy {
         try {
-            buildDatabase()
+            val db = buildDatabase()
+            // Trigger a dummy query to force open and check integrity
+            db.openHelper.writableDatabase
+            db
         } catch (e: Exception) {
-            // Development hack: If schema changed at same version, wipe and rebuild
+            android.util.Log.e("KianContainer", "Database integrity check failed, wiping...", e)
             context.deleteDatabase("kian_db")
             buildDatabase()
         }

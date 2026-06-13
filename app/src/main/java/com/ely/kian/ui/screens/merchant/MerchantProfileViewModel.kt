@@ -4,9 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.ely.kian.data.local.dao.UserProfileDao
+import com.ely.kian.data.local.dao.ReviewDao
 import com.ely.kian.data.local.entities.Profile
 import com.ely.kian.data.local.entities.Product
 import com.ely.kian.data.local.entities.ProductCategory
+import com.ely.kian.data.local.entities.Review
 import com.ely.kian.data.repository.ProductRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -18,7 +20,8 @@ class MerchantProfileViewModel(
     private val pubkey: String,
     private val ownPubkey: String?,
     private val userProfileDao: UserProfileDao,
-    private val productRepository: ProductRepository
+    private val productRepository: ProductRepository,
+    private val reviewDao: ReviewDao
 ) : ViewModel() {
 
     val profile: StateFlow<Profile?> = userProfileDao.getProfileFlow(pubkey)
@@ -31,13 +34,22 @@ class MerchantProfileViewModel(
     val categories: StateFlow<List<ProductCategory>> = productRepository.getCategories(pubkey)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val reviews: StateFlow<List<Review>> = reviewDao.getReviewsForTarget(pubkey)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val isOwnProfile: Boolean = pubkey == ownPubkey
 
     companion object {
-        fun provideFactory(pubkey: String, ownPubkey: String?, userProfileDao: UserProfileDao, productRepository: ProductRepository): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+        fun provideFactory(
+            pubkey: String, 
+            ownPubkey: String?, 
+            userProfileDao: UserProfileDao, 
+            productRepository: ProductRepository,
+            reviewDao: ReviewDao
+        ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return MerchantProfileViewModel(pubkey, ownPubkey, userProfileDao, productRepository) as T
+                return MerchantProfileViewModel(pubkey, ownPubkey, userProfileDao, productRepository, reviewDao) as T
             }
         }
     }

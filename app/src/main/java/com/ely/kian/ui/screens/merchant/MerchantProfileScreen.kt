@@ -39,18 +39,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.IntOffset
 import com.ely.kian.KianApp
 import com.ely.kian.data.local.entities.Product
+import com.ely.kian.data.local.entities.Review
 import com.ely.kian.ui.components.InitialAvatar
 import com.ely.kian.ui.components.KianButton
 import com.ely.kian.ui.theme.KianTheme
 import coil.compose.AsyncImage
 import kotlinx.serialization.json.Json
 import kotlin.math.roundToInt
-
-data class ReviewInfo(
-    val author: String,
-    val rating: Int,
-    val comment: String
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,7 +61,8 @@ fun MerchantProfileScreen(
             pubkey,
             ownPubkey,
             (LocalContext.current.applicationContext as KianApp).container.userProfileDao,
-            (LocalContext.current.applicationContext as KianApp).container.productRepository
+            (LocalContext.current.applicationContext as KianApp).container.productRepository,
+            (LocalContext.current.applicationContext as KianApp).container.reviewDao
         )
     )
 ) {
@@ -74,6 +70,7 @@ fun MerchantProfileScreen(
     val profile by viewModel.profile.collectAsState()
     val products by viewModel.products.collectAsState()
     val categories by viewModel.categories.collectAsState()
+    val reviews by viewModel.reviews.collectAsState()
     val isOwnProfile = viewModel.isOwnProfile
     val uriHandler = LocalUriHandler.current
     
@@ -95,11 +92,6 @@ fun MerchantProfileScreen(
             flyingImage = null
         }
     }
-
-    val reviews = listOf(
-        ReviewInfo("Sina", 5, "Excellent products, very high quality!"),
-        ReviewInfo("Sarah", 4, "Fast delivery and great support.")
-    )
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
@@ -309,9 +301,17 @@ fun MerchantProfileScreen(
                         }
                     }
                 } else {
-                    items(reviews) { review ->
-                        Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
-                            ReviewCard(review)
+                    if (reviews.isEmpty()) {
+                        item {
+                            Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
+                                Text("No reviews yet.", color = kianColors.muted)
+                            }
+                        }
+                    } else {
+                        items(reviews) { review ->
+                            Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
+                                ReviewCard(review)
+                            }
                         }
                     }
                 }
@@ -502,7 +502,7 @@ fun ProductCard(
 }
 
 @Composable
-fun ReviewCard(review: ReviewInfo) {
+fun ReviewCard(review: Review) {
     val kianColors = KianTheme.colors
     Column(
         modifier = Modifier
@@ -512,12 +512,12 @@ fun ReviewCard(review: ReviewInfo) {
             .padding(16.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(text = review.author, fontWeight = FontWeight.Bold, color = kianColors.ink, modifier = Modifier.weight(1f))
+            Text(text = review.authorName ?: "Anonymous", fontWeight = FontWeight.Bold, color = kianColors.ink, modifier = Modifier.weight(1f))
             repeat(review.rating) {
                 Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFB800), modifier = Modifier.size(14.dp))
             }
         }
         Spacer(modifier = Modifier.height(8.dp))
-        Text(text = review.comment, fontSize = 14.sp, color = kianColors.ink.copy(alpha = 0.7f), lineHeight = 20.sp)
+        Text(text = review.comment ?: "", fontSize = 14.sp, color = kianColors.ink.copy(alpha = 0.7f), lineHeight = 20.sp)
     }
 }

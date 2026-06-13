@@ -6,6 +6,7 @@ import androidx.room.Entity
 data class Review(
     val pubkey: String,
     val targetPubkey: String,
+    val authorName: String?,
     val rating: Int,
     val comment: String?,
     val pageIndex: Int = 0,
