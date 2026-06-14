@@ -60,14 +60,13 @@ class TokenRepository(
                 val balanceMap = utxos.groupBy { it.assetRef }
                     .mapValues { entry -> entry.value.sumOf { it.amount } }
 
-                balanceMap.map { (assetRef, amount) ->
+                val items = mutableListOf<BalanceItem>()
+                for ((assetRef, amount) in balanceMap) {
                     val parsed = parseAssetRef(assetRef)
-                    // Note: This is calling suspend functions inside map. 
-                    // In a production app, we might want to pre-fetch or use a more reactive approach.
                     val definition = parsed?.let { tokenDao.getDefinition(it.assetId, it.producer) }
 
                     if (definition != null) {
-                        BalanceItem(
+                        items.add(BalanceItem(
                             assetRef = assetRef,
                             amount = amount,
                             description = definition.description ?: "",
@@ -76,11 +75,11 @@ class TokenRepository(
                             producer = definition.pubkey,
                             categories = parseJsonList(definition.categories),
                             unit = definition.unit
-                        )
+                        ))
                     } else if (parsed != null) {
                         val product = productDao.getProduct(parsed.assetId, parsed.producer)
                         if (product != null) {
-                            BalanceItem(
+                            items.add(BalanceItem(
                                 assetRef = assetRef,
                                 amount = amount,
                                 description = product.description ?: "",
@@ -89,9 +88,9 @@ class TokenRepository(
                                 producer = product.pubkey,
                                 categories = emptyList(),
                                 unit = "unit"
-                            )
+                            ))
                         } else {
-                            BalanceItem(
+                            items.add(BalanceItem(
                                 assetRef = assetRef,
                                 amount = amount,
                                 description = "",
@@ -100,10 +99,10 @@ class TokenRepository(
                                 producer = parsed.producer,
                                 categories = emptyList(),
                                 unit = "unit"
-                            )
+                            ))
                         }
                     } else {
-                        BalanceItem(
+                        items.add(BalanceItem(
                             assetRef = assetRef,
                             amount = amount,
                             description = "",
@@ -112,9 +111,10 @@ class TokenRepository(
                             producer = "",
                             categories = emptyList(),
                             unit = "unit"
-                        )
+                        ))
                     }
                 }
+                items
             }
         }
     }
@@ -134,12 +134,10 @@ class TokenRepository(
 
             val offlineFlow = offlineQueueDao.getAll().map { queue ->
                 queue.mapNotNull { item ->
-                    // Simplified: In a real app, we'd decode CBOR and check Kind 1050
-                    // For now, if scope is "token_transfer", we treat it as pending
                     if (item.queueScope == "token_transfer") {
                         PendingItem(
                             eventId = item.eventId,
-                            utxoId = "offline", // Extract from CBOR in real app
+                            utxoId = "offline",
                             assetRef = "offline",
                             assetName = "Offline Transfer",
                             amount = 0,
@@ -151,7 +149,30 @@ class TokenRepository(
                 }
             }
 
-            offlineFlow.map { it.sortedByDescending { item -> item.createdAt } }
+            val utxoFlow = tokenDao.getAllActivityUtxos(pubkey).map { utxos ->
+                val items = mutableListOf<PendingItem>()
+                for (utxo in utxos) {
+                    val parsed = parseAssetRef(utxo.assetRef)
+                    val definition = parsed?.let { tokenDao.getDefinition(it.assetId, it.producer) }
+                    val name = definition?.name ?: formatAssetRef(utxo.assetRef)
+
+                    items.add(PendingItem(
+                        eventId = utxo.utxoId,
+                        utxoId = utxo.utxoId,
+                        assetRef = utxo.assetRef,
+                        assetName = name,
+                        amount = utxo.amount,
+                        recipient = utxo.owner,
+                        status = "fulfilled",
+                        createdAt = utxo.createdAt
+                    ))
+                }
+                items
+            }
+
+            combine(offlineFlow, utxoFlow) { offline, completed ->
+                (offline + completed).sortedByDescending { it.createdAt }
+            }
         }
     }
 

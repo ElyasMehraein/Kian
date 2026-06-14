@@ -26,6 +26,9 @@ interface TokenDao {
     @Query("SELECT * FROM token_utxos WHERE owner = :pubkey ORDER BY createdAt DESC")
     fun getUtxosByOwner(pubkey: String): Flow<List<TokenUtxo>>
 
+    @Query("SELECT * FROM token_utxos WHERE owner = :pubkey OR (producer = :pubkey AND owner != :pubkey) ORDER BY createdAt DESC")
+    fun getAllActivityUtxos(pubkey: String): Flow<List<TokenUtxo>>
+
     @Query("SELECT * FROM token_utxos WHERE owner = :pubkey AND spent = 0 ORDER BY createdAt DESC")
     fun getUnspentUtxosByOwner(pubkey: String): Flow<List<TokenUtxo>>
 
