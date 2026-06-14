@@ -71,6 +71,7 @@ fun MerchantProfileScreen(
             ownPubkey,
             (LocalContext.current.applicationContext as KianApp).container.userProfileDao,
             (LocalContext.current.applicationContext as KianApp).container.productRepository,
+            (LocalContext.current.applicationContext as KianApp).container.tokenRepository,
             (LocalContext.current.applicationContext as KianApp).container.reviewDao,
             (LocalContext.current.applicationContext as KianApp).container.nostrSyncManager,
             (LocalContext.current.applicationContext as KianApp).container.secureStorage
@@ -80,6 +81,7 @@ fun MerchantProfileScreen(
     val kianColors = KianTheme.colors
     val profile by viewModel.profile.collectAsState()
     val products by viewModel.products.collectAsState()
+    val showcaseTokens by viewModel.showcaseTokens.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val reviews by viewModel.reviews.collectAsState()
     val userReview by viewModel.userReview.collectAsState()
@@ -422,13 +424,19 @@ fun MerchantProfileScreen(
                 }
 
                 if (selectedTab == 0) {
-                    if (products.isEmpty()) {
+                    if (products.isEmpty() && showcaseTokens.isEmpty()) {
                         item {
                             Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
-                                Text("No products available in showcase.", color = kianColors.muted)
+                                Text("No items available in showcase.", color = kianColors.muted)
                             }
                         }
                     } else {
+                        items(showcaseTokens) { token ->
+                            Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
+                                ShowcaseTokenCard(token)
+                            }
+                        }
+
                         items(products) { product ->
                             val productCats = remember(product, categories) {
                                 try {
@@ -734,6 +742,63 @@ fun ProductCard(
                     Text(text = "Add to Cart", fontWeight = FontWeight.Bold)
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun ShowcaseTokenCard(token: com.ely.kian.data.repository.BalanceItem) {
+    val kianColors = KianTheme.colors
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(kianColors.panel, RoundedCornerShape(24.dp))
+            .border(1.dp, kianColors.line, RoundedCornerShape(24.dp))
+            .padding(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = token.name, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = kianColors.ink)
+                Text(
+                    text = token.description,
+                    fontSize = 14.sp,
+                    color = kianColors.ink.copy(alpha = 0.6f),
+                    maxLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+            }
+            
+            Surface(
+                color = kianColors.accent,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.padding(start = 12.dp)
+            ) {
+                Text(
+                    text = "${token.amount} ${token.unit}",
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
+                )
+            }
+        }
+        
+        if (token.images.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(12.dp))
+            AsyncImage(
+                model = token.images.first(),
+                contentDescription = token.name,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(150.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(kianColors.line),
+                contentScale = ContentScale.Crop
+            )
         }
     }
 }

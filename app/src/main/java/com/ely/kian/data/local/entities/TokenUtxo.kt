@@ -15,6 +15,7 @@ data class TokenDefinition(
     val categories: String, // JSON array
     val unit: String = "unit",
     val eventId: String,
+    val isShowcase: Boolean = false,
     val createdAt: Long
 )
 

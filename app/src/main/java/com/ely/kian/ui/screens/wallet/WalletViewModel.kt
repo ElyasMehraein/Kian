@@ -46,6 +46,12 @@ class WalletViewModel(
         activityFilter = filter
     }
 
+    fun toggleShowcase(assetRef: String, isShowcase: Boolean) {
+        viewModelScope.launch {
+            tokenRepository.updateShowcase(assetRef, isShowcase)
+        }
+    }
+
     fun formatAssetRef(assetRef: String): String {
         if (assetRef.length < 16) return assetRef
         return "${assetRef.take(10)}...${assetRef.takeLast(6)}"

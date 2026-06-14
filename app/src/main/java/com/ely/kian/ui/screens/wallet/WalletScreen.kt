@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -119,7 +120,12 @@ fun WalletScreen(onSendToken: () -> Unit, onProducerClick: (String) -> Unit) {
                 item { EmptyState("No assets found in your wallet.") }
             } else {
                 items(balances) { item ->
-                    BalanceRow(item, onProducerClick = onProducerClick, formatAssetRef = viewModel::formatAssetRef)
+                    BalanceRow(
+                        item = item,
+                        onProducerClick = onProducerClick,
+                        formatAssetRef = viewModel::formatAssetRef,
+                        onToggleShowcase = { assetRef, isShowcase -> viewModel.toggleShowcase(assetRef, isShowcase) }
+                    )
                     Spacer(modifier = Modifier.height(16.dp))
                 }
             }
@@ -218,7 +224,8 @@ fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit, colors: co
 fun BalanceRow(
     item: BalanceItem,
     onProducerClick: (String) -> Unit,
-    formatAssetRef: (String) -> String
+    formatAssetRef: (String) -> String,
+    onToggleShowcase: (String, Boolean) -> Unit
 ) {
     val kianColors = KianTheme.colors
     var producerName by remember { mutableStateOf(formatAssetRef(item.producer)) }
@@ -325,6 +332,7 @@ fun BalanceRow(
             ) {
                 Row(
                     modifier = Modifier
+                        .weight(1f)
                         .clip(CircleShape)
                         .clickable { onProducerClick(item.producer) }
                         .padding(end = 8.dp),
@@ -360,6 +368,26 @@ fun BalanceRow(
                             color = kianColors.ink
                         )
                     }
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Switch(
+                        checked = item.isShowcase,
+                        onCheckedChange = { onToggleShowcase(item.assetRef, it) },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = kianColors.accent,
+                            uncheckedThumbColor = kianColors.muted,
+                            uncheckedTrackColor = kianColors.line
+                        ),
+                        modifier = Modifier.scale(0.7f)
+                    )
+                    Text(
+                        text = "Showcase",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = kianColors.muted
+                    )
                 }
                 
                 IconButton(onClick = { /* TODO: Show detailed token history/UTXOs */ }) {

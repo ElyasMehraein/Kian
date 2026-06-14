@@ -34,4 +34,7 @@ interface TokenDao {
 
     @Query("SELECT * FROM token_utxos WHERE utxoId = :utxoId LIMIT 1")
     suspend fun getUtxo(utxoId: String): TokenUtxo?
+
+    @Query("UPDATE token_definitions SET isShowcase = :isShowcase WHERE assetId = :assetId AND pubkey = :pubkey")
+    suspend fun updateShowcase(assetId: String, pubkey: String, isShowcase: Boolean)
 }

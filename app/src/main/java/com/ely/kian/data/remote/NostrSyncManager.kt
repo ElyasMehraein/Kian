@@ -22,7 +22,7 @@ class NostrSyncManager(
     private val syncScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     
     private val defaultRelays = listOf(
-        "ws://192.168.1.101:8080",
+        "ws://192.168.1.14:8080",
 //        "wss://relay.damus.io"
     )
 

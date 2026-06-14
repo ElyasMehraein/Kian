@@ -21,7 +21,8 @@ data class BalanceItem(
     val name: String,
     val producer: String,
     val categories: List<String>,
-    val unit: String
+    val unit: String,
+    val isShowcase: Boolean = false
 )
 
 data class PendingItem(
@@ -55,52 +56,45 @@ class TokenRepository(
     fun getBalances(): Flow<List<BalanceItem>> {
         return keyDao.getKeyFlow().flatMapLatest { key ->
             val pubkey = key?.pubkey ?: return@flatMapLatest flowOf(emptyList())
+            getBalancesForPubkey(pubkey)
+        }
+    }
 
-            tokenDao.getUnspentUtxosByOwner(pubkey).map { utxos ->
-                val balanceMap = utxos.groupBy { it.assetRef }
-                    .mapValues { entry -> entry.value.sumOf { it.amount } }
+    fun getBalancesForPubkey(pubkey: String): Flow<List<BalanceItem>> {
+        return tokenDao.getUnspentUtxosByOwner(pubkey).map { utxos ->
+            val balanceMap = utxos.groupBy { it.assetRef }
+                .mapValues { entry -> entry.value.sumOf { it.amount } }
 
-                val items = mutableListOf<BalanceItem>()
-                for ((assetRef, amount) in balanceMap) {
-                    val parsed = parseAssetRef(assetRef)
-                    val definition = parsed?.let { tokenDao.getDefinition(it.assetId, it.producer) }
+            val items = mutableListOf<BalanceItem>()
+            for ((assetRef, amount) in balanceMap) {
+                val parsed = parseAssetRef(assetRef)
+                val definition = parsed?.let { tokenDao.getDefinition(it.assetId, it.producer) }
 
-                    if (definition != null) {
+                if (definition != null) {
+                    items.add(BalanceItem(
+                        assetRef = assetRef,
+                        amount = amount,
+                        description = definition.description ?: "",
+                        images = parseJsonList(definition.images),
+                        name = definition.name,
+                        producer = definition.pubkey,
+                        categories = parseJsonList(definition.categories),
+                        unit = definition.unit,
+                        isShowcase = definition.isShowcase
+                    ))
+                } else if (parsed != null) {
+                    val product = productDao.getProduct(parsed.assetId, parsed.producer)
+                    if (product != null) {
                         items.add(BalanceItem(
                             assetRef = assetRef,
                             amount = amount,
-                            description = definition.description ?: "",
-                            images = parseJsonList(definition.images),
-                            name = definition.name,
-                            producer = definition.pubkey,
-                            categories = parseJsonList(definition.categories),
-                            unit = definition.unit
+                            description = product.description ?: "",
+                            images = parseJsonList(product.images),
+                            name = product.name,
+                            producer = product.pubkey,
+                            categories = emptyList(),
+                            unit = "unit"
                         ))
-                    } else if (parsed != null) {
-                        val product = productDao.getProduct(parsed.assetId, parsed.producer)
-                        if (product != null) {
-                            items.add(BalanceItem(
-                                assetRef = assetRef,
-                                amount = amount,
-                                description = product.description ?: "",
-                                images = parseJsonList(product.images),
-                                name = product.name,
-                                producer = product.pubkey,
-                                categories = emptyList(),
-                                unit = "unit"
-                            ))
-                        } else {
-                            items.add(BalanceItem(
-                                assetRef = assetRef,
-                                amount = amount,
-                                description = "",
-                                images = emptyList(),
-                                name = formatAssetRef(assetRef),
-                                producer = parsed.producer,
-                                categories = emptyList(),
-                                unit = "unit"
-                            ))
-                        }
                     } else {
                         items.add(BalanceItem(
                             assetRef = assetRef,
@@ -108,14 +102,25 @@ class TokenRepository(
                             description = "",
                             images = emptyList(),
                             name = formatAssetRef(assetRef),
-                            producer = "",
+                            producer = parsed.producer,
                             categories = emptyList(),
                             unit = "unit"
                         ))
                     }
+                } else {
+                    items.add(BalanceItem(
+                        assetRef = assetRef,
+                        amount = amount,
+                        description = "",
+                        images = emptyList(),
+                        name = formatAssetRef(assetRef),
+                        producer = "",
+                        categories = emptyList(),
+                        unit = "unit"
+                    ))
                 }
-                items
             }
+            items
         }
     }
 
@@ -174,6 +179,11 @@ class TokenRepository(
                 (offline + completed).sortedByDescending { it.createdAt }
             }
         }
+    }
+
+    suspend fun updateShowcase(assetRef: String, isShowcase: Boolean) {
+        val parsed = parseAssetRef(assetRef) ?: return
+        tokenDao.updateShowcase(parsed.assetId, parsed.producer, isShowcase)
     }
 
     private fun parseAssetRef(assetRef: String): ParsedAsset? {

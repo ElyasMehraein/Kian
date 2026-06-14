@@ -13,6 +13,8 @@ import com.ely.kian.data.local.entities.Review
 import com.ely.kian.data.remote.NostrSyncManager
 import com.ely.kian.data.remote.model.NostrEvent
 import com.ely.kian.data.repository.ProductRepository
+import com.ely.kian.data.repository.TokenRepository
+import com.ely.kian.data.repository.BalanceItem
 import com.ely.kian.crypto.SecureStorage
 import com.ely.kian.crypto.KianKeys
 import kotlinx.serialization.json.Json
@@ -30,6 +32,7 @@ class MerchantProfileViewModel(
     private val ownPubkey: String?,
     private val userProfileDao: UserProfileDao,
     private val productRepository: ProductRepository,
+    private val tokenRepository: TokenRepository,
     private val reviewDao: ReviewDao,
     private val nostrSyncManager: NostrSyncManager,
     private val secureStorage: SecureStorage
@@ -49,6 +52,10 @@ class MerchantProfileViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val products: StateFlow<List<Product>> = productRepository.getProducts(pubkey)
+        .map { list -> list.filter { it.isShowcase } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val showcaseTokens: StateFlow<List<BalanceItem>> = tokenRepository.getBalancesForPubkey(pubkey)
         .map { list -> list.filter { it.isShowcase } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -235,13 +242,14 @@ class MerchantProfileViewModel(
             ownPubkey: String?, 
             userProfileDao: UserProfileDao, 
             productRepository: ProductRepository,
+            tokenRepository: TokenRepository,
             reviewDao: ReviewDao,
             nostrSyncManager: NostrSyncManager,
             secureStorage: SecureStorage
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return MerchantProfileViewModel(pubkey, ownPubkey, userProfileDao, productRepository, reviewDao, nostrSyncManager, secureStorage) as T
+                return MerchantProfileViewModel(pubkey, ownPubkey, userProfileDao, productRepository, tokenRepository, reviewDao, nostrSyncManager, secureStorage) as T
             }
         }
     }
