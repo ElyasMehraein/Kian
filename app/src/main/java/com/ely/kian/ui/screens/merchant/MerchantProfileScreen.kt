@@ -83,6 +83,8 @@ fun MerchantProfileScreen(
     val categories by viewModel.categories.collectAsState()
     val reviews by viewModel.reviews.collectAsState()
     val userReview by viewModel.userReview.collectAsState()
+    val isFollowing by viewModel.isFollowing.collectAsState()
+    val followerCount by viewModel.followerCount.collectAsState()
     val isOwnProfile = viewModel.isOwnProfile
     val uriHandler = LocalUriHandler.current
     
@@ -362,7 +364,7 @@ fun MerchantProfileScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             ProfileStat(label = "Products", value = products.size.toString())
-                            ProfileStat(label = "Followers", value = "1.2k")
+                            ProfileStat(label = "Followers", value = followerCount.toString())
                             ProfileStat(label = "Rating", value = avgRating, icon = Icons.Default.Star)
                         }
 
@@ -381,9 +383,9 @@ fun MerchantProfileScreen(
                                     modifier = Modifier.weight(1f)
                                 )
                                 KianButton(
-                                    text = "Follow",
-                                    onClick = {},
-                                    type = com.ely.kian.ui.components.ButtonType.Secondary,
+                                    text = if (isFollowing) "Unfollow" else "Follow",
+                                    onClick = { viewModel.toggleFollow() },
+                                    type = if (isFollowing) com.ely.kian.ui.components.ButtonType.Secondary else com.ely.kian.ui.components.ButtonType.Primary,
                                     modifier = Modifier.weight(1f)
                                 )
                             }

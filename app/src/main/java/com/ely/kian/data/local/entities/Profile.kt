@@ -37,3 +37,8 @@ data class UserFollow(
     val relayHint: String?,
     val createdAt: Long
 )
+
+data class PubkeyCount(
+    val pubkey: String,
+    val count: Int
+)

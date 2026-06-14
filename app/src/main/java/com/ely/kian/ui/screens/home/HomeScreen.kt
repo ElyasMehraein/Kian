@@ -25,15 +25,16 @@ fun HomeScreen(
     onMerchantClick: (String) -> Unit,
     viewModel: HomeViewModel = viewModel(
         factory = HomeViewModel.provideFactory(
-            (LocalContext.current.applicationContext as KianApp).container.userProfileDao
+            (LocalContext.current.applicationContext as KianApp).container.userProfileDao,
+            (LocalContext.current.applicationContext as KianApp).container.secureStorage
         )
     )
 ) {
     val kianColors = KianTheme.colors
     val merchants by viewModel.merchants.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val selectedSort by viewModel.selectedSort.collectAsState()
     
-    var selectedSort by remember { mutableStateOf("All") }
     val sortOptions = listOf("All", "Nearest", "Top Rated", "Verified")
 
     Column(
@@ -52,9 +53,18 @@ fun HomeScreen(
                 KianChip(
                     text = option,
                     selected = selectedSort == option,
-                    onClick = { selectedSort = option }
+                    onClick = { viewModel.setSort(option) }
                 )
             }
+        }
+
+        if (selectedSort == "Verified") {
+            Text(
+                text = "Based on follows by you and people you follow",
+                fontSize = 12.sp,
+                color = kianColors.ink.copy(alpha = 0.6f),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+            )
         }
 
         if (isLoading) {
@@ -72,10 +82,16 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(merchants) { merchant ->
+                    val ratingText = if (selectedSort == "Verified") {
+                        "${merchant.title} (${merchant.mutualFollows} follows)"
+                    } else {
+                        "${merchant.title} (${merchant.socialRating})"
+                    }
+                    
                     MerchantCard(
                         name = merchant.profile.displayName ?: merchant.profile.name ?: "Unknown",
                         bio = merchant.profile.about ?: "No bio yet.",
-                        rating = "${merchant.title} (${merchant.socialRating})",
+                        rating = ratingText,
                         distance = if (merchant.distanceKm != null) {
                             if (merchant.distanceKm < 1) "${(merchant.distanceKm * 1000).toInt()} m"
                             else "${"%.1f".format(merchant.distanceKm)} km"
