@@ -22,7 +22,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ely.kian.KianApp
-import com.ely.kian.data.local.entities.TokenUtxo
 import com.ely.kian.data.repository.BalanceItem
 import com.ely.kian.data.repository.PendingItem
 import com.ely.kian.ui.components.ScreenHeader as KianScreenHeader
@@ -39,7 +38,6 @@ fun WalletScreen(onSendToken: () -> Unit, onProducerClick: (String) -> Unit) {
     )
 
     val balances by viewModel.balances.collectAsState()
-    val utxos by viewModel.utxos.collectAsState()
     val pending by viewModel.pending.collectAsState()
     val activityFilter = viewModel.activityFilter
 
@@ -52,17 +50,7 @@ fun WalletScreen(onSendToken: () -> Unit, onProducerClick: (String) -> Unit) {
 
     Scaffold(
         containerColor = kianColors.canvas,
-        contentWindowInsets = WindowInsets(0.dp),
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = onSendToken,
-                containerColor = kianColors.accent,
-                contentColor = Color.White,
-                shape = RoundedCornerShape(20.dp),
-                icon = { Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(20.dp)) },
-                text = { Text("Send Assets", fontWeight = FontWeight.Bold) }
-            )
-        }
+        contentWindowInsets = WindowInsets(0.dp)
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
@@ -167,20 +155,6 @@ fun WalletScreen(onSendToken: () -> Unit, onProducerClick: (String) -> Unit) {
                 items(filteredPending) { item ->
                     PendingRow(item, formatAssetRef = viewModel::formatAssetRef)
                     Spacer(modifier = Modifier.height(12.dp))
-                }
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(24.dp))
-                SectionHeader("Spendable UTXOs", Icons.Default.Token)
-            }
-
-            if (utxos.isEmpty()) {
-                item { EmptyState("No UTXOs available.") }
-            } else {
-                items(utxos) { item ->
-                    UtxoRow(item, label = viewModel.formatAssetRef(item.assetRef), formatAssetRef = viewModel::formatAssetRef)
-                    Spacer(modifier = Modifier.height(10.dp))
                 }
             }
             
@@ -390,66 +364,6 @@ fun BalanceRow(
                 
                 IconButton(onClick = { /* TODO: Show detailed token history/UTXOs */ }) {
                     Icon(Icons.Default.ChevronRight, contentDescription = "Details", tint = kianColors.muted)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun UtxoRow(item: TokenUtxo, label: String, formatAssetRef: (String) -> String) {
-    val kianColors = KianTheme.colors
-    val sdf = remember { SimpleDateFormat("MMM d, yyyy, h:mm a", Locale.getDefault()) }
-    
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color = kianColors.panel.copy(alpha = 0.3f),
-        border = androidx.compose.foundation.BorderStroke(1.dp, kianColors.line.copy(alpha = 0.5f))
-    ) {
-        Row(
-            modifier = Modifier.padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(kianColors.accent.copy(alpha = 0.1f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Default.Token, contentDescription = null, tint = kianColors.accent, modifier = Modifier.size(20.dp))
-            }
-            
-            Spacer(modifier = Modifier.width(16.dp))
-            
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = label, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = kianColors.ink)
-                Text(
-                    text = "${item.amount} • ID: ${formatAssetRef(item.utxoId)}",
-                    fontSize = 12.sp,
-                    color = kianColors.muted,
-                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
-                )
-                Text(
-                    text = "Received ${sdf.format(Date(item.createdAt * 1000))}",
-                    fontSize = 11.sp,
-                    color = kianColors.muted.copy(alpha = 0.7f),
-                    modifier = Modifier.padding(top = 2.dp)
-                )
-            }
-            
-            if (item.spent) {
-                Surface(
-                    color = kianColors.danger.copy(alpha = 0.1f),
-                    shape = CircleShape
-                ) {
-                    Text(
-                        "SPENT", 
-                        fontSize = 9.sp, 
-                        fontWeight = FontWeight.Bold, 
-                        color = kianColors.danger,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
                 }
             }
         }
