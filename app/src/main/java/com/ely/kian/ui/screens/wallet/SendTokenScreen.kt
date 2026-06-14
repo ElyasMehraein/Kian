@@ -24,6 +24,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.ely.kian.R
 import com.ely.kian.KianApp
 import com.ely.kian.ui.theme.KianTheme
 import java.text.SimpleDateFormat
@@ -71,7 +73,7 @@ fun SendTokenScreen(onBack: () -> Unit) {
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Text(if (viewModel.isSending) "Sending..." else "Send token", fontWeight = FontWeight.SemiBold)
+                        Text(if (viewModel.isSending) stringResource(R.string.sending) else stringResource(R.string.send_token), fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -91,8 +93,8 @@ fun SendTokenScreen(onBack: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
-                        Text(text = "Send tokens", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = kianColors.ink)
-                        Text(text = "Choose token entries and transfer them.", fontSize = 14.sp, color = kianColors.muted)
+                        Text(text = stringResource(R.string.send_tokens), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = kianColors.ink)
+                        Text(text = stringResource(R.string.choose_token_desc), fontSize = 14.sp, color = kianColors.muted)
                     }
                     IconButton(
                         onClick = onBack,
@@ -100,7 +102,7 @@ fun SendTokenScreen(onBack: () -> Unit) {
                             .clip(CircleShape)
                             .background(kianColors.panel)
                     ) {
-                        Icon(Icons.Default.Close, contentDescription = null, tint = kianColors.ink)
+                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close), tint = kianColors.ink)
                     }
                 }
                 Spacer(modifier = Modifier.height(24.dp))
@@ -115,7 +117,7 @@ fun SendTokenScreen(onBack: () -> Unit) {
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            text = "Recipient",
+                            text = stringResource(R.string.recipient),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = kianColors.muted,
@@ -124,7 +126,7 @@ fun SendTokenScreen(onBack: () -> Unit) {
                         OutlinedTextField(
                             value = viewModel.recipient,
                             onValueChange = { viewModel.recipient = it },
-                            placeholder = { Text("Recipient public key", color = kianColors.muted) },
+                            placeholder = { Text(stringResource(R.string.recipient_pubkey_hint), color = kianColors.muted) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 12.dp),
@@ -142,7 +144,7 @@ fun SendTokenScreen(onBack: () -> Unit) {
 
             item {
                 Text(
-                    text = "Spendable Entries",
+                    text = stringResource(R.string.spendable_entries),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     color = kianColors.muted,
@@ -161,7 +163,7 @@ fun SendTokenScreen(onBack: () -> Unit) {
                             .padding(vertical = 40.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(text = "No spendable token entries found.", color = kianColors.muted, fontSize = 14.sp)
+                        Text(text = stringResource(R.string.no_spendable_found), color = kianColors.muted, fontSize = 14.sp)
                     }
                 }
             } else {
@@ -229,7 +231,7 @@ fun TokenSendCard(
                 )
                 
                 Text(
-                    text = "Issued ${sdf.format(Date(item.utxo.createdAt * 1000))}",
+                    text = stringResource(R.string.issued_at, sdf.format(Date(item.utxo.createdAt * 1000))),
                     fontSize = 12.sp,
                     color = kianColors.muted,
                     modifier = Modifier.padding(top = 8.dp)
@@ -243,7 +245,7 @@ fun TokenSendCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Available: ${item.utxo.amount} ${item.unit}",
+                        text = stringResource(R.string.available_balance, item.utxo.amount, item.unit),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = kianColors.muted

@@ -25,6 +25,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.widget.Toast
+import androidx.compose.ui.res.stringResource
+import com.ely.kian.R
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ely.kian.KianApp
@@ -59,8 +61,8 @@ fun BackupScreen(onBack: () -> Unit) {
         ) {
             item {
                 ScreenHeader(
-                    title = "Backup & Recovery",
-                    subtitle = "End-to-End Encrypted Backups",
+                    title = stringResource(R.string.backup_recovery),
+                    subtitle = stringResource(R.string.e2e_backups),
                     onBack = onBack
                 )
             }
@@ -85,13 +87,13 @@ fun BackupScreen(onBack: () -> Unit) {
                         )
                         Column {
                             Text(
-                                text = "Local Backup Storage",
+                                text = stringResource(R.string.local_backup_storage),
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = kianColors.ink
                             )
                             Text(
-                                text = "Your data is stored locally and securely.",
+                                text = stringResource(R.string.data_stored_locally),
                                 color = kianColors.muted,
                                 fontSize = 13.sp
                             )
@@ -111,7 +113,7 @@ fun BackupScreen(onBack: () -> Unit) {
                     Column(modifier = Modifier.padding(18.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Icon(Icons.Default.Folder, contentDescription = null, tint = kianColors.ink, modifier = Modifier.size(20.dp))
-                            Text(text = "Backup Folder", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text(text = stringResource(R.string.backup_folder), fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         }
                         
                         Box(
@@ -165,14 +167,16 @@ fun BackupScreen(onBack: () -> Unit) {
                             ),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("+ Create New Backup", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        Text(
+                            text = stringResource(R.string.create_new_backup), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp
+                        )
                     }
                 }
             }
 
             item {
                 Text(
-                    text = "Existing Backups",
+                    text = stringResource(R.string.existing_backups),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = kianColors.ink,
@@ -184,7 +188,7 @@ fun BackupScreen(onBack: () -> Unit) {
             if (viewModel.backups.isEmpty()) {
                 item {
                     Text(
-                        text = "No backups found.",
+                        text = stringResource(R.string.no_backups_found),
                         modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp),
                         textAlign = TextAlign.Center,
                         color = kianColors.muted
@@ -243,7 +247,7 @@ fun BackupScreen(onBack: () -> Unit) {
                     border = androidx.compose.foundation.BorderStroke(1.dp, kianColors.danger.copy(alpha = 0.3f))
                 ) {
                     Text(
-                        text = "⚠️ When restoring, all current application data will be replaced with the data in the backup. Ensure you have the latest backup before proceeding.",
+                        text = stringResource(R.string.backup_warning),
                         modifier = Modifier.padding(16.dp),
                         color = kianColors.danger,
                         fontSize = 14.sp,
@@ -292,7 +296,7 @@ fun BackupItem(
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB))
                 ) {
-                    Text("Restore", fontSize = 13.sp)
+                    Text(stringResource(R.string.restore), fontSize = 13.sp)
                 }
                 Button(
                     onClick = onShare,
@@ -300,7 +304,7 @@ fun BackupItem(
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C3AED))
                 ) {
-                    Text("Share", fontSize = 13.sp)
+                    Text(stringResource(R.string.share), fontSize = 13.sp)
                 }
                 Button(
                     onClick = onDelete,
@@ -308,7 +312,7 @@ fun BackupItem(
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))
                 ) {
-                    Text("Delete", fontSize = 13.sp)
+                    Text(stringResource(R.string.delete), fontSize = 13.sp)
                 }
             }
         }

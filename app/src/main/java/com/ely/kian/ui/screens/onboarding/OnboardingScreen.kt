@@ -23,10 +23,16 @@ import com.ely.kian.ui.components.KianButton
 import com.ely.kian.ui.components.KianInput
 import com.ely.kian.ui.theme.KianTheme
 
+import androidx.compose.ui.res.stringResource
+import com.ely.kian.R
+import com.ely.kian.ui.components.LanguageSelector
+
 @Composable
 fun OnboardingScreen(
     onSuccess: () -> Unit,
-    viewModel: OnboardingViewModel
+    viewModel: OnboardingViewModel,
+    currentLanguage: String = "en",
+    onLanguageChange: (String) -> Unit = {}
 ) {
     val kianColors = KianTheme.colors
     val context = LocalContext.current
@@ -55,17 +61,27 @@ fun OnboardingScreen(
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Spacer(modifier = Modifier.height(48.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            LanguageSelector(
+                currentLanguage = currentLanguage,
+                onLanguageChange = onLanguageChange
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
         
         Text(
-            text = "Create your Kian wallet",
+            text = stringResource(R.string.create_wallet),
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             color = kianColors.ink
         )
         
         Text(
-            text = "Generate a wallet, back up the mnemonic, or restore from an existing one.",
+            text = stringResource(R.string.onboarding_desc),
             fontSize = 16.sp,
             color = kianColors.muted,
             lineHeight = 24.sp
@@ -75,19 +91,19 @@ fun OnboardingScreen(
         viewModel.savedKey?.let { key ->
             OnboardingCard {
                 Text(
-                    text = "Saved keypair found",
+                    text = stringResource(R.string.saved_keypair_found),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = kianColors.muted
                 )
                 Text(
-                    text = "Your private key is still stored on this device, so you can log back in without re-entering anything.",
+                    text = stringResource(R.string.saved_keypair_desc),
                     fontSize = 14.sp,
                     color = kianColors.muted,
                     lineHeight = 20.sp
                 )
                 KianButton(
-                    text = if (viewModel.isSaving) "Saving..." else "Log back in",
+                    text = if (viewModel.isSaving) stringResource(R.string.saving) else stringResource(R.string.log_back_in),
                     onClick = { viewModel.handleLogBackIn() },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !viewModel.isSaving
@@ -97,7 +113,7 @@ fun OnboardingScreen(
 
         // Generate Keypair Button
         KianButton(
-            text = "Generate keypair",
+            text = stringResource(R.string.generate_keypair),
             onClick = { viewModel.handleGenerate() },
             modifier = Modifier.fillMaxWidth(),
             type = ButtonType.Primary
@@ -106,12 +122,12 @@ fun OnboardingScreen(
         // Mnemonic Card
         OnboardingCard {
             Text(
-                text = "Mnemonic",
+                text = stringResource(R.string.mnemonic),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = kianColors.muted
             )
-            val mnemonic = viewModel.generatedKeys?.mnemonic ?: "Tap generate to create your wallet keys."
+            val mnemonic = viewModel.generatedKeys?.mnemonic ?: stringResource(R.string.mnemonic_hint)
             Text(
                 text = mnemonic,
                 fontSize = 16.sp,
@@ -119,7 +135,7 @@ fun OnboardingScreen(
                 lineHeight = 24.sp,
                 modifier = Modifier.clickable(enabled = viewModel.generatedKeys != null) {
                     clipboardManager.setText(AnnotatedString(mnemonic))
-                    Toast.makeText(context, "Mnemonic copied", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.mnemonic_copied), Toast.LENGTH_SHORT).show()
                 }
             )
         }
@@ -127,13 +143,13 @@ fun OnboardingScreen(
         // Recovery Card
         OnboardingCard {
             Text(
-                text = "Recovery",
+                text = stringResource(R.string.recovery),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = kianColors.muted
             )
             Text(
-                text = "Paste a previously backed up mnemonic to restore this wallet.",
+                text = stringResource(R.string.recovery_desc),
                 fontSize = 14.sp,
                 color = kianColors.muted,
                 lineHeight = 20.sp
@@ -141,12 +157,12 @@ fun OnboardingScreen(
             KianInput(
                 value = viewModel.mnemonicInput,
                 onValueChange = { viewModel.mnemonicInput = it },
-                placeholder = "Enter mnemonic phrase",
+                placeholder = stringResource(R.string.enter_mnemonic),
                 singleLine = false,
                 modifier = Modifier.heightIn(min = 88.dp)
             )
             KianButton(
-                text = if (viewModel.isSaving) "Saving..." else "Restore wallet",
+                text = if (viewModel.isSaving) stringResource(R.string.saving) else stringResource(R.string.restore_wallet),
                 onClick = { viewModel.handleRestore() },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = viewModel.mnemonicInput.isNotBlank() && !viewModel.isSaving
@@ -156,13 +172,13 @@ fun OnboardingScreen(
         // Private Key Card
         OnboardingCard {
             Text(
-                text = "Login with Private Key",
+                text = stringResource(R.string.login_private_key),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = kianColors.muted
             )
             Text(
-                text = "Enter your nsec or hex private key to log in.",
+                text = stringResource(R.string.private_key_login_desc),
                 fontSize = 14.sp,
                 color = kianColors.muted,
                 lineHeight = 20.sp
@@ -174,7 +190,7 @@ fun OnboardingScreen(
                 modifier = Modifier.fillMaxWidth()
             )
             KianButton(
-                text = if (viewModel.isSaving) "Saving..." else "Login with Private Key",
+                text = if (viewModel.isSaving) stringResource(R.string.saving) else stringResource(R.string.login_private_key),
                 onClick = { viewModel.handleRestoreFromPrivateKey() },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = viewModel.privateKeyInput.isNotBlank() && !viewModel.isSaving
@@ -183,7 +199,7 @@ fun OnboardingScreen(
 
         // Save Keys Button
         KianButton(
-            text = if (viewModel.isSaving) "Saving..." else "Save keys",
+            text = if (viewModel.isSaving) stringResource(R.string.saving) else stringResource(R.string.save_keys),
             onClick = { viewModel.saveGeneratedKeys() },
             modifier = Modifier.fillMaxWidth(),
             enabled = viewModel.generatedKeys != null && !viewModel.isSaving

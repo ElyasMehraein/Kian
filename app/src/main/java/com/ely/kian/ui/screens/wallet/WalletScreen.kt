@@ -22,6 +22,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.ely.kian.R
 import com.ely.kian.KianApp
 import com.ely.kian.data.repository.BalanceItem
 import com.ely.kian.data.repository.PendingItem
@@ -74,8 +76,8 @@ fun WalletScreen(onSendToken: () -> Unit, onProducerClick: (String) -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     KianScreenHeader(
-                        title = "My Wallet",
-                        subtitle = "Manage your digital trade assets",
+                        title = stringResource(R.string.my_wallet),
+                        subtitle = stringResource(R.string.wallet_desc),
                         modifier = Modifier.weight(1f)
                     )
                     
@@ -85,7 +87,7 @@ fun WalletScreen(onSendToken: () -> Unit, onProducerClick: (String) -> Unit) {
                         modifier = Modifier.padding(end = 20.dp).size(48.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.QrCodeScanner, contentDescription = "Scan", tint = kianColors.ink)
+                            Icon(Icons.Default.QrCodeScanner, contentDescription = stringResource(R.string.scan), tint = kianColors.ink)
                         }
                     }
                 }
@@ -99,9 +101,9 @@ fun WalletScreen(onSendToken: () -> Unit, onProducerClick: (String) -> Unit) {
                     shape = RoundedCornerShape(24.dp)
                 ) {
                     Column(modifier = Modifier.padding(24.dp)) {
-                        Text("Total Assets", color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp)
+                        Text(stringResource(R.string.total_assets), color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp)
                         Text(
-                            text = "${balances.size} Categories", 
+                            text = stringResource(R.string.categories_count, balances.size), 
                             color = Color.White, 
                             fontSize = 28.sp, 
                             fontWeight = FontWeight.Black
@@ -111,7 +113,7 @@ fun WalletScreen(onSendToken: () -> Unit, onProducerClick: (String) -> Unit) {
                             Icon(Icons.Default.Info, contentDescription = null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                "All assets are secured via Nostr UTXOs", 
+                                stringResource(R.string.utxo_secured), 
                                 color = Color.White.copy(alpha = 0.8f), 
                                 fontSize = 12.sp
                             )
@@ -121,11 +123,11 @@ fun WalletScreen(onSendToken: () -> Unit, onProducerClick: (String) -> Unit) {
             }
 
             item {
-                SectionHeader("Token Balances", Icons.Default.Token)
+                SectionHeader(stringResource(R.string.token_balances), Icons.Default.Token)
             }
 
             if (balances.isEmpty()) {
-                item { EmptyState("No assets found in your wallet.") }
+                item { EmptyState(stringResource(R.string.no_assets_found)) }
             } else {
                 items(balances) { item ->
                     BalanceRow(
@@ -145,21 +147,21 @@ fun WalletScreen(onSendToken: () -> Unit, onProducerClick: (String) -> Unit) {
             
             item {
                 Spacer(modifier = Modifier.height(24.dp))
-                SectionHeader("Transfer Activity", Icons.Default.History)
+                SectionHeader(stringResource(R.string.transfer_activity), Icons.Default.History)
                 
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.padding(bottom = 16.dp, start = 20.dp, end = 20.dp)
                 ) {
                     val filters = listOf(
-                        "all" to "All",
-                        "waiting_mint" to "Pending",
-                        "fulfilled" to "Completed",
-                        "rejected" to "Failed"
+                        "all" to R.string.all,
+                        "waiting_mint" to R.string.pending,
+                        "fulfilled" to R.string.completed,
+                        "rejected" to R.string.failed
                     )
-                    items(filters) { (id, label) ->
+                    items(filters) { (id, labelId) ->
                         FilterChip(
-                            label = label,
+                            label = stringResource(labelId),
                             selected = activityFilter == id,
                             onClick = { viewModel.setFilter(id) },
                             colors = kianColors
@@ -169,7 +171,7 @@ fun WalletScreen(onSendToken: () -> Unit, onProducerClick: (String) -> Unit) {
             }
 
             if (filteredPending.isEmpty()) {
-                item { EmptyState("No activity matching this filter.") }
+                item { EmptyState(stringResource(R.string.no_activity_filter)) }
             } else {
                 items(filteredPending) { item ->
                     PendingRow(item, formatAssetRef = viewModel::formatAssetRef)
@@ -350,7 +352,7 @@ fun BalanceRow(
                 }
 
                 Text(
-                    text = "Tap to edit",
+                    text = stringResource(R.string.tap_to_edit),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = kianColors.accent,
@@ -393,7 +395,7 @@ fun BalanceRow(
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
-                            text = "PRODUCER",
+                            text = stringResource(R.string.producer),
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
                             color = kianColors.muted,
@@ -421,7 +423,7 @@ fun BalanceRow(
                         modifier = Modifier.scale(0.7f)
                     )
                     Text(
-                        text = "Showcase",
+                        text = stringResource(R.string.showcase),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
                         color = kianColors.muted
@@ -471,13 +473,13 @@ fun TokenEditBottomSheet(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Edit Token",
+                        text = stringResource(R.string.edit_token),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = kianColors.ink
                     )
                     Text(
-                        text = "Customize how this token appears in your wallet and showcase.",
+                        text = stringResource(R.string.edit_token_desc),
                         fontSize = 14.sp,
                         color = kianColors.muted
                     )
@@ -486,7 +488,7 @@ fun TokenEditBottomSheet(
                     onClick = onDismiss,
                     modifier = Modifier.background(kianColors.panel, CircleShape)
                 ) {
-                    Icon(Icons.Default.Close, contentDescription = "Close", modifier = Modifier.size(20.dp), tint = kianColors.ink)
+                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close), modifier = Modifier.size(20.dp), tint = kianColors.ink)
                 }
             }
 
@@ -501,7 +503,7 @@ fun TokenEditBottomSheet(
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                placeholder = { Text("Token Name", color = kianColors.muted) },
+                placeholder = { Text(stringResource(R.string.token_name), color = kianColors.muted) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -519,7 +521,7 @@ fun TokenEditBottomSheet(
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                placeholder = { Text("Description", color = kianColors.muted) },
+                placeholder = { Text(stringResource(R.string.description), color = kianColors.muted) },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 88.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -535,7 +537,7 @@ fun TokenEditBottomSheet(
             Spacer(modifier = Modifier.height(16.dp))
 
             com.ely.kian.ui.components.KianButton(
-                text = "Save Changes",
+                text = stringResource(R.string.save_changes),
                 onClick = { onSave(name, description, selectedCategoryIds) },
                 modifier = Modifier.fillMaxWidth()
             )
@@ -567,7 +569,7 @@ fun TokenCategoryPicker(
     }
 
     Column(modifier = Modifier.padding(bottom = 10.dp)) {
-        Text("Category", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = kianColors.ink, modifier = Modifier.padding(bottom = 8.dp))
+        Text(stringResource(R.string.category), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = kianColors.ink, modifier = Modifier.padding(bottom = 8.dp))
 
         if (categories.isEmpty()) {
             Box(
@@ -578,7 +580,7 @@ fun TokenCategoryPicker(
                     .padding(12.dp)
             ) {
                 Text(
-                    "Create categories in the product manager to use them for tokens.",
+                    text = stringResource(R.string.create_categories_desc),
                     fontSize = 14.sp,
                     color = kianColors.muted,
                     lineHeight = 20.sp
@@ -589,7 +591,7 @@ fun TokenCategoryPicker(
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     item {
                         com.ely.kian.ui.components.KianChip(
-                            text = "No category",
+                            text = stringResource(R.string.no_category),
                             selected = selectedPath.isEmpty(),
                             onClick = { onChange(emptyList()) }
                         )
@@ -626,11 +628,11 @@ fun TokenCategoryPicker(
 fun PendingRow(item: PendingItem, formatAssetRef: (String) -> String) {
     val kianColors = KianTheme.colors
     
-    val (containerColor, borderColor, textColor, metaColor, label, detail) = when (item.status) {
-        "fulfilled" -> HexColorPair(kianColors.successSoft, kianColors.success, kianColors.ink, kianColors.success, "Completed", "completed after issuer confirmation")
-        "rejected" -> HexColorPair(kianColors.danger.copy(alpha = 0.1f), kianColors.danger, kianColors.ink, kianColors.danger, "Rejected", "rejected because another transfer was approved")
-        "offline" -> HexColorPair(kianColors.panel, kianColors.muted, kianColors.ink, kianColors.muted, "Queued offline", "queued until a relay connection is available")
-        else -> HexColorPair(kianColors.warningSoft, kianColors.warning, kianColors.ink, kianColors.warning, "Waiting", "waiting for token issuer confirmation")
+    val (containerColor, borderColor, textColor, metaColor, labelId, detailId) = when (item.status) {
+        "fulfilled" -> HexColorPairIds(kianColors.successSoft, kianColors.success, kianColors.ink, kianColors.success, R.string.completed, R.string.completed_detail)
+        "rejected" -> HexColorPairIds(kianColors.danger.copy(alpha = 0.1f), kianColors.danger, kianColors.ink, kianColors.danger, R.string.failed, R.string.rejected_detail)
+        "offline" -> HexColorPairIds(kianColors.panel, kianColors.muted, kianColors.ink, kianColors.muted, R.string.queued_offline, R.string.queued_offline_desc)
+        else -> HexColorPairIds(kianColors.warningSoft, kianColors.warning, kianColors.ink, kianColors.warning, R.string.pending, R.string.waiting_issuer_desc)
     }
 
     Surface(
@@ -648,7 +650,7 @@ fun PendingRow(item: PendingItem, formatAssetRef: (String) -> String) {
                     color = textColor
                 )
                 Text(
-                    text = label.uppercase(), 
+                    text = stringResource(labelId).uppercase(), 
                     fontSize = 10.sp, 
                     fontWeight = FontWeight.Black, 
                     color = metaColor,
@@ -657,7 +659,7 @@ fun PendingRow(item: PendingItem, formatAssetRef: (String) -> String) {
             }
             
             Text(
-                text = "${item.amount} units • $detail",
+                text = stringResource(R.string.pending_row_detail, item.amount, stringResource(detailId)),
                 fontSize = 14.sp,
                 color = kianColors.muted,
                 modifier = Modifier.padding(top = 4.dp)
@@ -669,7 +671,7 @@ fun PendingRow(item: PendingItem, formatAssetRef: (String) -> String) {
                 Icon(Icons.Default.Person, contentDescription = null, tint = kianColors.muted, modifier = Modifier.size(14.dp))
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "To: ${formatAssetRef(item.recipient)}", 
+                    text = stringResource(R.string.to_recipient, formatAssetRef(item.recipient)), 
                     fontSize = 12.sp, 
                     color = kianColors.muted
                 )
@@ -689,13 +691,13 @@ fun PendingRow(item: PendingItem, formatAssetRef: (String) -> String) {
     }
 }
 
-private data class HexColorPair(
+private data class HexColorPairIds(
     val container: Color,
     val border: Color,
     val text: Color,
     val meta: Color,
-    val label: String,
-    val detail: String
+    val labelId: Int,
+    val detailId: Int
 )
 
 @Composable

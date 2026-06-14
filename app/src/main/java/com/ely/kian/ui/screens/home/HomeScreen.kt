@@ -21,6 +21,9 @@ import com.ely.kian.ui.components.MerchantCard
 import com.ely.kian.ui.components.ScreenHeader
 import com.ely.kian.ui.theme.KianTheme
 
+import androidx.compose.ui.res.stringResource
+import com.ely.kian.R
+
 @Composable
 fun HomeScreen(
     onMerchantClick: (String) -> Unit,
@@ -38,13 +41,17 @@ fun HomeScreen(
     val selectedSort by viewModel.selectedSort.collectAsState()
     val userGeohash by viewModel.userGeohash.collectAsState()
     
-    val sortOptions = listOf("Nearest", "Top Rated", "Verified")
+    val sortOptions = listOf(
+        "Nearest" to R.string.nearest,
+        "Top Rated" to R.string.top_rated,
+        "Verified" to R.string.verified
+    )
 
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
         // Header
-        ScreenHeader(title = "Merchants")
+        ScreenHeader(title = stringResource(R.string.merchants))
 
         // Sort Chips
         LazyRow(
@@ -52,18 +59,18 @@ fun HomeScreen(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.padding(bottom = 16.dp)
         ) {
-            items(sortOptions) { option ->
+            items(sortOptions) { (key, labelId) ->
                 KianChip(
-                    text = option,
-                    selected = selectedSort == option,
-                    onClick = { viewModel.setSort(option) }
+                    text = stringResource(labelId),
+                    selected = selectedSort == key,
+                    onClick = { viewModel.setSort(key) }
                 )
             }
         }
 
         if (selectedSort == "Top Rated") {
             Text(
-                text = "Based on ratings by you and people you follow",
+                text = stringResource(R.string.sort_top_rated_desc),
                 fontSize = 12.sp,
                 color = kianColors.ink.copy(alpha = 0.6f),
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
@@ -72,7 +79,7 @@ fun HomeScreen(
 
         if (selectedSort == "Verified") {
             Text(
-                text = "Based on follows by you and people you follow",
+                text = stringResource(R.string.sort_verified_desc),
                 fontSize = 12.sp,
                 color = kianColors.ink.copy(alpha = 0.6f),
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
@@ -82,14 +89,14 @@ fun HomeScreen(
         if (selectedSort == "Nearest") {
             if (userGeohash == null) {
                 Text(
-                    text = "To see merchants near a location, you must register your location on the map",
+                    text = stringResource(R.string.nearest_no_location),
                     fontSize = 12.sp,
                     color = Color.Red,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                 )
             } else {
                 Text(
-                    text = "Sorted by distance from your registered location",
+                    text = stringResource(R.string.nearest_desc),
                     fontSize = 12.sp,
                     color = kianColors.ink.copy(alpha = 0.6f),
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
@@ -103,7 +110,7 @@ fun HomeScreen(
             }
         } else if (merchants.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = "No merchants discovered yet.", color = kianColors.ink.copy(alpha = 0.5f))
+                Text(text = stringResource(R.string.no_merchants_yet), color = kianColors.ink.copy(alpha = 0.5f))
             }
         } else {
             // Merchant List
@@ -119,13 +126,13 @@ fun HomeScreen(
                     }
                     
                     MerchantCard(
-                        name = merchant.profile.displayName ?: merchant.profile.name ?: "Unknown",
-                        bio = merchant.profile.about ?: "No bio yet.",
+                        name = merchant.profile.displayName ?: merchant.profile.name ?: stringResource(R.string.unknown),
+                        bio = merchant.profile.about ?: stringResource(R.string.no_bio_yet),
                         rating = ratingText,
                         distance = if (merchant.distanceKm != null) {
                             if (merchant.distanceKm < 1) "${(merchant.distanceKm * 1000).toInt()} m"
                             else "${"%.1f".format(merchant.distanceKm)} km"
-                        } else "Distance unknown",
+                        } else stringResource(R.string.distance_unknown),
                         pictureUrl = merchant.profile.picture,
                         onClick = { onMerchantClick(merchant.pubkey) }
                     )

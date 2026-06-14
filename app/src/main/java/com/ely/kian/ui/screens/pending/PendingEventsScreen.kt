@@ -11,6 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.ely.kian.R
 import com.ely.kian.ui.components.ButtonType
 import com.ely.kian.ui.components.KianButton
 import com.ely.kian.ui.components.KianInput
@@ -30,10 +32,10 @@ fun PendingEventsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Pending Events") },
+                title = { Text(stringResource(R.string.pending_events)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -52,18 +54,18 @@ fun PendingEventsScreen(
                 colors = CardDefaults.cardColors(containerColor = kianColors.panel)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Manual Event Import", style = MaterialTheme.typography.titleMedium, color = kianColors.ink)
+                    Text(stringResource(R.string.manual_event_import), style = MaterialTheme.typography.titleMedium, color = kianColors.ink)
                     Spacer(modifier = Modifier.height(8.dp))
                     KianInput(
                         value = manualInput,
                         onValueChange = { manualInput = it },
-                        placeholder = "Paste event JSON here...",
+                        placeholder = stringResource(R.string.paste_event_json),
                         singleLine = false,
                         modifier = Modifier.heightIn(max = 120.dp)
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     KianButton(
-                        text = "Process Event",
+                        text = stringResource(R.string.process_event),
                         onClick = {
                             viewModel.processManualEvent(manualInput)
                             manualInput = ""
@@ -78,7 +80,7 @@ fun PendingEventsScreen(
 
             // Pending Events List
             Text(
-                "Queue for Sending",
+                stringResource(R.string.queue_for_sending),
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 style = MaterialTheme.typography.titleMedium,
                 color = kianColors.ink
@@ -86,7 +88,7 @@ fun PendingEventsScreen(
 
             if (pendingEvents.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize().weight(1f), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                    Text("No pending events", color = kianColors.muted)
+                    Text(stringResource(R.string.no_pending_events), color = kianColors.muted)
                 }
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize().weight(1f)) {
@@ -120,7 +122,7 @@ fun PendingEventRow(item: PendingEventItem, onCopy: () -> Unit) {
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = if (item.content.isBlank()) "(Empty content)" else item.content, 
+                text = if (item.content.isBlank()) stringResource(R.string.empty_content) else item.content, 
                 style = MaterialTheme.typography.bodyMedium, 
                 color = kianColors.ink,
                 maxLines = 3
@@ -130,7 +132,7 @@ fun PendingEventRow(item: PendingEventItem, onCopy: () -> Unit) {
             Spacer(modifier = Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
                 KianButton(
-                    text = "Copy JSON",
+                    text = stringResource(R.string.copy_json),
                     onClick = onCopy,
                     type = ButtonType.Soft
                 )

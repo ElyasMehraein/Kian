@@ -15,11 +15,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.ely.kian.R
 import com.ely.kian.ui.theme.KianTheme
 
 @Composable
@@ -52,7 +54,9 @@ fun AppMenuButton(
 fun AppMenuDialog(
     isOpen: Boolean,
     accountMode: String,
+    currentLanguage: String,
     onAccountModeChange: (String) -> Unit,
+    onLanguageChange: (String) -> Unit,
     onDismiss: () -> Unit,
     onNavigate: (String) -> Unit
 ) {
@@ -80,7 +84,7 @@ fun AppMenuDialog(
                         .padding(20.dp)
                 ) {
                     Text(
-                        text = "Application menu",
+                        text = stringResource(R.string.app_menu),
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         color = kianColors.ink,
@@ -89,29 +93,44 @@ fun AppMenuDialog(
 
                     MenuItem(
                         icon = Icons.Default.Wifi,
-                        label = "Relay Management",
+                        label = stringResource(R.string.relay_management),
                         onClick = { onNavigate("relays"); onDismiss() }
                     )
                     MenuItem(
                         icon = Icons.Default.History,
-                        label = "Pending Events",
+                        label = stringResource(R.string.pending_events),
                         onClick = { onNavigate("pending"); onDismiss() }
                     )
                     MenuItem(
                         icon = Icons.Default.VpnKey,
-                        label = "Private Key Management",
+                        label = stringResource(R.string.private_key_management),
                         onClick = { onNavigate("private-key"); onDismiss() }
                     )
                     MenuItem(
                         icon = Icons.Default.Backup,
-                        label = "Backups",
+                        label = stringResource(R.string.backups),
                         onClick = { onNavigate("backups"); onDismiss() }
                     )
                     
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = kianColors.line)
+
+                    Text(
+                        text = stringResource(R.string.language),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = kianColors.ink.copy(alpha = 0.5f),
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    LanguageSelector(
+                        currentLanguage = currentLanguage,
+                        onLanguageChange = { onLanguageChange(it); onDismiss() },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = kianColors.line)
                     
                     Text(
-                        text = "Account Mode",
+                        text = stringResource(R.string.account_mode),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = kianColors.ink.copy(alpha = 0.5f),
@@ -126,13 +145,13 @@ fun AppMenuDialog(
                             .padding(4.dp)
                     ) {
                         AccountModeButton(
-                            label = "Business",
+                            label = stringResource(R.string.business),
                             selected = accountMode == "business",
                             modifier = Modifier.weight(1f),
                             onClick = { onAccountModeChange("business") }
                         )
                         AccountModeButton(
-                            label = "Merchant",
+                            label = stringResource(R.string.merchant),
                             selected = accountMode == "merchant",
                             modifier = Modifier.weight(1f),
                             onClick = { onAccountModeChange("merchant") }
@@ -143,7 +162,7 @@ fun AppMenuDialog(
                     
                     MenuItem(
                         icon = Icons.AutoMirrored.Filled.Logout,
-                        label = "Logout",
+                        label = stringResource(R.string.logout),
                         destructive = true,
                         onClick = { onNavigate("logout"); onDismiss() }
                     )

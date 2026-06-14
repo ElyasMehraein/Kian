@@ -50,18 +50,21 @@ import com.ely.kian.ui.screens.pending.PendingEventsScreen
 import com.ely.kian.ui.screens.pending.PendingEventsViewModel
 import com.ely.kian.ui.theme.KianTheme
 
-sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
-    object Home : Screen("home", "Home", Icons.Default.Home)
-    object Chat : Screen("chat", "Chat", Icons.Default.Chat)
-    object Wallet : Screen("wallet", "Wallet", Icons.Default.Wallet)
-    object Products : Screen("products", "Products", Icons.Default.Inventory)
-    object Profile : Screen("profile", "Profile", Icons.Default.Person)
+import androidx.compose.ui.res.stringResource
+import com.ely.kian.R
+
+sealed class Screen(val route: String, val labelId: Int, val icon: ImageVector) {
+    object Home : Screen("home", R.string.home, Icons.Default.Home)
+    object Chat : Screen("chat", R.string.chat, Icons.Default.Chat)
+    object Wallet : Screen("wallet", R.string.wallet, Icons.Default.Wallet)
+    object Products : Screen("products", R.string.products, Icons.Default.Inventory)
+    object Profile : Screen("profile", R.string.profile, Icons.Default.Person)
     
     // Sub-screens
-    object MerchantProfile : Screen("merchant/{pubkey}", "Merchant", Icons.Default.Person)
-    object Chatroom : Screen("chat/{roomId}", "Chatroom", Icons.Default.Chat)
-    object Cart : Screen("cart", "Cart", Icons.Default.ShoppingCart)
-    object Backups : Screen("backups", "Backups", Icons.Default.Backup)
+    object MerchantProfile : Screen("merchant/{pubkey}", R.string.merchant, Icons.Default.Person)
+    object Chatroom : Screen("chat/{roomId}", R.string.chatroom, Icons.Default.Chat)
+    object Cart : Screen("cart", R.string.cart, Icons.Default.ShoppingCart)
+    object Backups : Screen("backups", R.string.backups, Icons.Default.Backup)
 }
 
 val items = listOf(
@@ -161,7 +164,7 @@ fun KianScaffold() {
                                         Icon(screen.icon, contentDescription = null)
                                     }
                                 },
-                                label = { Text(screen.label) },
+                                label = { Text(stringResource(screen.labelId)) },
                                 selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
                                 onClick = {
                                     navController.navigate(screen.route) {
@@ -314,7 +317,12 @@ fun KianScaffold() {
                                 popUpTo("onboarding") { inclusive = true }
                             }
                         },
-                        viewModel = onboardingViewModel
+                        viewModel = onboardingViewModel,
+                        currentLanguage = viewModel.currentLanguage,
+                        onLanguageChange = { lang ->
+                            viewModel.updateLanguage(lang)
+                            (context as? android.app.Activity)?.recreate()
+                        }
                     )
                 }
                 
@@ -352,7 +360,12 @@ fun KianScaffold() {
         AppMenuDialog(
             isOpen = isMenuOpen,
             accountMode = viewModel.accountMode,
+            currentLanguage = viewModel.currentLanguage,
             onAccountModeChange = { mode -> viewModel.updateAccountMode(mode) },
+            onLanguageChange = { lang ->
+                viewModel.updateLanguage(lang)
+                (context as? android.app.Activity)?.recreate()
+            },
             onDismiss = { isMenuOpen = false },
             onNavigate = { route ->
                 if (route == "logout") {

@@ -48,6 +48,8 @@ import com.ely.kian.ui.components.KianButton
 import com.ely.kian.ui.theme.KianTheme
 import com.ely.kian.util.Geohash
 import com.ely.kian.util.NavigationUtils
+import androidx.compose.ui.res.stringResource
+import com.ely.kian.R
 import coil.compose.AsyncImage
 import kotlinx.serialization.json.Json
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
@@ -151,13 +153,13 @@ fun MerchantProfileScreen(
                     navigationIcon = {
                         if (!isOwnProfile) {
                             IconButton(onClick = onBack, modifier = Modifier.background(kianColors.canvas.copy(alpha = 0.6f), RoundedCornerShape(12.dp))) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = kianColors.ink)
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back), tint = kianColors.ink)
                             }
                         }
                     },
                     actions = {
                         IconButton(onClick = { /* Share */ }, modifier = Modifier.background(kianColors.canvas.copy(alpha = 0.6f), RoundedCornerShape(12.dp))) {
-                            Icon(Icons.Default.Share, contentDescription = "Share", tint = kianColors.ink)
+                            Icon(Icons.Default.Share, contentDescription = stringResource(R.string.share), tint = kianColors.ink)
                         }
                         if (!isOwnProfile) {
                             Spacer(modifier = Modifier.width(8.dp))
@@ -167,7 +169,7 @@ fun MerchantProfileScreen(
                                     .background(kianColors.canvas.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
                                     .onGloballyPositioned { cartIconPosition = it.positionInWindow() }
                             ) {
-                                Icon(Icons.Default.ShoppingCart, contentDescription = "Cart", tint = kianColors.ink)
+                                Icon(Icons.Default.ShoppingCart, contentDescription = stringResource(R.string.cart), tint = kianColors.ink)
                             }
                         }
                         Spacer(modifier = Modifier.width(8.dp))
@@ -221,7 +223,7 @@ fun MerchantProfileScreen(
                     ) {
                         val context = LocalContext.current
                         InitialAvatar(
-                            name = profile?.displayName ?: profile?.name ?: "Merchant", 
+                            name = profile?.displayName ?: profile?.name ?: stringResource(R.string.merchant), 
                             pictureUrl = profile?.picture, 
                             size = 110.dp,
                             modifier = Modifier.border(4.dp, kianColors.canvas, RoundedCornerShape(55.dp))
@@ -231,7 +233,7 @@ fun MerchantProfileScreen(
                         
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = profile?.displayName ?: profile?.name ?: "Merchant", 
+                                text = profile?.displayName ?: profile?.name ?: stringResource(R.string.merchant), 
                                 fontSize = 28.sp, 
                                 fontWeight = FontWeight.Bold, 
                                 color = kianColors.ink
@@ -240,7 +242,7 @@ fun MerchantProfileScreen(
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Icon(
                                     imageVector = Icons.Default.Verified, 
-                                    contentDescription = "Verified", 
+                                    contentDescription = stringResource(R.string.verified), 
                                     tint = Color(0xFF3B82F6),
                                     modifier = Modifier.size(24.dp)
                                 )
@@ -298,7 +300,7 @@ fun MerchantProfileScreen(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = profile?.location ?: "View on Map",
+                                    text = profile?.location ?: stringResource(R.string.open_navigation),
                                     fontSize = 14.sp,
                                     color = if (!profile?.geohash.isNullOrBlank()) kianColors.accent else kianColors.muted,
                                     fontWeight = FontWeight.Medium,
@@ -321,7 +323,7 @@ fun MerchantProfileScreen(
                         if (!profile?.geohash.isNullOrBlank()) {
                             Spacer(modifier = Modifier.height(20.dp))
                             Text(
-                                text = "Location",
+                                text = stringResource(R.string.location),
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = kianColors.ink
@@ -402,7 +404,7 @@ fun MerchantProfileScreen(
                                             shape = RoundedCornerShape(8.dp)
                                         ) {
                                             Text(
-                                                text = "Open in Navigation",
+                                                text = stringResource(R.string.open_navigation),
                                                 color = kianColors.canvas,
                                                 fontSize = 12.sp,
                                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -418,27 +420,27 @@ fun MerchantProfileScreen(
                             modifier = Modifier.padding(top = 24.dp).fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            ProfileStat(label = "Products", value = products.size.toString())
-                            ProfileStat(label = "Followers", value = followerCount.toString())
-                            ProfileStat(label = "Rating", value = avgRating, icon = Icons.Default.Star)
+                            ProfileStat(label = stringResource(R.string.products), value = products.size.toString())
+                            ProfileStat(label = stringResource(R.string.followers), value = followerCount.toString())
+                            ProfileStat(label = stringResource(R.string.rating), value = avgRating, icon = Icons.Default.Star)
                         }
 
                         // Action Buttons
                         Row(modifier = Modifier.padding(top = 24.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             if (isOwnProfile) {
                                 KianButton(
-                                    text = "Edit Profile",
+                                    text = stringResource(R.string.edit_profile),
                                     onClick = onEdit,
                                     modifier = Modifier.weight(1f)
                                 )
                             } else {
                                 KianButton(
-                                    text = "Message",
+                                    text = stringResource(R.string.message),
                                     onClick = { onMessage(pubkey) },
                                     modifier = Modifier.weight(1f)
                                 )
                                 KianButton(
-                                    text = if (isFollowing) "Unfollow" else "Follow",
+                                    text = if (isFollowing) stringResource(R.string.unfollow) else stringResource(R.string.follow),
                                     onClick = { viewModel.toggleFollow() },
                                     type = if (isFollowing) com.ely.kian.ui.components.ButtonType.Secondary else com.ely.kian.ui.components.ButtonType.Primary,
                                     modifier = Modifier.weight(1f)
@@ -466,12 +468,12 @@ fun MerchantProfileScreen(
                         Tab(
                             selected = selectedTab == 0,
                             onClick = { selectedTab = 0 },
-                            text = { Text("Showcase", fontWeight = FontWeight.Bold) }
+                            text = { Text(stringResource(R.string.showcase_tab), fontWeight = FontWeight.Bold) }
                         )
                         Tab(
                             selected = selectedTab == 1,
                             onClick = { selectedTab = 1 },
-                            text = { Text("Reviews", fontWeight = FontWeight.Bold) }
+                            text = { Text(stringResource(R.string.reviews_tab), fontWeight = FontWeight.Bold) }
                         )
                     }
                 }
@@ -480,7 +482,7 @@ fun MerchantProfileScreen(
                     if (products.isEmpty() && showcaseTokens.isEmpty()) {
                         item {
                             Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
-                                Text("No items available in showcase.", color = kianColors.muted)
+                                Text(stringResource(R.string.no_showcase_items), color = kianColors.muted)
                             }
                         }
                     } else {
@@ -495,7 +497,7 @@ fun MerchantProfileScreen(
                         if (filteredProducts.isEmpty() && filteredTokens.isEmpty()) {
                             item {
                                 Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
-                                    Text("No items found in this category.", color = kianColors.muted)
+                                    Text(stringResource(R.string.no_products_category), color = kianColors.muted)
                                 }
                             }
                         }
@@ -533,7 +535,7 @@ fun MerchantProfileScreen(
                         item {
                             Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
                                 KianButton(
-                                    text = if (userReview != null) "Edit Your Review" else "Write a Review",
+                                    text = if (userReview != null) stringResource(R.string.edit_your_review) else stringResource(R.string.write_review),
                                     onClick = { showReviewDialog = true },
                                     modifier = Modifier.fillMaxWidth(),
                                     type = com.ely.kian.ui.components.ButtonType.Secondary
@@ -545,7 +547,7 @@ fun MerchantProfileScreen(
                     if (reviews.isEmpty()) {
                         item {
                             Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
-                                Text("No reviews posted yet.", color = kianColors.muted)
+                                Text(stringResource(R.string.no_reviews_yet), color = kianColors.muted)
                             }
                         }
                     } else {
@@ -610,7 +612,7 @@ fun ReviewDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = kianColors.panel,
-        title = { Text("Rate this Merchant", color = kianColors.ink) },
+        title = { Text(stringResource(R.string.rate_merchant), color = kianColors.ink) },
         text = {
             Column {
                 Row(
@@ -633,7 +635,7 @@ fun ReviewDialog(
                 OutlinedTextField(
                     value = comment,
                     onValueChange = { comment = it },
-                    placeholder = { Text("Write your review here...", color = kianColors.muted) },
+                    placeholder = { Text(stringResource(R.string.write_review_here), color = kianColors.muted) },
                     modifier = Modifier.fillMaxWidth().height(120.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = kianColors.ink,
@@ -646,12 +648,12 @@ fun ReviewDialog(
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(rating, comment) }) {
-                Text("Post Review", color = kianColors.accent, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.post_review), color = kianColors.accent, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel", color = kianColors.muted)
+                Text(stringResource(R.string.cancel), color = kianColors.muted)
             }
         }
     )
@@ -814,7 +816,7 @@ fun ProductCard(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(Icons.Default.AddShoppingCart, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Text(text = "Add to Cart", fontWeight = FontWeight.Bold)
+                        Text(text = stringResource(R.string.add_to_cart), fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -839,7 +841,7 @@ fun CategoryFilterBar(
         ) {
             item {
                 com.ely.kian.ui.components.KianChip(
-                    text = "All",
+                    text = stringResource(R.string.all),
                     selected = selectedPath.isEmpty(),
                     onClick = { onPathChange(emptyList()) }
                 )
@@ -956,7 +958,7 @@ fun ReviewCard(review: Review) {
             .padding(18.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(text = review.authorName ?: "Anonymous User", fontWeight = FontWeight.Bold, color = kianColors.ink, modifier = Modifier.weight(1f))
+            Text(text = review.authorName ?: stringResource(R.string.anonymous_user), fontWeight = FontWeight.Bold, color = kianColors.ink, modifier = Modifier.weight(1f))
             repeat(review.rating) {
                 Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFB800), modifier = Modifier.size(16.dp))
             }

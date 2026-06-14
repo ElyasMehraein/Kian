@@ -40,6 +40,14 @@ class SecureStorage(context: Context) {
         sharedPreferences.edit().clear().apply()
     }
 
+    fun saveLanguage(language: String) {
+        sharedPreferences.edit().putString("language", language).apply()
+    }
+
+    fun getLanguage(): String {
+        return sharedPreferences.getString("language", "en") ?: "en"
+    }
+
     companion object {
         const val PRIVATE_KEY = "keys_privkey"
         const val MNEMONIC = "keys_mnemonic"

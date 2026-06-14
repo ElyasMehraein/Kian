@@ -20,6 +20,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.res.stringResource
+import com.ely.kian.R
 import com.ely.kian.data.local.entities.ProductCategory
 import com.ely.kian.ui.components.KianButton
 import com.ely.kian.ui.components.ScreenHeader
@@ -46,8 +48,8 @@ fun ProductCategoriesScreen(
             .verticalScroll(rememberScrollState())
     ) {
         ScreenHeader(
-            title = "Category management",
-            subtitle = "Build your category tree up to 5 levels deep, then use it on the products page.",
+            title = stringResource(R.string.category_mgmt),
+            subtitle = stringResource(R.string.category_mgmt_desc),
             onBack = onNavigateBack
         )
 
@@ -59,12 +61,12 @@ fun ProductCategoriesScreen(
                 .border(1.dp, kianColors.line, RoundedCornerShape(24.dp))
                 .padding(16.dp)
         ) {
-            Text("Add root category", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = kianColors.ink)
+            Text(stringResource(R.string.add_root_category), fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = kianColors.ink)
             Row(modifier = Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = rootName,
                     onValueChange = { rootName = it },
-                    placeholder = { Text("New root category name", color = kianColors.muted) },
+                    placeholder = { Text(stringResource(R.string.new_root_cat_placeholder), color = kianColors.muted) },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(16.dp),
                     textStyle = LocalTextStyle.current.copy(color = kianColors.ink),
@@ -76,7 +78,7 @@ fun ProductCategoriesScreen(
                     )
                 )
                 KianButton(
-                    text = "Add",
+                    text = stringResource(R.string.add),
                     onClick = {
                         if (rootName.isNotBlank()) {
                             viewModel.saveCategory(rootName, null)
@@ -97,12 +99,12 @@ fun ProductCategoriesScreen(
                     .border(1.dp, kianColors.accentSoft, RoundedCornerShape(24.dp))
                     .padding(16.dp)
             ) {
-                Text("Add subcategory under ${draftParent?.name}", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = kianColors.accent)
+                Text(stringResource(R.string.add_subcat_under, draftParent?.name ?: ""), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = kianColors.accent)
                 Row(modifier = Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = childName,
                         onValueChange = { childName = it },
-                        placeholder = { Text("Subcategory name", color = kianColors.muted) },
+                        placeholder = { Text(stringResource(R.string.subcat_name_placeholder), color = kianColors.muted) },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(16.dp),
                         textStyle = LocalTextStyle.current.copy(color = kianColors.ink),
@@ -114,7 +116,7 @@ fun ProductCategoriesScreen(
                         )
                     )
                     KianButton(
-                        text = "Save",
+                        text = stringResource(R.string.save),
                         onClick = {
                             if (childName.isNotBlank()) {
                                 viewModel.saveCategory(childName, draftParent)
@@ -138,9 +140,9 @@ fun ProductCategoriesScreen(
                     .border(1.dp, kianColors.line, RoundedCornerShape(24.dp))
                     .padding(horizontal = 16.dp, vertical = 24.dp)
             ) {
-                Text("No categories yet", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = kianColors.ink)
+                Text(stringResource(R.string.no_categories_yet), fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = kianColors.ink)
                 Text(
-                    "Start by adding a root category, then grow the tree with subcategories.",
+                    stringResource(R.string.no_categories_desc),
                     fontSize = 14.sp,
                     color = kianColors.muted,
                     modifier = Modifier.padding(top = 8.dp)
@@ -192,7 +194,7 @@ fun CategoryNode(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(item.name, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = kianColors.ink)
                     Text(
-                        if (children.isNotEmpty()) "${children.size} subcategories" else "No subcategories yet",
+                        if (children.isNotEmpty()) stringResource(R.string.subcategories_count, children.size) else stringResource(R.string.no_subcategories),
                         fontSize = 12.sp,
                         color = kianColors.muted,
                         modifier = Modifier.padding(top = 4.dp)

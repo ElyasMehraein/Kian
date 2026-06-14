@@ -13,6 +13,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.ely.kian.R
 import com.ely.kian.data.local.entities.Conversation
 import com.ely.kian.ui.components.InitialAvatar
 import com.ely.kian.ui.components.ScreenHeader
@@ -40,16 +42,16 @@ fun ChatInboxScreen(
                 containerColor = kianColors.accent,
                 contentColor = androidx.compose.ui.graphics.Color.White
             ) {
-                Icon(Icons.Default.Add, contentDescription = "New Chat")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.new_chat))
             }
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
-            ScreenHeader(title = "Messages")
+            ScreenHeader(title = stringResource(R.string.messages))
             
             if (conversations.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                    Text("No messages yet", color = kianColors.ink.copy(alpha = 0.5f))
+                    Text(stringResource(R.string.no_messages), color = kianColors.ink.copy(alpha = 0.5f))
                 }
             } else {
                 LazyColumn {
@@ -75,8 +77,8 @@ fun ChatInboxScreen(
     if (conversationToDelete != null) {
         AlertDialog(
             onDismissRequest = { conversationToDelete = null },
-            title = { Text("Delete Conversation") },
-            text = { Text("Are you sure you want to delete this conversation? This will also request to delete your messages on Nostr relays.") },
+            title = { Text(stringResource(R.string.delete_conversation)) },
+            text = { Text(stringResource(R.string.delete_conversation_confirm)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -85,12 +87,12 @@ fun ChatInboxScreen(
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
                 ) {
-                    Text("Delete")
+                    Text(stringResource(R.string.delete))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { conversationToDelete = null }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -100,12 +102,12 @@ fun ChatInboxScreen(
         var pubkeyInput by remember { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = { showStartChatDialog = false },
-            title = { Text("Start Chat") },
+            title = { Text(stringResource(R.string.start_chat)) },
             text = {
                 TextField(
                     value = pubkeyInput,
                     onValueChange = { pubkeyInput = it },
-                    placeholder = { Text("Enter Pubkey (hex)") },
+                    placeholder = { Text(stringResource(R.string.enter_pubkey)) },
                     modifier = Modifier.fillMaxWidth()
                 )
             },
@@ -118,12 +120,12 @@ fun ChatInboxScreen(
                         }
                     }
                 ) {
-                    Text("Start")
+                    Text(stringResource(R.string.start))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showStartChatDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )

@@ -76,6 +76,15 @@ class MainViewModel(
     var accountMode by mutableStateOf("business")
         private set
 
+    var currentLanguage by mutableStateOf(secureStorage.getLanguage())
+        private set
+
+    fun updateLanguage(language: String) {
+        if (currentLanguage == language) return
+        secureStorage.saveLanguage(language)
+        currentLanguage = language
+    }
+
     init {
         viewModelScope.launch {
             try {

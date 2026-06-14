@@ -18,6 +18,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.res.stringResource
+import com.ely.kian.R
 import com.ely.kian.KianApp
 import com.ely.kian.data.local.entities.Relay
 import com.ely.kian.data.remote.RelayPoolManager
@@ -57,7 +59,7 @@ fun RelayManagementScreen() {
                 contentColor = kianColors.canvas,
                 shape = RoundedCornerShape(16.dp)
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Relay")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_relay))
             }
         }
     ) { paddingValues ->
@@ -67,7 +69,7 @@ fun RelayManagementScreen() {
                 .padding(paddingValues)
         ) {
             // Header
-            ScreenHeader(title = "Relay Management")
+            ScreenHeader(title = stringResource(R.string.relay_management))
 
             // Overall Status Section
             Surface(
@@ -90,7 +92,7 @@ fun RelayManagementScreen() {
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Connected",
+                            text = stringResource(R.string.connected),
                             fontSize = 18.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = kianColors.ink
@@ -100,7 +102,7 @@ fun RelayManagementScreen() {
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     KianButton(
-                        text = "Reconnect All",
+                        text = stringResource(R.string.reconnect_all),
                         onClick = { viewModel.reconnectAll() },
                         modifier = Modifier.wrapContentWidth()
                     )
@@ -110,7 +112,7 @@ fun RelayManagementScreen() {
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
-                text = "Active Relays",
+                text = stringResource(R.string.active_relays),
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = kianColors.ink,
@@ -153,7 +155,7 @@ fun RelayManagementScreen() {
                         .fillMaxWidth()
                 ) {
                     Text(
-                        text = "Add New Relay",
+                        text = stringResource(R.string.add_new_relay),
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
                         color = kianColors.ink
@@ -169,7 +171,7 @@ fun RelayManagementScreen() {
                     Spacer(modifier = Modifier.height(24.dp))
                     
                     KianButton(
-                        text = "Add Relay",
+                        text = stringResource(R.string.add_relay),
                         onClick = {
                             if (newRelayUrl.isNotBlank()) {
                                 viewModel.addRelay(newRelayUrl)
@@ -194,10 +196,10 @@ fun RelayItem(
 ) {
     val kianColors = KianTheme.colors
     
-    val (statusText, statusColor) = when (state) {
-        RelayPoolManager.ConnectionState.CONNECTED -> "Online" to kianColors.success
-        RelayPoolManager.ConnectionState.CONNECTING -> "Connecting..." to kianColors.warning
-        RelayPoolManager.ConnectionState.DISCONNECTED -> "Offline" to kianColors.muted
+    val (statusId, statusColor) = when (state) {
+        RelayPoolManager.ConnectionState.CONNECTED -> R.string.online to kianColors.success
+        RelayPoolManager.ConnectionState.CONNECTING -> R.string.connecting to kianColors.warning
+        RelayPoolManager.ConnectionState.DISCONNECTED -> R.string.offline to kianColors.muted
     }
 
     Row(
@@ -215,7 +217,7 @@ fun RelayItem(
                 fontSize = 15.sp
             )
             Text(
-                text = statusText,
+                text = stringResource(statusId),
                 fontSize = 13.sp,
                 color = statusColor,
                 fontWeight = FontWeight.Medium,

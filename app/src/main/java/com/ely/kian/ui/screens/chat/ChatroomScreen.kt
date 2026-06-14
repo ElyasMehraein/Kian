@@ -25,6 +25,8 @@ import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.ely.kian.R
 import com.ely.kian.data.local.entities.ChatMessage
 import com.ely.kian.data.local.entities.Product
 import com.ely.kian.ui.components.util.setText
@@ -93,7 +95,7 @@ fun ChatroomScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = kianColors.ink)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back), tint = kianColors.ink)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = kianColors.canvas)
@@ -189,7 +191,7 @@ fun ChatroomScreen(
                         modifier = Modifier.background(kianColors.panel)
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Reply", color = kianColors.ink) },
+                            text = { Text(stringResource(R.string.reply), color = kianColors.ink) },
                             onClick = {
                                 replyingTo = message
                                 showMenu = false
@@ -197,7 +199,7 @@ fun ChatroomScreen(
                             leadingIcon = { Icon(Icons.Default.Reply, contentDescription = null, tint = kianColors.ink) }
                         )
                         DropdownMenuItem(
-                            text = { Text("Copy", color = kianColors.ink) },
+                            text = { Text(stringResource(R.string.copy), color = kianColors.ink) },
                             onClick = {
                                 scope.launch { clipboard.setText(message.content) }
                                 showMenu = false
@@ -205,7 +207,7 @@ fun ChatroomScreen(
                             leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null, tint = kianColors.ink) }
                         )
                         DropdownMenuItem(
-                            text = { Text("Delete", color = Color.Red) },
+                            text = { Text(stringResource(R.string.delete), color = Color.Red) },
                             onClick = {
                                 viewModel.deleteMessage(message.id)
                                 showMenu = false
@@ -231,7 +233,7 @@ fun ReplyPreview(message: ChatMessage, colors: com.ely.kian.ui.theme.KianColors,
             Spacer(modifier = Modifier.width(8.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (message.isMine) "Replying to yourself" else "Replying to ${message.pubkey.take(8)}",
+                    text = if (message.isMine) stringResource(R.string.replying_to_yourself) else stringResource(R.string.replying_to, message.pubkey.take(8)),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     color = colors.accent
@@ -244,7 +246,7 @@ fun ReplyPreview(message: ChatMessage, colors: com.ely.kian.ui.theme.KianColors,
                 )
             }
             IconButton(onClick = onCancel) {
-                Icon(Icons.Default.Delete, contentDescription = "Cancel", tint = colors.ink.copy(alpha = 0.4f))
+                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.cancel), tint = colors.ink.copy(alpha = 0.4f))
             }
         }
     }
@@ -362,9 +364,9 @@ fun TokenMessageCard(
                 Column {
                     Text(
                         text = when(type) {
-                            "token_mint" -> "Genesis Mint"
-                            "token_redemption" -> "Product Redemption"
-                            else -> "Token Transfer"
+                            "token_mint" -> stringResource(R.string.genesis_mint)
+                            "token_redemption" -> stringResource(R.string.product_redemption)
+                            else -> stringResource(R.string.token_transfer)
                         },
                         fontSize = 12.sp,
                         color = colors.muted,
@@ -383,11 +385,11 @@ fun TokenMessageCard(
             
             // Status Section
             val statusText = when {
-                message.status == "received" -> "Order Completed"
-                isConfirmed || message.status == "delivered" -> "Verified by Producer"
-                type == "token_mint" -> "Issued"
-                type == "token_redemption" -> if (isMine) "Waiting for Delivery..." else "Pending Delivery"
-                else -> "Authenticating..."
+                message.status == "received" -> stringResource(R.string.order_completed)
+                isConfirmed || message.status == "delivered" -> stringResource(R.string.verified_by_producer)
+                type == "token_mint" -> stringResource(R.string.issued)
+                type == "token_redemption" -> if (isMine) stringResource(R.string.waiting_for_delivery) else stringResource(R.string.pending_delivery)
+                else -> stringResource(R.string.authenticating)
             }
             
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -427,14 +429,14 @@ fun TokenMessageCard(
                     shape = RoundedCornerShape(10.dp),
                     contentPadding = PaddingValues(0.dp)
                 ) {
-                    Text("Confirm Receipt", color = Color.White, fontSize = 14.sp)
+                    Text(stringResource(R.string.confirm_receipt), color = Color.White, fontSize = 14.sp)
                 }
 
                 if (showConfirmDialog) {
                     AlertDialog(
                         onDismissRequest = { showConfirmDialog = false },
-                        title = { Text("Confirm Delivery") },
-                        text = { Text("Confirmation means you have received the product with the specified quality and quantity. This action is irreversible.") },
+                        title = { Text(stringResource(R.string.confirm_delivery)) },
+                        text = { Text(stringResource(R.string.confirm_delivery_confirm)) },
                         confirmButton = {
                             TextButton(onClick = {
                                 if (utxoId != null) {
@@ -442,12 +444,12 @@ fun TokenMessageCard(
                                 }
                                 showConfirmDialog = false
                             }) {
-                                Text("Confirm", color = colors.accent, fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.confirm), color = colors.accent, fontWeight = FontWeight.Bold)
                             }
                         },
                         dismissButton = {
                             TextButton(onClick = { showConfirmDialog = false }) {
-                                Text("Cancel", color = colors.muted)
+                                Text(stringResource(R.string.cancel), color = colors.muted)
                             }
                         },
                         containerColor = colors.panel,
@@ -487,12 +489,12 @@ fun TokenPickerContent(
         Spacer(modifier = Modifier.height(16.dp))
         
         if (selectedBalance == null) {
-            Text("Select Token to Send", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = colors.ink)
-            Text("You can send your digital tokens to others or redeem them from the producer.", fontSize = 14.sp, color = colors.muted, modifier = Modifier.padding(top = 4.dp, bottom = 24.dp))
+            Text(stringResource(R.string.select_token_to_send), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = colors.ink)
+            Text(stringResource(R.string.token_picker_desc), fontSize = 14.sp, color = colors.muted, modifier = Modifier.padding(top = 4.dp, bottom = 24.dp))
             
             if (balances.isEmpty()) {
                 Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                    Text("You don't have any tokens yet.", color = colors.muted)
+                    Text(stringResource(R.string.no_tokens_yet), color = colors.muted)
                 }
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.heightIn(max = 400.dp)) {
@@ -512,7 +514,7 @@ fun TokenPickerContent(
                                 Spacer(modifier = Modifier.width(16.dp))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(balance.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = colors.ink)
-                                    Text("${balance.amount} ${balance.unit} available", fontSize = 13.sp, color = colors.muted)
+                                    Text(stringResource(R.string.available, "${balance.amount} ${balance.unit}"), fontSize = 13.sp, color = colors.muted)
                                 }
                                 Icon(Icons.Default.ChevronRight, contentDescription = null, tint = colors.muted)
                             }
@@ -523,9 +525,9 @@ fun TokenPickerContent(
         } else {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { selectedBalance = null }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = colors.ink)
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back), tint = colors.ink)
                 }
-                Text("Set Amount", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = colors.ink)
+                Text(stringResource(R.string.set_amount), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = colors.ink)
             }
             
             Spacer(modifier = Modifier.height(24.dp))
@@ -586,7 +588,7 @@ fun TokenPickerContent(
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = colors.accent)
             ) {
-                Text("Confirm and Send", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(stringResource(R.string.confirm_and_send), fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
         }
     }
@@ -621,13 +623,13 @@ fun ProductPickerContent(
         
         if (selectedProduct == null) {
             Text(
-                "Select Product to Send",
+                stringResource(R.string.select_product_to_send),
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
                 color = colors.ink
             )
             Text(
-                "This will create a digital token (Genesis) of your product and send it to the contact.",
+                stringResource(R.string.product_picker_desc),
                 fontSize = 14.sp,
                 color = colors.muted,
                 modifier = Modifier.padding(top = 4.dp, bottom = 24.dp)
@@ -641,7 +643,7 @@ fun ProductPickerContent(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        "You haven't created any products yet.\nGo to Product Manager to add them.", 
+                        stringResource(R.string.no_products_yet), 
                         color = colors.muted,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
@@ -712,10 +714,10 @@ fun ProductPickerContent(
             // Quantity Picker for selected product
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { selectedProduct = null }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = colors.ink)
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back), tint = colors.ink)
                 }
                 Text(
-                    "Set Quantity",
+                    stringResource(R.string.set_quantity),
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     color = colors.ink
@@ -790,7 +792,7 @@ fun ProductPickerContent(
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = colors.accent)
             ) {
-                Text("Confirm and Send", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(stringResource(R.string.confirm_and_send), fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
         }
     }
@@ -829,7 +831,7 @@ fun ChatInput(
                 value = text,
                 onValueChange = onTextChange,
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("Type a message...", color = colors.ink.copy(alpha = 0.5f)) },
+                placeholder = { Text(stringResource(R.string.type_message), color = colors.ink.copy(alpha = 0.5f)) },
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = colors.panel,
                     unfocusedContainerColor = colors.panel,

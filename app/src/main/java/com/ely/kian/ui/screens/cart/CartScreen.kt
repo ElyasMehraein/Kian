@@ -17,6 +17,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.ely.kian.R
 import com.ely.kian.ui.components.KianButton
 import com.ely.kian.ui.theme.KianTheme
 
@@ -43,12 +45,12 @@ fun CartScreen(
         containerColor = kianColors.canvas,
         topBar = {
             TopAppBar(
-                title = { Text(text = "Shopping Cart", fontWeight = FontWeight.Bold, color = kianColors.ink) },
+                title = { Text(text = stringResource(R.string.shopping_cart), fontWeight = FontWeight.Bold, color = kianColors.ink) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack, 
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.back),
                             tint = kianColors.ink
                         )
                     }
@@ -71,12 +73,12 @@ fun CartScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(text = "Total Requirements", fontSize = 18.sp, color = kianColors.ink.copy(alpha = 0.5f))
+                        Text(text = stringResource(R.string.total_requirements), fontSize = 18.sp, color = kianColors.ink.copy(alpha = 0.5f))
                         Text(text = "35 Units", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = kianColors.ink)
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     KianButton(
-                        text = "Checkout",
+                        text = stringResource(R.string.checkout),
                         onClick = onCheckout,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -112,7 +114,7 @@ fun CartItemRow(item: CartItem) {
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(text = item.name, fontWeight = FontWeight.Bold, color = kianColors.ink)
-            Text(text = "Qty: ${item.quantity}", fontSize = 12.sp, color = kianColors.ink.copy(alpha = 0.5f))
+            Text(text = stringResource(R.string.qty, item.quantity), fontSize = 12.sp, color = kianColors.ink.copy(alpha = 0.5f))
         }
         Text(text = item.price, fontWeight = FontWeight.Bold, color = kianColors.ink)
         Spacer(modifier = Modifier.width(12.dp))

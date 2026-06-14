@@ -13,6 +13,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.ely.kian.R
 import com.ely.kian.ui.theme.KianTheme
 
 @Composable
@@ -37,7 +39,7 @@ fun LogoutConfirmationDialog(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "Sign Out",
+                    text = stringResource(R.string.sign_out),
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     color = kianColors.ink
@@ -46,7 +48,7 @@ fun LogoutConfirmationDialog(
         },
         text = {
             Text(
-                text = "Logging out will wipe all local data including products and wallet entries. This is an offline-first app; your data is stored locally on this device.",
+                text = stringResource(R.string.logout_warning),
                 fontSize = 15.sp,
                 color = kianColors.muted,
                 textAlign = TextAlign.Center,
@@ -61,20 +63,20 @@ fun LogoutConfirmationDialog(
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = kianColors.accent)
                 ) {
-                    Text("Backup Database", fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.backup_database), fontWeight = FontWeight.SemiBold)
                 }
                 TextButton(
                     onClick = onConfirm,
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.textButtonColors(contentColor = kianColors.danger)
                 ) {
-                    Text("Logout and Wipe Data", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.logout_wipe_data), fontWeight = FontWeight.Bold)
                 }
                 TextButton(
                     onClick = onDismiss,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Cancel", color = kianColors.ink)
+                    Text(stringResource(R.string.cancel), color = kianColors.ink)
                 }
             }
         }

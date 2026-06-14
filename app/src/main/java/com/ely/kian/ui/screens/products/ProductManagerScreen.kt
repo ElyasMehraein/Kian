@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
+import androidx.compose.ui.res.stringResource
+import com.ely.kian.R
 import com.ely.kian.data.local.entities.Product
 import com.ely.kian.data.local.entities.ProductCategory
 import com.ely.kian.ui.components.KianButton
@@ -87,7 +89,7 @@ fun ProductManagerScreen(
                     contentColor = kianColors.canvas,
                     shape = CircleShape
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "Add Product")
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_product))
                 }
             }
         }
@@ -99,8 +101,8 @@ fun ProductManagerScreen(
         ) {
             // Header
             ScreenHeader(
-                title = "Manage products",
-                subtitle = if (pubkey != null) "Tap the + button to create a product, edit one from the list, or filter by category." else "Create keys first."
+                title = stringResource(R.string.manage_products),
+                subtitle = if (pubkey != null) stringResource(R.string.manage_products_desc) else stringResource(R.string.create_keys_first)
             )
 
             // Category Filter Bar
@@ -132,7 +134,7 @@ fun ProductManagerScreen(
                 if (filteredProducts.isEmpty()) {
                     item {
                         Text(
-                            text = if (products.isEmpty()) "No products yet." else "No products found in this category.",
+                            text = if (products.isEmpty()) stringResource(R.string.no_products_yet) else stringResource(R.string.no_products_category),
                             fontSize = 15.sp,
                             color = kianColors.muted
                         )
@@ -178,13 +180,13 @@ fun ProductManagerScreen(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = if (editingProduct != null) "Edit product" else "Create product",
+                                text = if (editingProduct != null) stringResource(R.string.edit_product) else stringResource(R.string.create_product),
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = kianColors.ink
                             )
                             Text(
-                                text = if (editingProduct != null) "Update the details for this product." else "Add a new product to your list.",
+                                text = if (editingProduct != null) stringResource(R.string.update_details) else stringResource(R.string.add_new_product),
                                 fontSize = 14.sp,
                                 color = kianColors.muted
                             )
@@ -193,7 +195,7 @@ fun ProductManagerScreen(
                             onClick = { showBottomSheet = false },
                             modifier = Modifier.background(kianColors.panel, CircleShape)
                         ) {
-                            Icon(Icons.Default.Close, contentDescription = "Close", modifier = Modifier.size(20.dp), tint = kianColors.ink)
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close), modifier = Modifier.size(20.dp), tint = kianColors.ink)
                         }
                     }
 
@@ -209,7 +211,7 @@ fun ProductManagerScreen(
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it },
-                        placeholder = { Text("Product name", color = kianColors.muted) },
+                        placeholder = { Text(stringResource(R.string.product_name), color = kianColors.muted) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         textStyle = LocalTextStyle.current.copy(color = kianColors.ink),
@@ -226,7 +228,7 @@ fun ProductManagerScreen(
                     OutlinedTextField(
                         value = description,
                         onValueChange = { description = it },
-                        placeholder = { Text("Description", color = kianColors.muted) },
+                        placeholder = { Text(stringResource(R.string.description), color = kianColors.muted) },
                         modifier = Modifier.fillMaxWidth().heightIn(min = 88.dp),
                         shape = RoundedCornerShape(12.dp),
                         textStyle = LocalTextStyle.current.copy(color = kianColors.ink),
@@ -243,7 +245,7 @@ fun ProductManagerScreen(
                     OutlinedTextField(
                         value = imageUrls,
                         onValueChange = { imageUrls = it },
-                        placeholder = { Text("Hosted image URLs, one per line", color = kianColors.muted) },
+                        placeholder = { Text(stringResource(R.string.hosted_images_desc), color = kianColors.muted) },
                         modifier = Modifier.fillMaxWidth().heightIn(min = 88.dp),
                         shape = RoundedCornerShape(12.dp),
                         textStyle = LocalTextStyle.current.copy(color = kianColors.ink),
@@ -259,14 +261,14 @@ fun ProductManagerScreen(
 
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         KianButton(
-                            text = "Category management",
+                            text = stringResource(R.string.category_management),
                             onClick = onNavigateToCategories,
                             modifier = Modifier.weight(1f),
                             backgroundColor = kianColors.accentSoft,
                             contentColor = kianColors.accent
                         )
                         KianButton(
-                            text = if (editingProduct != null) "Update product" else "Create product",
+                            text = if (editingProduct != null) stringResource(R.string.update_product) else stringResource(R.string.create_product),
                             onClick = {
                                 viewModel.saveProduct(editingProduct?.id, name, description, imageUrls, selectedCategoryIds)
                                 showBottomSheet = false
@@ -337,7 +339,7 @@ fun ProductRow(
 
             Text(text = product.name, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = kianColors.ink)
             Text(
-                text = product.description ?: "No description",
+                text = product.description ?: stringResource(R.string.no_description),
                 fontSize = 14.sp,
                 color = kianColors.muted,
                 modifier = Modifier.padding(top = 6.dp)
@@ -389,7 +391,7 @@ fun ProductRow(
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "Showcase",
+                    text = stringResource(R.string.showcase),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     color = kianColors.ink
@@ -406,7 +408,7 @@ fun ProductRow(
                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
                 modifier = Modifier.height(40.dp)
             ) {
-                Text("Delete product", fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.delete_product), fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -429,7 +431,7 @@ fun CategoryFilterBar(
         ) {
             item {
                 KianChip(
-                    text = "All",
+                    text = stringResource(R.string.all),
                     selected = selectedPath.isEmpty(),
                     onClick = { onPathChange(emptyList()) }
                 )
@@ -500,9 +502,9 @@ fun DraftCategoryPicker(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Category", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = kianColors.ink)
+            Text(stringResource(R.string.category), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = kianColors.ink)
             Text(
-                "Manage categories",
+                stringResource(R.string.manage_categories),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = kianColors.accent,
@@ -523,7 +525,7 @@ fun DraftCategoryPicker(
                     .padding(12.dp)
             ) {
                 Text(
-                    "Create categories first, then assign a product into that tree.",
+                    text = stringResource(R.string.create_categories_first),
                     fontSize = 14.sp,
                     color = kianColors.muted,
                     lineHeight = 20.sp
@@ -535,7 +537,7 @@ fun DraftCategoryPicker(
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     item {
                         KianChip(
-                            text = "No category",
+                            text = stringResource(R.string.no_category),
                             selected = selectedPath.isEmpty(),
                             onClick = { onChange(emptyList()) },
                             backgroundColor = if (selectedPath.isEmpty()) kianColors.ink else kianColors.panel,

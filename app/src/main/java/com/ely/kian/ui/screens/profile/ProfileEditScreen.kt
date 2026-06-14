@@ -11,6 +11,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.res.stringResource
+import com.ely.kian.R
 import com.ely.kian.KianApp
 import com.ely.kian.ui.components.InitialAvatar
 import com.ely.kian.ui.components.KianButton
@@ -43,8 +45,8 @@ fun ProfileEditScreen(
             .padding(bottom = 24.dp)
     ) {
         ScreenHeader(
-            title = "Edit profile",
-            subtitle = if (viewModel.pubkey != null) "Update your Nostr profile metadata." else "Create keys first.",
+            title = stringResource(R.string.edit_profile),
+            subtitle = if (viewModel.pubkey != null) stringResource(R.string.edit_profile_desc) else stringResource(R.string.create_keys_first),
             onBack = onBack
         )
 
@@ -64,22 +66,22 @@ fun ProfileEditScreen(
             KianInput(
                 value = viewModel.name,
                 onValueChange = { viewModel.name = it },
-                placeholder = "Username (e.g. alice)",
-                label = "Username"
+                placeholder = "alice",
+                label = stringResource(R.string.username)
             )
 
             KianInput(
                 value = viewModel.displayName,
                 onValueChange = { viewModel.displayName = it },
-                placeholder = "Display Name",
-                label = "Display Name"
+                placeholder = stringResource(R.string.display_name),
+                label = stringResource(R.string.display_name)
             )
 
             KianInput(
                 value = viewModel.about,
                 onValueChange = { viewModel.about = it },
-                placeholder = "About Me",
-                label = "Bio",
+                placeholder = stringResource(R.string.about_me),
+                label = stringResource(R.string.bio),
                 singleLine = false,
                 modifier = Modifier.heightIn(min = 100.dp)
             )
@@ -87,36 +89,36 @@ fun ProfileEditScreen(
             KianInput(
                 value = viewModel.picture,
                 onValueChange = { viewModel.picture = it },
-                placeholder = "Avatar URL",
-                label = "Picture URL"
+                placeholder = "https://...",
+                label = stringResource(R.string.avatar_url)
             )
 
             KianInput(
                 value = viewModel.banner,
                 onValueChange = { viewModel.banner = it },
-                placeholder = "Banner URL",
-                label = "Banner URL"
+                placeholder = "https://...",
+                label = stringResource(R.string.banner_url)
             )
 
             KianInput(
                 value = viewModel.website,
                 onValueChange = { viewModel.website = it },
                 placeholder = "https://example.com",
-                label = "Website"
+                label = stringResource(R.string.website_label)
             )
 
             KianInput(
                 value = viewModel.nip05,
                 onValueChange = { viewModel.nip05 = it },
                 placeholder = "user@domain.com",
-                label = "Nostr Verification (NIP-05)"
+                label = stringResource(R.string.nip05_label)
             )
 
             KianInput(
                 value = viewModel.location,
                 onValueChange = { viewModel.location = it },
                 placeholder = "City, Country",
-                label = "Location"
+                label = stringResource(R.string.location)
             )
 
             Row(
@@ -125,7 +127,7 @@ fun ProfileEditScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Map Location",
+                    text = stringResource(R.string.map_location),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -140,7 +142,7 @@ fun ProfileEditScreen(
                     ) {
                         Icon(Icons.Default.Clear, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Clear", fontSize = 12.sp)
+                        Text(stringResource(R.string.clear), fontSize = 12.sp)
                     }
                 }
             }
@@ -160,7 +162,7 @@ fun ProfileEditScreen(
                 value = viewModel.geohash,
                 onValueChange = { viewModel.geohash = it },
                 placeholder = "Geohash string",
-                label = "Geohash"
+                label = stringResource(R.string.geohash_label)
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -170,13 +172,13 @@ fun ProfileEditScreen(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 KianButton(
-                    text = "Cancel",
+                    text = stringResource(R.string.cancel),
                     onClick = onBack,
                     type = com.ely.kian.ui.components.ButtonType.Secondary,
                     modifier = Modifier.weight(1f)
                 )
                 KianButton(
-                    text = if (viewModel.isSaving) "Saving..." else "Save Profile",
+                    text = if (viewModel.isSaving) stringResource(R.string.saving) else stringResource(R.string.save_profile),
                     onClick = { viewModel.saveProfile(onBack) },
                     enabled = viewModel.pubkey != null && !viewModel.isSaving,
                     modifier = Modifier.weight(1f)
