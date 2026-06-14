@@ -96,7 +96,7 @@ class NostrSyncManager(
                     relayPool.subscribe(url, "my_receipts_sync", receiptFilter)
                     
                     // 5. Product/Token events (Self)
-                    val inventoryFilter = """{"kinds": [30017, 30018, 35001], "authors": ["$myPubkey"]}"""
+                    val inventoryFilter = """{"kinds": [30017, 30018, 35001, 35002], "authors": ["$myPubkey"]}"""
                     relayPool.subscribe(url, "my_inventory_sync", inventoryFilter)
                 }
             }

@@ -40,7 +40,7 @@ class ChatRepository(
         return KianKeys.bytesToHex(KianKeys.getPubKey(KianKeys.hexToBytes(privKeyHex)))
     }
 
-    suspend fun sendMessage(contactPubkey: String, content: String) {
+    suspend fun sendMessage(contactPubkey: String, content: String, metadata: String? = null) {
         val myPrivKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: return
         val myPrivKey = KianKeys.hexToBytes(myPrivKeyHex)
         val myPubKey = KianKeys.bytesToHex(KianKeys.getPubKey(myPrivKey))
@@ -49,7 +49,11 @@ class ChatRepository(
         val kind = 14 // Chat Message Rumor
         
         // 1. Create the Rumor
-        val tags = listOf(listOf("p", contactPubkey))
+        val tags = mutableListOf(listOf("p", contactPubkey))
+        if (metadata != null) {
+            tags.add(listOf("metadata", metadata))
+        }
+        
         val id = KianKeys.computeEventId(myPubKey, createdAt, kind, tags, content)
         
         val rumor = NostrEvent(
@@ -59,12 +63,12 @@ class ChatRepository(
             kind = kind,
             tags = tags,
             content = content,
-            sig = "" // Rumors are unsigned or signed in Seal
+            sig = "" 
         )
 
         val rumorJson = json.encodeToString(rumor)
 
-        // 2. Wrap for RECIPIENT
+        // 2. Wrap for RECIPIENT ... (rest same)
         val giftWrapToRecipient = Nip59.giftWrap(
             innerEventJson = rumorJson,
             senderPrivKey = myPrivKey,
@@ -72,7 +76,7 @@ class ChatRepository(
             innerEventPubkey = myPubKey
         )
         
-        // 3. Wrap for SENDER (Self-Sync like Amethyst)
+        // 3. Wrap for SENDER
         val giftWrapToSelf = Nip59.giftWrap(
             innerEventJson = rumorJson,
             senderPrivKey = myPrivKey,
@@ -89,27 +93,24 @@ class ChatRepository(
             content = content,
             kind = kind,
             isMine = true,
-            status = "pending" // Show as pending until confirmed by a relay
+            status = "pending",
+            metadata = metadata
         )
         chatDao.insertMessage(message)
         updateConversation(contactPubkey, content, createdAt)
 
-        // 5. Publish to Recipient's Inbox + My Outbox
+        // ... publish logic
         val recipientInbox = relayDao.getDmInboxRelayUrls(contactPubkey)
-        val myOutbox = relayDao.getDmInboxRelayUrls(myPubKey) // Kind 10050/10002
-        
+        val myOutbox = relayDao.getDmInboxRelayUrls(myPubKey)
         val targetRelays = (recipientInbox + myOutbox).distinct()
-        
         nostrSyncManager.publishEvent(giftWrapToRecipient, targetRelays)
         nostrSyncManager.publishEvent(giftWrapToSelf, myOutbox)
     }
 
     suspend fun handleChatMessage(event: NostrEvent) {
         repoMutex.withLock {
-            // Check if message already exists
             val existing = chatDao.getMessageById(event.id)
             if (existing != null) {
-                // If it was pending, mark as sent now that we see it on a relay
                 if (existing.status == "pending") {
                     chatDao.updateMessageStatus(event.id, "sent")
                 }
@@ -119,16 +120,14 @@ class ChatRepository(
             val myPrivKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: return@withLock
             val myPubKey = KianKeys.bytesToHex(KianKeys.getPubKey(KianKeys.hexToBytes(myPrivKeyHex)))
             
-            // The contact is the person I'm talking to. 
-            // If I sent it, the contact is the 'p' tag. 
-            // If I received it, the contact is the sender (event.pubkey).
-            
             val isMine = event.pubkey == myPubKey
             val contactPubkey = if (isMine) {
                 event.tags.find { it.size >= 2 && it[0] == "p" }?.get(1) ?: return@withLock
             } else {
                 event.pubkey
             }
+
+            val metadata = event.tags.find { it.size >= 2 && it[0] == "metadata" }?.get(1)
 
             val message = ChatMessage(
                 id = event.id,
@@ -137,7 +136,8 @@ class ChatRepository(
                 createdAt = event.createdAt,
                 content = event.content,
                 kind = event.kind,
-                isMine = isMine
+                isMine = isMine,
+                metadata = metadata
             )
             
             chatDao.insertMessage(message)
@@ -177,6 +177,14 @@ class ChatRepository(
         if (unread.isNotEmpty()) {
             sendReceipt(contactPubkey, unread.map { it.id }, 20002)
         }
+    }
+
+    suspend fun updateMessageStatus(messageId: String, status: String) {
+        chatDao.updateMessageStatus(messageId, status)
+    }
+
+    suspend fun updateMessageStatusByMetadata(metadataPart: String, status: String) {
+        chatDao.updateMessageStatusByMetadata(metadataPart, status)
     }
 
     private suspend fun sendReceipt(contactPubkey: String, eventIds: List<String>, kind: Int) {

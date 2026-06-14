@@ -49,6 +49,12 @@ interface ChatDao {
     @Query("SELECT id FROM chat_messages WHERE contactPubkey = :contactPubkey AND pubkey = :myPubkey")
     suspend fun getOwnMessageIdsForContact(contactPubkey: String, myPubkey: String): List<String>
 
+    @Query("UPDATE chat_messages SET status = :status WHERE metadata LIKE '%' || :metadataPart || '%'")
+    suspend fun updateMessageStatusByMetadata(metadataPart: String, status: String)
+
+    @Query("SELECT * FROM chat_messages WHERE metadata LIKE '%' || :metadataPart || '%' LIMIT 1")
+    suspend fun getMessageByMetadata(metadataPart: String): ChatMessage?
+
     @Query("SELECT SUM(unreadCount) FROM conversations")
     fun getTotalUnreadCount(): Flow<Int?>
 }

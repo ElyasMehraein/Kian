@@ -8,18 +8,22 @@ import com.ely.kian.data.local.entities.ChatMessage
 import com.ely.kian.data.local.entities.Conversation
 import com.ely.kian.data.local.entities.Product
 import com.ely.kian.data.local.entities.Profile
+import com.ely.kian.data.repository.BalanceItem
 import com.ely.kian.data.repository.ChatRepository
 import com.ely.kian.data.repository.ProductRepository
 import com.ely.kian.data.repository.TokenRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.*
 
 class ChatViewModel(
     private val repository: ChatRepository,
     private val userProfileDao: UserProfileDao,
     private val productRepository: ProductRepository,
-    private val tokenRepository: TokenRepository
+    val tokenRepository: TokenRepository
 ) : ViewModel() {
+
+    fun getUtxos() = tokenRepository.getUtxos()
 
     val conversations: StateFlow<List<Conversation>> = repository.getConversations()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -47,20 +51,74 @@ class ChatViewModel(
     fun sendProductAsToken(contactPubkey: String, productId: String, quantity: Long) {
         viewModelScope.launch {
             try {
-                tokenRepository.mintProduct(contactPubkey, productId, quantity)
-                
-                // Fetch the product name to include in the notification message
                 val ownPubkey = repository.getOwnPubkey() ?: return@launch
                 val products = productRepository.getProducts(ownPubkey).first()
-                val product = products.find { it.id == productId }
-                val productName = product?.name ?: "a product"
+                val product = products.find { it.id == productId } ?: return@launch
+                val productName = product.name
 
-                repository.sendMessage(contactPubkey, "🎁 Sent you $quantity tokens for: $productName")
+                tokenRepository.mintProduct(contactPubkey, productId, quantity)
+
+                val metadata = buildJsonObject {
+                    put("type", "token_mint")
+                    put("product_id", productId)
+                    put("product_name", productName)
+                    put("amount", quantity)
+                }.toString()
+
+                repository.sendMessage(contactPubkey, "📦 $quantity x $productName", metadata)
             } catch (e: Exception) {
                 android.util.Log.e("ChatViewModel", "Failed to mint product", e)
             }
         }
     }
+
+    fun sendToken(contactPubkey: String, utxoId: String, amount: Long) {
+        viewModelScope.launch {
+            try {
+                val allUtxos = tokenRepository.getUtxos().first()
+                val utxo = allUtxos.find { it.utxoId == utxoId } ?: return@launch
+                
+                val balances = tokenRepository.getBalances().first()
+                val balance = balances.find { it.assetRef == utxo.assetRef }
+                val assetName = balance?.name ?: "Tokens"
+                
+                tokenRepository.sendTokenTransfer(utxoId, amount, contactPubkey)
+                
+                val isToProducer = contactPubkey == utxo.producer
+                
+                val metadata = buildJsonObject {
+                    put("type", if (isToProducer) "token_redemption" else "token_transfer")
+                    put("utxo_id", utxoId) // Keep original UTXO ID for confirmation tracking
+                    put("asset_name", assetName)
+                    put("amount", amount)
+                    put("producer", utxo.producer)
+                }.toString()
+
+                val summary = if (isToProducer) "🛒 $amount x $assetName" else "💸 $amount x $assetName"
+                repository.sendMessage(contactPubkey, summary, metadata)
+            } catch (e: Exception) {
+                android.util.Log.e("ChatViewModel", "Failed to send token", e)
+            }
+        }
+    }
+
+    fun confirmProductReceipt(messageId: String, contactPubkey: String, transferEventId: String) {
+        viewModelScope.launch {
+            try {
+                tokenRepository.confirmReceipt(transferEventId, contactPubkey)
+                // Update local message status
+                repository.updateMessageStatus(messageId, "received")
+            } catch (e: Exception) {
+                android.util.Log.e("ChatViewModel", "Failed to confirm receipt", e)
+            }
+        }
+    }
+
+    fun getBalances(): StateFlow<List<BalanceItem>> {
+        return tokenRepository.getBalances()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    }
+
 
     fun sendMessage(contactPubkey: String, content: String) {
         viewModelScope.launch {

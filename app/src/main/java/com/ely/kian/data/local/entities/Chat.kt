@@ -16,7 +16,8 @@ data class ChatMessage(
     val content: String,
     val kind: Int,
     val isMine: Boolean,
-    val status: String = "sent" // sent, delivered, read
+    val status: String = "sent", // sent, delivered, read, pending, waiting_auth, semi_burnt, received
+    val metadata: String? = null // For tokens, products, etc.
 )
 
 @Entity(tableName = "conversations")

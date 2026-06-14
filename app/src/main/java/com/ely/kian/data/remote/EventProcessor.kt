@@ -45,6 +45,31 @@ class EventProcessor(
                 35001, 35002 -> {
                     Log.i(TAG, "Processing Token Event (Kind ${event.kind})")
                     tokenRepository.handleTokenEvent(event)
+                    
+                    if (event.kind == 35002) {
+                        // Update chat message status if it was a remint from a transfer
+                        try {
+                            val contentObj = json.parseToJsonElement(event.content).jsonObject
+                            val prevUtxoId = contentObj["previous_utxo"]?.jsonPrimitive?.content
+                            if (prevUtxoId != null) {
+                                // If I am the sender, my message status becomes 'delivered' (verified)
+                                // If I am the recipient, this helps the UI 'isConfirmed' check
+                                chatRepository.updateMessageStatusByMetadata(prevUtxoId, "delivered")
+                            }
+                        } catch (e: Exception) {}
+                    }
+                }
+                1050 -> {
+                    Log.i(TAG, "Processing Token Transfer Request (Kind 1050)")
+                    tokenRepository.handleTokenEvent(event)
+                }
+                1051 -> {
+                    Log.i(TAG, "Processing Receipt Confirmation (Kind 1051)")
+                    tokenRepository.handleTokenEvent(event)
+                    val targetId = event.tags.find { it.size >= 2 && it[0] == "e" }?.get(1)
+                    if (targetId != null) {
+                        chatRepository.updateMessageStatusByMetadata(targetId, "received")
+                    }
                 }
                 else -> Log.w(TAG, "Unhandled event kind=${event.kind}")
             }

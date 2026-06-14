@@ -32,7 +32,7 @@ import com.ely.kian.crypto.KianKeys
 import com.ely.kian.ui.screens.chat.components.ChatBubbleLayout
 import com.ely.kian.ui.theme.KianTheme
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,7 +49,9 @@ fun ChatroomScreen(
     var contactName by remember { mutableStateOf(contactPubkey.take(8) + "...") }
     
     var showProductPicker by remember { mutableStateOf(false) }
+    var showTokenPicker by remember { mutableStateOf(false) }
     val myProducts by viewModel.getMyProducts().collectAsState(initial = emptyList())
+    val myBalances by viewModel.getBalances().collectAsState()
     
     val kianColors = KianTheme.colors
     val listState = androidx.compose.foundation.lazy.rememberLazyListState()
@@ -113,6 +115,7 @@ fun ChatroomScreen(
                         }
                     },
                     onProductClick = { showProductPicker = true },
+                    onTokenClick = { showTokenPicker = true },
                     colors = kianColors
                 )
             }
@@ -136,6 +139,24 @@ fun ChatroomScreen(
             }
         }
 
+        if (showTokenPicker) {
+            ModalBottomSheet(
+                onDismissRequest = { showTokenPicker = false },
+                sheetState = sheetState,
+                containerColor = kianColors.canvas
+            ) {
+                TokenPickerContent(
+                    balances = myBalances,
+                    utxos = viewModel.tokenRepository.getUtxos().collectAsState(initial = emptyList()).value,
+                    colors = kianColors,
+                    onTokenSelected = { utxoId, amount ->
+                        viewModel.sendToken(contactPubkey, utxoId, amount)
+                        showTokenPicker = false
+                    }
+                )
+            }
+        }
+
         LazyColumn(
             state = listState,
             modifier = Modifier
@@ -153,42 +174,14 @@ fun ChatroomScreen(
                     colors = kianColors,
                     onLongClick = { showMenu = true }
                 ) {
-                    val textColor = if (message.isMine) Color.White else kianColors.ink
-                    
-                    Column {
-                        Text(
-                            text = message.content, 
-                            color = textColor, 
-                            fontSize = 16.sp,
-                            lineHeight = 22.sp
-                        )
-                        Row(
-                            modifier = Modifier.align(Alignment.End).padding(top = 2.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = formatTimestamp(message.createdAt),
-                                fontSize = 11.sp,
-                                color = textColor.copy(alpha = 0.7f)
-                            )
-                            if (message.isMine) {
-                                Spacer(modifier = Modifier.width(6.dp))
-                                val icon = when (message.status) {
-                                    "read" -> Icons.Default.DoneAll
-                                    "delivered" -> Icons.Default.DoneAll
-                                    "sent" -> Icons.Default.Check
-                                    else -> Icons.Default.Check // pending or others
-                                }
-                                val tint = if (message.status == "read") Color(0xFF4ADE80) else textColor.copy(alpha = 0.6f)
-                                Icon(
-                                    imageVector = icon,
-                                    contentDescription = message.status,
-                                    modifier = Modifier.size(17.dp),
-                                    tint = tint
-                                )
-                            }
+                    MessageContent(
+                        message = message,
+                        viewModel = viewModel,
+                        colors = kianColors,
+                        onActionClick = { 
+                            // Handle custom actions like "Confirm Receipt"
                         }
-                    }
+                    )
                     
                     DropdownMenu(
                         expanded = showMenu,
@@ -256,6 +249,349 @@ fun ReplyPreview(message: ChatMessage, colors: com.ely.kian.ui.theme.KianColors,
         }
     }
 }
+
+@Composable
+fun MessageContent(
+    message: ChatMessage,
+    viewModel: ChatViewModel,
+    colors: com.ely.kian.ui.theme.KianColors,
+    onActionClick: () -> Unit
+) {
+    val textColor = if (message.isMine) Color.White else colors.ink
+    val metadata = remember(message.metadata) {
+        try {
+            message.metadata?.let { Json.parseToJsonElement(it).jsonObject }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    Column {
+        if (metadata != null) {
+            TokenMessageCard(message, metadata, viewModel, colors)
+        } else {
+            Text(
+                text = message.content,
+                color = textColor,
+                fontSize = 16.sp,
+                lineHeight = 22.sp
+            )
+        }
+
+        Row(
+            modifier = Modifier.align(Alignment.End).padding(top = 2.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = formatTimestamp(message.createdAt),
+                fontSize = 11.sp,
+                color = textColor.copy(alpha = 0.7f)
+            )
+            if (message.isMine) {
+                Spacer(modifier = Modifier.width(6.dp))
+                val icon = when (message.status) {
+                    "read" -> Icons.Default.DoneAll
+                    "delivered" -> Icons.Default.DoneAll
+                    "sent" -> Icons.Default.Check
+                    "received" -> Icons.Default.CheckCircle
+                    else -> Icons.Default.Check
+                }
+                val tint = if (message.status == "read" || message.status == "received") Color(0xFF4ADE80) else textColor.copy(alpha = 0.6f)
+                Icon(
+                    imageVector = icon,
+                    contentDescription = message.status,
+                    modifier = Modifier.size(17.dp),
+                    tint = tint
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun TokenMessageCard(
+    message: ChatMessage,
+    metadata: JsonObject,
+    viewModel: ChatViewModel,
+    colors: com.ely.kian.ui.theme.KianColors
+) {
+    val type = metadata["type"]?.jsonPrimitive?.content ?: ""
+    val assetName = metadata["asset_name"]?.jsonPrimitive?.content ?: "Token"
+    val amount = metadata["amount"]?.jsonPrimitive?.content ?: ""
+    val utxoId = metadata["utxo_id"]?.jsonPrimitive?.content
+    
+    val isMine = message.isMine
+    val cardColor = if (isMine) colors.accent.copy(alpha = 0.2f) else colors.panel
+    val borderColor = if (isMine) colors.accent.copy(alpha = 0.4f) else colors.line
+    
+    // Check for "Live Status"
+    val myUtxos by viewModel.getUtxos().collectAsState(initial = emptyList())
+    val isConfirmed = remember(myUtxos, utxoId) {
+        utxoId != null && myUtxos.any { it.prevUtxoId == utxoId }
+    }
+
+    Surface(
+        color = cardColor,
+        shape = RoundedCornerShape(16.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, borderColor),
+        modifier = Modifier.padding(vertical = 4.dp).fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    color = colors.accent.copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = when(type) {
+                                "token_mint" -> Icons.Default.CardGiftcard
+                                "token_redemption" -> Icons.Default.LocalShipping
+                                else -> Icons.Default.Send
+                            },
+                            contentDescription = null,
+                            tint = colors.accent,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.width(12.dp))
+                
+                Column {
+                    Text(
+                        text = when(type) {
+                            "token_mint" -> "Genesis Mint"
+                            "token_redemption" -> "Product Redemption"
+                            else -> "Token Transfer"
+                        },
+                        fontSize = 12.sp,
+                        color = colors.muted,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = "$amount $assetName",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isMine) Color.White else colors.ink
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Status Section
+            val statusText = when {
+                message.status == "received" -> "Order Completed"
+                isConfirmed || message.status == "delivered" -> "Verified by Producer"
+                type == "token_mint" -> "Issued"
+                type == "token_redemption" -> if (isMine) "Waiting for Delivery..." else "Pending Delivery"
+                else -> "Authenticating..."
+            }
+            
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (!isConfirmed && message.status != "delivered" && message.status != "received" && type != "token_mint") {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(12.dp),
+                        strokeWidth = 2.dp,
+                        color = colors.accent.copy(alpha = 0.6f)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = Color(0xFF4ADE80),
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                }
+                Text(
+                    statusText,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = if (isConfirmed || message.status == "delivered" || message.status == "received" || type == "token_mint") Color(0xFF4ADE80) else colors.muted
+                )
+            }
+
+            // Action Buttons
+            if (type == "token_redemption" && isMine && message.status != "received") {
+                Spacer(modifier = Modifier.height(12.dp))
+                var showConfirmDialog by remember { mutableStateOf(false) }
+
+                Button(
+                    onClick = { showConfirmDialog = true },
+                    colors = ButtonDefaults.buttonColors(containerColor = colors.accent),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Text("Confirm Receipt", color = Color.White, fontSize = 14.sp)
+                }
+
+                if (showConfirmDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showConfirmDialog = false },
+                        title = { Text("Confirm Delivery") },
+                        text = { Text("Confirmation means you have received the product with the specified quality and quantity. This action is irreversible.") },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                if (utxoId != null) {
+                                    viewModel.confirmProductReceipt(message.id, message.contactPubkey, utxoId)
+                                }
+                                showConfirmDialog = false
+                            }) {
+                                Text("Confirm", color = colors.accent, fontWeight = FontWeight.Bold)
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showConfirmDialog = false }) {
+                                Text("Cancel", color = colors.muted)
+                            }
+                        },
+                        containerColor = colors.panel,
+                        titleContentColor = colors.ink,
+                        textContentColor = colors.ink
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TokenPickerContent(
+    balances: List<com.ely.kian.data.repository.BalanceItem>,
+    utxos: List<com.ely.kian.data.local.entities.TokenUtxo>,
+    colors: com.ely.kian.ui.theme.KianColors,
+    onTokenSelected: (String, Long) -> Unit
+) {
+    var selectedBalance by remember { mutableStateOf<com.ely.kian.data.repository.BalanceItem?>(null) }
+    var quantityText by remember { mutableStateOf("1") }
+    
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .padding(top = 8.dp, bottom = 40.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .width(40.dp)
+                .height(4.dp)
+                .background(colors.line, RoundedCornerShape(2.dp))
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        if (selectedBalance == null) {
+            Text("Select Token to Send", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = colors.ink)
+            Text("You can send your digital tokens to others or redeem them from the producer.", fontSize = 14.sp, color = colors.muted, modifier = Modifier.padding(top = 4.dp, bottom = 24.dp))
+            
+            if (balances.isEmpty()) {
+                Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                    Text("You don't have any tokens yet.", color = colors.muted)
+                }
+            } else {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.heightIn(max = 400.dp)) {
+                    items(balances) { balance ->
+                        Surface(
+                            onClick = { selectedBalance = balance },
+                            color = colors.panel,
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Surface(shape = RoundedCornerShape(10.dp), color = colors.accent.copy(alpha = 0.1f), modifier = Modifier.size(52.dp)) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(balance.name.take(1).uppercase(), fontWeight = FontWeight.Bold, color = colors.accent, fontSize = 18.sp)
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(balance.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = colors.ink)
+                                    Text("${balance.amount} ${balance.unit} available", fontSize = 13.sp, color = colors.muted)
+                                }
+                                Icon(Icons.Default.ChevronRight, contentDescription = null, tint = colors.muted)
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { selectedBalance = null }) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = colors.ink)
+                }
+                Text("Set Amount", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = colors.ink)
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            Surface(color = colors.panel, shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
+                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(selectedBalance!!.name, fontWeight = FontWeight.Bold, color = colors.ink)
+                        Text("Balance: ${selectedBalance!!.amount}", fontSize = 12.sp, color = colors.accent)
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = { 
+                    val q = quantityText.toLongOrNull() ?: 1L
+                    if (q > 1) quantityText = (q - 1).toString()
+                }) {
+                    Icon(Icons.Default.Remove, contentDescription = null, tint = colors.ink)
+                }
+                
+                TextField(
+                    value = quantityText,
+                    onValueChange = { if (it.all { c -> c.isDigit() }) quantityText = it },
+                    modifier = Modifier.width(120.dp),
+                    textStyle = androidx.compose.ui.text.TextStyle(textAlign = androidx.compose.ui.text.style.TextAlign.Center, fontSize = 24.sp, fontWeight = FontWeight.Bold),
+                    colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent)
+                )
+                
+                IconButton(onClick = { 
+                    val q = quantityText.toLongOrNull() ?: 0L
+                    if (q < selectedBalance!!.amount) quantityText = (q + 1).toString()
+                }) {
+                    Icon(Icons.Default.Add, contentDescription = null, tint = colors.ink)
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(32.dp))
+            
+            Button(
+                onClick = { 
+                    val q = quantityText.toLongOrNull() ?: 1L
+                    // Find a UTXO that has enough balance. 
+                    // Simplified: just pick the first one that has ANY balance and let the repo handle splitting/merging?
+                    // Actually, sendTokenTransfer currently takes a specific UTXO ID.
+                    val utxo = utxos.filter { it.assetRef == selectedBalance!!.assetRef && !it.spent }.maxByOrNull { it.amount }
+                    if (utxo != null) {
+                        onTokenSelected(utxo.utxoId, q)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = colors.accent)
+            ) {
+                Text("Confirm and Send", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            }
+        }
+    }
+}
+
 
 @Composable
 fun ProductPickerContent(
@@ -466,6 +802,7 @@ fun ChatInput(
     onTextChange: (String) -> Unit,
     onSend: () -> Unit,
     onProductClick: () -> Unit,
+    onTokenClick: () -> Unit,
     colors: com.ely.kian.ui.theme.KianColors
 ) {
     Surface(
@@ -482,6 +819,10 @@ fun ChatInput(
         ) {
             IconButton(onClick = onProductClick) {
                 Icon(Icons.Default.Inventory2, contentDescription = "Send Product", tint = colors.accent)
+            }
+            
+            IconButton(onClick = onTokenClick) {
+                Icon(Icons.Default.ConfirmationNumber, contentDescription = "Send Token", tint = colors.accent)
             }
 
             TextField(

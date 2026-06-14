@@ -1,5 +1,6 @@
 package com.ely.kian.data.repository
 
+import android.util.Log
 import com.ely.kian.crypto.KianKeys
 import com.ely.kian.crypto.Nip59
 import com.ely.kian.crypto.SecureStorage
@@ -43,6 +44,7 @@ class TokenRepository(
     private val secureStorage: SecureStorage,
     private val syncManagerProvider: () -> NostrSyncManager
 ) {
+    private val TAG = "TokenRepository"
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
     private val syncManager by lazy { syncManagerProvider() }
 
@@ -174,12 +176,14 @@ class TokenRepository(
 
     private data class ParsedAsset(val producer: String, val assetId: String)
 
-    suspend fun sendTokenTransfer(utxoId: String, amount: Long, recipientPubkey: String) {
-        val key = keyDao.getKey() ?: throw Exception("No key found")
-        val pubkey = key.pubkey
+    suspend fun sendTokenTransfer(utxoId: String, amount: Long, recipientPubkey: String): String {
+        val privKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: throw Exception("No key found")
+        val privKey = KianKeys.hexToBytes(privKeyHex)
+        val myPubkey = KianKeys.bytesToHex(KianKeys.getPubKey(privKey))
+        
         val utxo = tokenDao.getUtxo(utxoId) ?: throw Exception("Selected token entry is unavailable")
 
-        if (utxo.owner != pubkey) {
+        if (utxo.owner != myPubkey) {
             throw Exception("You can only send token entries you own")
         }
 
@@ -191,26 +195,69 @@ class TokenRepository(
             throw Exception("Enter a valid token amount")
         }
 
-        // 1. Send Transfer Request (Kind 1050) to the Producer
-        // In Kian, the producer must approve transfers (NIP-protocol.md 2.4)
+        val isToProducer = recipientPubkey == utxo.producer
+
+        // 1. Create Kind 1050 Transfer Request
         val createdAt = System.currentTimeMillis() / 1000
-        val content = """{"utxo_id": "$utxoId", "asset_ref": "${utxo.assetRef}", "amount": $amount, "recipient": "$recipientPubkey"}"""
+        val content = buildJsonObject {
+            put("utxo_id", utxoId)
+            put("asset_ref", utxo.assetRef)
+            put("amount", amount)
+            put("recipient", recipientPubkey)
+            if (isToProducer) {
+                put("type", "redemption")
+            }
+        }.toString()
         
-        // Tags for Kind 1050: Producer (p) and UTXO (e)
         val tags = listOf(
             listOf("p", utxo.producer),
-            listOf("e", utxoId)
+            listOf("e", utxoId),
+            listOf("t", "token_transfer")
         )
 
-        // TODO: In a real NIP-17 implementation, this would be wrapped in NIP-59
-        // For now, we use the direct publish pattern or similar
-        // Actually, we should probably add this to a generic event publisher
+        val id = KianKeys.computeEventId(myPubkey, createdAt, 1050, tags, content)
+        val sig = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(id), privKey))
+
+        val event = NostrEvent(
+            id = id,
+            pubkey = myPubkey,
+            createdAt = createdAt,
+            kind = 1050,
+            tags = tags,
+            content = content,
+            sig = sig
+        )
+
+        // 2. Wrap and Publish
+        val rumorJson = json.encodeToString(NostrEvent.serializer(), event)
         
-        // Marking as spent locally
+        // Wrap for Producer (Verification)
+        val giftWrapToProducer = Nip59.giftWrap(
+            innerEventJson = rumorJson,
+            senderPrivKey = privKey,
+            recipientPubKey = KianKeys.hexToBytes(utxo.producer),
+            innerEventPubkey = myPubkey
+        )
+        
+        // Wrap for Recipient (Notification) - if not producer
+        if (!isToProducer) {
+            val giftWrapToRecipient = Nip59.giftWrap(
+                innerEventJson = rumorJson,
+                senderPrivKey = privKey,
+                recipientPubKey = KianKeys.hexToBytes(recipientPubkey),
+                innerEventPubkey = myPubkey
+            )
+            val recipientInbox = relayDao.getDmInboxRelayUrls(recipientPubkey)
+            syncManager.publishEvent(giftWrapToRecipient, recipientInbox)
+        }
+
+        val producerInbox = relayDao.getDmInboxRelayUrls(utxo.producer)
+        syncManager.publishEvent(giftWrapToProducer, producerInbox)
+
+        // 3. Update local state
         tokenDao.markSpent(utxoId)
         
-        // Note: The Expo code also sends a notification to the recipient
-        // to inform them of the pending transfer.
+        return id
     }
 
     suspend fun mintProduct(recipientPubkey: String, productId: String, quantity: Long) {
@@ -306,12 +353,193 @@ class TokenRepository(
         syncManager.publishEvent(giftWrapToSelf, myOutbox)
     }
 
+    suspend fun confirmReceipt(transferEventId: String, recipientPubkey: String) {
+        val privKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: return
+        val privKey = KianKeys.hexToBytes(privKeyHex)
+        val myPubkey = KianKeys.bytesToHex(KianKeys.getPubKey(privKey))
+        
+        val createdAt = System.currentTimeMillis() / 1000
+        val content = "I have received the product and confirmed the quality."
+        val tags = listOf(
+            listOf("e", transferEventId),
+            listOf("p", recipientPubkey),
+            listOf("t", "receipt_confirmation")
+        )
+
+        val id = KianKeys.computeEventId(myPubkey, createdAt, 1051, tags, content)
+        val sig = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(id), privKey))
+
+        val event = NostrEvent(id, myPubkey, createdAt, 1051, tags, content, sig)
+        val rumorJson = json.encodeToString(NostrEvent.serializer(), event)
+        
+        val giftWrap = Nip59.giftWrap(rumorJson, privKey, KianKeys.hexToBytes(recipientPubkey), myPubkey)
+        syncManager.publishEvent(giftWrap)
+    }
+
     suspend fun handleTokenEvent(event: com.ely.kian.data.remote.model.NostrEvent) {
         when (event.kind) {
             35001 -> handleGenesis(event)
             35002 -> handleRemint(event)
+            1050 -> handleTransferRequest(event)
+            1051 -> handleReceiptConfirmation(event)
         }
     }
+
+    private suspend fun handleTransferRequest(event: NostrEvent) {
+        val myPrivKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: return
+        val myPrivKey = KianKeys.hexToBytes(myPrivKeyHex)
+        val myPubkey = KianKeys.bytesToHex(KianKeys.getPubKey(myPrivKey))
+        
+        // Only process if I am the producer
+        val pTag = event.tags.find { it.size >= 2 && it[0] == "p" }?.get(1)
+        if (pTag != myPubkey) return
+
+        try {
+            val contentObj = json.parseToJsonElement(event.content).jsonObject
+            val utxoId = contentObj["utxo_id"]?.jsonPrimitive?.content ?: return
+            val amount = contentObj["amount"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
+            val recipient = contentObj["recipient"]?.jsonPrimitive?.content ?: return
+            val assetRef = contentObj["asset_ref"]?.jsonPrimitive?.content ?: return
+            val isRedemption = contentObj["type"]?.jsonPrimitive?.content == "redemption"
+
+            // 1. Verify authenticity
+            val existingUtxo = tokenDao.getUtxo(utxoId)
+            if (existingUtxo == null || existingUtxo.producer != myPubkey) {
+                Log.w(TAG, "Received transfer request for unknown or invalid UTXO: $utxoId")
+                return
+            }
+            
+            // If the sender is NOT me, and the UTXO is already spent, it's a double spend attempt.
+            // If the sender IS me, it's already marked as spent in sendTokenTransfer() locally, 
+            // so we should proceed to issue the remint for the recipient.
+            if (event.pubkey != myPubkey && existingUtxo.spent) {
+                Log.w(TAG, "Double spend attempt: UTXO $utxoId already spent")
+                return
+            }
+
+            // 2. Mark as spent (Burn) - if not already done
+            if (!existingUtxo.spent) {
+                tokenDao.markSpent(utxoId)
+            }
+
+            if (isRedemption) {
+                Log.i(TAG, "Token redemption request received from ${event.pubkey}")
+                _notifications.emit("🎁 Product redemption request from ${event.pubkey}")
+            } else {
+                // 3. Issue Kind 35002 (Remint) for Recipient
+                issueRemint(recipient, assetRef, amount, utxoId, myPrivKey)
+                
+                // If the sender is not the recipient, also notify the sender by sending them a gift-wrapped copy 
+                // of the recipient's remint. They will ignore the balance part but use it for UI confirmation.
+                if (event.pubkey != recipient) {
+                    notifySenderOfApproval(event.pubkey, recipient, assetRef, amount, utxoId, myPrivKey)
+                }
+
+                // 4. Issue Kind 35002 (Remint) for Sender (Change) if any
+                val change = existingUtxo.amount - amount
+                if (change > 0) {
+                    issueRemint(event.pubkey, assetRef, change, utxoId, myPrivKey)
+                }
+                
+                Log.i(TAG, "Approved token transfer: $amount from ${event.pubkey} to $recipient")
+                _notifications.emit("✅ Approved token transfer ($amount units) to $recipient")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to handle transfer request", e)
+        }
+    }
+
+    private suspend fun notifySenderOfApproval(
+        senderPubkey: String,
+        recipientPubkey: String,
+        assetRef: String,
+        amount: Long,
+        prevUtxoId: String,
+        myPrivKey: ByteArray
+    ) {
+        val myPubkey = KianKeys.bytesToHex(KianKeys.getPubKey(myPrivKey))
+        val createdAt = System.currentTimeMillis() / 1000
+        
+        val content = buildJsonObject {
+            put("amount", amount)
+            put("previous_utxo", prevUtxoId)
+            put("status", "approved")
+        }.toString()
+
+        val tags = listOf(
+            listOf("a", assetRef),
+            listOf("p", recipientPubkey) // Still points to recipient
+        )
+
+        val id = KianKeys.computeEventId(myPubkey, createdAt, 35002, tags, content)
+        val sig = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(id), myPrivKey))
+
+        val remintEvent = NostrEvent(id, myPubkey, createdAt, 35002, tags, content, sig)
+        val rumorJson = json.encodeToString(NostrEvent.serializer(), remintEvent)
+        
+        // Wrap for SENDER
+        val giftWrap = Nip59.giftWrap(rumorJson, myPrivKey, KianKeys.hexToBytes(senderPubkey), myPubkey)
+        val senderInbox = relayDao.getDmInboxRelayUrls(senderPubkey)
+        syncManager.publishEvent(giftWrap, senderInbox)
+    }
+
+    private suspend fun handleReceiptConfirmation(event: NostrEvent) {
+        val myPubkey = keyDao.getKey()?.pubkey ?: return
+        val pTag = event.tags.find { it.size >= 2 && it[0] == "p" }?.get(1)
+        if (pTag != myPubkey) return
+        
+        val transferEventId = event.tags.find { it.size >= 2 && it[0] == "e" }?.get(1) ?: return
+        
+        // Mark as fully received/burnt
+        Log.i(TAG, "Product receipt confirmed by ${event.pubkey} for transfer $transferEventId")
+        _notifications.emit("Product receipt confirmed by ${event.pubkey}")
+    }
+
+    private suspend fun issueRemint(
+        recipientPubkey: String,
+        assetRef: String,
+        amount: Long,
+        prevUtxoId: String,
+        myPrivKey: ByteArray
+    ) {
+        val myPubkey = KianKeys.bytesToHex(KianKeys.getPubKey(myPrivKey))
+        val createdAt = System.currentTimeMillis() / 1000
+        
+        val content = buildJsonObject {
+            put("amount", amount)
+            put("previous_utxo", prevUtxoId)
+        }.toString()
+
+        val tags = listOf(
+            listOf("a", assetRef),
+            listOf("p", recipientPubkey)
+        )
+
+        val id = KianKeys.computeEventId(myPubkey, createdAt, 35002, tags, content)
+        val sig = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(id), myPrivKey))
+
+        val remintEvent = NostrEvent(id, myPubkey, createdAt, 35002, tags, content, sig)
+        val rumorJson = json.encodeToString(NostrEvent.serializer(), remintEvent)
+        
+        // Wrap and Publish
+        val giftWrap = Nip59.giftWrap(rumorJson, myPrivKey, KianKeys.hexToBytes(recipientPubkey), myPubkey)
+        val recipientInbox = relayDao.getDmInboxRelayUrls(recipientPubkey)
+        syncManager.publishEvent(giftWrap, recipientInbox)
+        
+        // CRITICAL: Producer must save the UTXO it issued to OTHERS to verify future transfers
+        val utxo = TokenUtxo(
+            utxoId = id,
+            assetRef = assetRef,
+            producer = myPubkey,
+            owner = recipientPubkey,
+            amount = amount,
+            prevUtxoId = prevUtxoId,
+            createdAt = createdAt,
+            spent = false
+        )
+        tokenDao.insertUtxo(utxo)
+    }
+
 
     private suspend fun handleGenesis(event: com.ely.kian.data.remote.model.NostrEvent) {
         val dTag = event.tags.find { it.size >= 2 && it[0] == "d" }?.get(1) ?: return
