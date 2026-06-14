@@ -133,14 +133,16 @@ fun MerchantProfileScreen(
                         IconButton(onClick = { /* Share */ }, modifier = Modifier.background(kianColors.canvas.copy(alpha = 0.6f), RoundedCornerShape(12.dp))) {
                             Icon(Icons.Default.Share, contentDescription = "Share", tint = kianColors.ink)
                         }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        IconButton(
-                            onClick = onCart,
-                            modifier = Modifier
-                                .background(kianColors.canvas.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
-                                .onGloballyPositioned { cartIconPosition = it.positionInWindow() }
-                        ) {
-                            Icon(Icons.Default.ShoppingCart, contentDescription = "Cart", tint = kianColors.ink)
+                        if (!isOwnProfile) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            IconButton(
+                                onClick = onCart,
+                                modifier = Modifier
+                                    .background(kianColors.canvas.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
+                                    .onGloballyPositioned { cartIconPosition = it.positionInWindow() }
+                            ) {
+                                Icon(Icons.Default.ShoppingCart, contentDescription = "Cart", tint = kianColors.ink)
+                            }
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                     },
@@ -449,6 +451,7 @@ fun MerchantProfileScreen(
                                 ProductCard(
                                     product = product,
                                     categories = productCats,
+                                    showAddToCart = !isOwnProfile,
                                     onAddToCart = { qty, pos, img ->
                                         flyingImage = img
                                         flyingStart = pos
@@ -606,6 +609,7 @@ fun ProfileStat(label: String, value: String, icon: androidx.compose.ui.graphics
 fun ProductCard(
     product: Product,
     categories: List<com.ely.kian.data.local.entities.ProductCategory>,
+    showAddToCart: Boolean = true,
     onAddToCart: (Int, Offset, String?) -> Unit
 ) {
     val kianColors = KianTheme.colors
@@ -694,52 +698,57 @@ fun ProductCard(
             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
         )
         
-        Spacer(modifier = Modifier.height(20.dp))
-        
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Quantity Selector
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .background(kianColors.line.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
-                    .padding(4.dp)
-            ) {
-                IconButton(
-                    onClick = { if (quantity > 1) quantity-- },
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Text("-", fontWeight = FontWeight.Bold, color = kianColors.ink)
-                }
-                Text(
-                    text = quantity.toString(),
-                    modifier = Modifier.padding(horizontal = 12.dp),
-                    fontWeight = FontWeight.Bold,
-                    color = kianColors.ink
-                )
-                IconButton(
-                    onClick = { quantity++ },
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Text("+", fontWeight = FontWeight.Bold, color = kianColors.ink)
-                }
-            }
+        if (showAddToCart) {
+            Spacer(modifier = Modifier.height(20.dp))
 
-            Button(
-                onClick = { onAddToCart(quantity, itemPosition, imageUrls.firstOrNull()) },
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = kianColors.ink,
-                    contentColor = kianColors.canvas
-                ),
-                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Default.AddShoppingCart, contentDescription = null, modifier = Modifier.size(20.dp))
-                    Text(text = "Add to Cart", fontWeight = FontWeight.Bold)
+                // Quantity Selector
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .background(kianColors.line.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                        .padding(4.dp)
+                ) {
+                    IconButton(
+                        onClick = { if (quantity > 1) quantity-- },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Text("-", fontWeight = FontWeight.Bold, color = kianColors.ink)
+                    }
+                    Text(
+                        text = quantity.toString(),
+                        modifier = Modifier.padding(horizontal = 12.dp),
+                        fontWeight = FontWeight.Bold,
+                        color = kianColors.ink
+                    )
+                    IconButton(
+                        onClick = { quantity++ },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Text("+", fontWeight = FontWeight.Bold, color = kianColors.ink)
+                    }
+                }
+
+                Button(
+                    onClick = { onAddToCart(quantity, itemPosition, imageUrls.firstOrNull()) },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = kianColors.ink,
+                        contentColor = kianColors.canvas
+                    ),
+                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.AddShoppingCart, contentDescription = null, modifier = Modifier.size(20.dp))
+                        Text(text = "Add to Cart", fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
