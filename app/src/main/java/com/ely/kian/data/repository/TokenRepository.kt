@@ -409,18 +409,15 @@ class TokenRepository(
                 return
             }
             
-            // If the sender is NOT me, and the UTXO is already spent, it's a double spend attempt.
-            // If the sender IS me, it's already marked as spent in sendTokenTransfer() locally, 
-            // so we should proceed to issue the remint for the recipient.
-            if (event.pubkey != myPubkey && existingUtxo.spent) {
-                Log.w(TAG, "Double spend attempt: UTXO $utxoId already spent")
+            // If the UTXO is already spent, it means we already processed THIS transfer 
+            // (or another one for the same UTXO). Since Kian spends the whole UTXO, we are idempotent here.
+            if (existingUtxo.spent) {
+                Log.i(TAG, "Transfer request for $utxoId ignored as it is already spent.")
                 return
             }
 
-            // 2. Mark as spent (Burn) - if not already done
-            if (!existingUtxo.spent) {
-                tokenDao.markSpent(utxoId)
-            }
+            // 2. Mark as spent (Burn)
+            tokenDao.markSpent(utxoId)
 
             if (isRedemption) {
                 Log.i(TAG, "Token redemption request received from ${event.pubkey}")
@@ -551,11 +548,11 @@ class TokenRepository(
             
             val contentObj = json.parseToJsonElement(event.content).jsonObject
             
-            // If it's a Genesis, also save the definition for UI display
+            // 1. Upsert definition (safe to repeat)
             val definition = TokenDefinition(
                 assetId = dTag,
                 pubkey = event.pubkey,
-                productId = null, // Can be parsed from d-tag if needed
+                productId = null,
                 name = contentObj["name"]?.jsonPrimitive?.content ?: dTag,
                 description = contentObj["description"]?.jsonPrimitive?.contentOrNull,
                 images = contentObj["images"]?.toString() ?: "[]",
@@ -566,7 +563,10 @@ class TokenRepository(
             )
             tokenDao.upsertDefinition(definition)
 
-            // Only save UTXO if it's for me
+            // 2. Check if already processed to prevent duplicate balance/notifications
+            if (tokenDao.getUtxo(event.id) != null) return
+
+            // 3. Only save UTXO and notify if it's for me
             if (recipient != myPubkey) return
 
             val amount = contentObj["amount"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
@@ -582,9 +582,9 @@ class TokenRepository(
                 spent = false
             )
             tokenDao.insertUtxo(utxo)
-            _notifications.emit("New asset received: ${definition.name} (${amount} ${definition.unit})")
+            _notifications.emit("New asset received: ${definition.name} ($amount ${definition.unit})")
         } catch (e: Exception) {
-            // Log error
+            Log.e(TAG, "Failed to handle genesis", e)
         }
     }
 
@@ -595,7 +595,10 @@ class TokenRepository(
         try {
             val myPubkey = keyDao.getKey()?.pubkey
             
-            // Only save if it's for me
+            // 1. Check if already processed
+            if (tokenDao.getUtxo(event.id) != null) return
+
+            // 2. Only save and notify if it's for me
             if (pTag != myPubkey) return
 
             val contentObj = json.parseToJsonElement(event.content).jsonObject
@@ -622,7 +625,7 @@ class TokenRepository(
             val name = parsed?.let { tokenDao.getDefinition(it.assetId, it.producer)?.name } ?: "Asset"
             _notifications.emit("Token transfer completed: $name ($amount units)")
         } catch (e: Exception) {
-            // Log error
+            Log.e(TAG, "Failed to handle remint", e)
         }
     }
 }
