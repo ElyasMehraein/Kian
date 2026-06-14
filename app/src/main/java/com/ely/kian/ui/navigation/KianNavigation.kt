@@ -303,6 +303,7 @@ fun KianScaffold() {
                             app.container.keyDao,
                             app.container.userProfileDao,
                             app.container.productDao,
+                            app.container.tokenDao,
                             app.container.reviewDao,
                             app.container.secureStorage
                         )

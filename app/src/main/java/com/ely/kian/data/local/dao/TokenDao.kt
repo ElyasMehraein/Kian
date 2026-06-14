@@ -37,4 +37,7 @@ interface TokenDao {
 
     @Query("UPDATE token_definitions SET isShowcase = :isShowcase WHERE assetId = :assetId AND pubkey = :pubkey")
     suspend fun updateShowcase(assetId: String, pubkey: String, isShowcase: Boolean)
+
+    @Query("UPDATE token_definitions SET categories = :categories WHERE assetId = :assetId AND pubkey = :pubkey")
+    suspend fun updateCategories(assetId: String, pubkey: String, categories: String)
 }

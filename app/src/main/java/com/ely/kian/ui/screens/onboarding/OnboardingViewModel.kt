@@ -12,6 +12,7 @@ import com.ely.kian.data.local.dao.KeyDao
 import com.ely.kian.data.local.dao.UserProfileDao
 import com.ely.kian.data.local.dao.ProductDao
 import com.ely.kian.data.local.dao.ReviewDao
+import com.ely.kian.data.local.dao.TokenDao
 import com.ely.kian.data.local.DemoDataSeeder
 import com.ely.kian.data.local.entities.Key
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -30,6 +31,7 @@ class OnboardingViewModel(
     private val keyDao: KeyDao,
     private val userProfileDao: UserProfileDao,
     private val productDao: ProductDao,
+    private val tokenDao: TokenDao,
     private val reviewDao: ReviewDao,
     private val secureStorage: SecureStorage
 ) : ViewModel() {
@@ -39,12 +41,13 @@ class OnboardingViewModel(
             keyDao: KeyDao,
             userProfileDao: UserProfileDao,
             productDao: ProductDao,
+            tokenDao: TokenDao,
             reviewDao: ReviewDao,
             secureStorage: SecureStorage
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return OnboardingViewModel(keyDao, userProfileDao, productDao, reviewDao, secureStorage) as T
+                return OnboardingViewModel(keyDao, userProfileDao, productDao, tokenDao, reviewDao, secureStorage) as T
             }
         }
     }
@@ -176,7 +179,7 @@ class OnboardingViewModel(
                 val pubkeyHex = KianKeys.bytesToHex(pubkeyBytes)
                 
                 // Inject data immediately
-                DemoDataSeeder.forceSeed(pubkeyHex, index, userProfileDao, productDao, reviewDao)
+                DemoDataSeeder.forceSeed(pubkeyHex, index, userProfileDao, productDao, tokenDao, reviewDao)
                 
                 secureStorage.saveSecret(SecureStorage.PRIVATE_KEY, privKeyHex)
                 persistKeyPair(pubkeyHex, "Logged in as Demo Account ${index + 1}.")

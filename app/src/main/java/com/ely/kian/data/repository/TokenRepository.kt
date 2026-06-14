@@ -11,6 +11,7 @@ import com.ely.kian.data.remote.NostrSyncManager
 import com.ely.kian.data.remote.model.NostrEvent
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
 
 data class BalanceItem(
@@ -184,6 +185,38 @@ class TokenRepository(
     suspend fun updateShowcase(assetRef: String, isShowcase: Boolean) {
         val parsed = parseAssetRef(assetRef) ?: return
         tokenDao.updateShowcase(parsed.assetId, parsed.producer, isShowcase)
+    }
+
+    suspend fun updateTokenDetails(
+        assetRef: String,
+        name: String,
+        description: String,
+        categories: List<String>
+    ) {
+        val parsed = parseAssetRef(assetRef) ?: return
+        val existing = tokenDao.getDefinition(parsed.assetId, parsed.producer)
+        if (existing != null) {
+            val updated = existing.copy(
+                name = name,
+                description = description,
+                categories = json.encodeToString(categories)
+            )
+            tokenDao.upsertDefinition(updated)
+        } else {
+            val definition = TokenDefinition(
+                assetId = parsed.assetId,
+                pubkey = parsed.producer,
+                productId = null,
+                name = name,
+                description = description,
+                images = "[]",
+                categories = json.encodeToString(categories),
+                eventId = "",
+                isShowcase = false,
+                createdAt = System.currentTimeMillis() / 1000
+            )
+            tokenDao.upsertDefinition(definition)
+        }
     }
 
     private fun parseAssetRef(assetRef: String): ParsedAsset? {

@@ -93,6 +93,7 @@ fun MerchantProfileScreen(
     var cartIconPosition by remember { mutableStateOf(Offset.Zero) }
     var selectedTab by remember { mutableIntStateOf(0) }
     var showReviewDialog by remember { mutableStateOf(false) }
+    var selectedFilterPath by remember { mutableStateOf<List<com.ely.kian.data.local.entities.ProductCategory>>(emptyList()) }
     
     // Animation states
     var flyingImage by remember { mutableStateOf<String?>(null) }
@@ -113,6 +114,31 @@ fun MerchantProfileScreen(
     val avgRating = remember(reviews) {
         if (reviews.isEmpty()) "0.0"
         else "%.1f".format(reviews.map { it.rating }.average())
+    }
+
+    val filteredProducts = remember(products, selectedFilterPath, categories) {
+        val selectedLeaf = selectedFilterPath.lastOrNull()
+        if (selectedLeaf == null) products
+        else {
+            val allowedIds = getBranchIds(categories, selectedLeaf.id)
+            products.filter { product ->
+                try {
+                    val pCats = Json.decodeFromString<List<String>>(product.categories)
+                    pCats.any { it in allowedIds }
+                } catch (e: Exception) { false }
+            }
+        }
+    }
+
+    val filteredTokens = remember(showcaseTokens, selectedFilterPath, categories) {
+        val selectedLeaf = selectedFilterPath.lastOrNull()
+        if (selectedLeaf == null) showcaseTokens
+        else {
+            val allowedIds = getBranchIds(categories, selectedLeaf.id)
+            showcaseTokens.filter { token ->
+                token.categories.any { it in allowedIds }
+            }
+        }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -322,6 +348,31 @@ fun MerchantProfileScreen(
         else "%.1f".format(reviews.map { it.rating }.average())
     }
 
+    val filteredProducts = remember(products, selectedFilterPath, categories) {
+        val selectedLeaf = selectedFilterPath.lastOrNull()
+        if (selectedLeaf == null) products
+        else {
+            val allowedIds = getBranchIds(categories, selectedLeaf.id)
+            products.filter { product ->
+                try {
+                    val pCats = Json.decodeFromString<List<String>>(product.categories)
+                    pCats.any { it in allowedIds }
+                } catch (e: Exception) { false }
+            }
+        }
+    }
+
+    val filteredTokens = remember(showcaseTokens, selectedFilterPath, categories) {
+        val selectedLeaf = selectedFilterPath.lastOrNull()
+        if (selectedLeaf == null) showcaseTokens
+        else {
+            val allowedIds = getBranchIds(categories, selectedLeaf.id)
+            showcaseTokens.filter { token ->
+                token.categories.any { it in allowedIds }
+            }
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
                                         AndroidView(
                                             modifier = Modifier.fillMaxSize(),
@@ -433,13 +484,29 @@ fun MerchantProfileScreen(
                             }
                         }
                     } else {
-                        items(showcaseTokens) { token ->
+                        item {
+                            CategoryFilterBar(
+                                categories = categories,
+                                selectedPath = selectedFilterPath,
+                                onPathChange = { selectedFilterPath = it }
+                            )
+                        }
+
+                        if (filteredProducts.isEmpty() && filteredTokens.isEmpty()) {
+                            item {
+                                Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
+                                    Text("No items found in this category.", color = kianColors.muted)
+                                }
+                            }
+                        }
+
+                        items(filteredTokens) { token ->
                             Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
                                 ShowcaseTokenCard(token)
                             }
                         }
 
-                        items(products) { product ->
+                        items(filteredProducts) { product ->
                             val productCats = remember(product, categories) {
                                 try {
                                     val ids = Json.decodeFromString<List<String>>(product.categories)
@@ -753,6 +820,72 @@ fun ProductCard(
             }
         }
     }
+}
+
+@Composable
+fun CategoryFilterBar(
+    categories: List<com.ely.kian.data.local.entities.ProductCategory>,
+    selectedPath: List<com.ely.kian.data.local.entities.ProductCategory>,
+    onPathChange: (List<com.ely.kian.data.local.entities.ProductCategory>) -> Unit
+) {
+    val kianColors = KianTheme.colors
+    
+    Column(modifier = Modifier.padding(vertical = 16.dp)) {
+        // Path View
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(bottom = 12.dp)
+        ) {
+            item {
+                com.ely.kian.ui.components.KianChip(
+                    text = "All",
+                    selected = selectedPath.isEmpty(),
+                    onClick = { onPathChange(emptyList()) }
+                )
+            }
+            items(selectedPath) { category ->
+                val index = selectedPath.indexOf(category)
+                com.ely.kian.ui.components.KianChip(
+                    text = category.name,
+                    selected = true,
+                    onClick = { 
+                        onPathChange(selectedPath.take(index + 1))
+                    }
+                )
+            }
+        }
+        
+        // Next level options
+        val parentId = selectedPath.lastOrNull()?.id
+        val options = categories.filter { it.parentId == parentId }.sortedBy { it.name }
+        
+        if (options.isNotEmpty()) {
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(options) { category ->
+                    com.ely.kian.ui.components.KianChip(
+                        text = category.name,
+                        selected = false,
+                        onClick = { onPathChange(selectedPath + category) },
+                        backgroundColor = kianColors.line,
+                        contentColor = kianColors.ink
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun getBranchIds(categories: List<com.ely.kian.data.local.entities.ProductCategory>, rootId: String): List<String> {
+    val ids = mutableListOf(rootId)
+    val children = categories.filter { it.parentId == rootId }
+    for (child in children) {
+        ids.addAll(getBranchIds(categories, child.id))
+    }
+    return ids
 }
 
 @Composable

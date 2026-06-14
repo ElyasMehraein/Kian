@@ -35,12 +35,20 @@ fun WalletScreen(onSendToken: () -> Unit, onProducerClick: (String) -> Unit) {
     val context = LocalContext.current
     val app = context.applicationContext as KianApp
     val viewModel: WalletViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
-        factory = WalletViewModel.provideFactory(app.container.tokenRepository)
+        factory = WalletViewModel.provideFactory(
+            app.container.tokenRepository,
+            app.container.productRepository,
+            app.container.keyDao
+        )
     )
 
     val balances by viewModel.balances.collectAsState()
     val pending by viewModel.pending.collectAsState()
+    val myCategories by viewModel.myCategories.collectAsState()
     val activityFilter = viewModel.activityFilter
+
+    var editingToken by remember { mutableStateOf<BalanceItem?>(null) }
+    var showEditSheet by remember { mutableStateOf(false) }
 
     val filteredPending = remember(pending, activityFilter) {
         if (activityFilter == "all") pending
@@ -122,21 +130,26 @@ fun WalletScreen(onSendToken: () -> Unit, onProducerClick: (String) -> Unit) {
                 items(balances) { item ->
                     BalanceRow(
                         item = item,
+                        myCategories = myCategories,
                         onProducerClick = onProducerClick,
                         formatAssetRef = viewModel::formatAssetRef,
-                        onToggleShowcase = { assetRef, isShowcase -> viewModel.toggleShowcase(assetRef, isShowcase) }
+                        onToggleShowcase = { assetRef, isShowcase -> viewModel.toggleShowcase(assetRef, isShowcase) },
+                        onEdit = { 
+                            editingToken = it
+                            showEditSheet = true
+                        }
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                 }
             }
-
+            
             item {
                 Spacer(modifier = Modifier.height(24.dp))
                 SectionHeader("Transfer Activity", Icons.Default.History)
                 
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    modifier = Modifier.padding(bottom = 16.dp, start = 20.dp, end = 20.dp)
                 ) {
                     val filters = listOf(
                         "all" to "All",
@@ -166,6 +179,18 @@ fun WalletScreen(onSendToken: () -> Unit, onProducerClick: (String) -> Unit) {
             
             item { Spacer(modifier = Modifier.height(100.dp)) }
         }
+    }
+
+    if (showEditSheet && editingToken != null) {
+        TokenEditBottomSheet(
+            token = editingToken!!,
+            allCategories = myCategories,
+            onDismiss = { showEditSheet = false },
+            onSave = { name, desc, selectedCats ->
+                viewModel.updateTokenDetails(editingToken!!.assetRef, name, desc, selectedCats)
+                showEditSheet = false
+            }
+        )
     }
 }
 
@@ -223,9 +248,11 @@ fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit, colors: co
 @Composable
 fun BalanceRow(
     item: BalanceItem,
+    myCategories: List<com.ely.kian.data.local.entities.ProductCategory>,
     onProducerClick: (String) -> Unit,
     formatAssetRef: (String) -> String,
-    onToggleShowcase: (String, Boolean) -> Unit
+    onToggleShowcase: (String, Boolean) -> Unit,
+    onEdit: (BalanceItem) -> Unit
 ) {
     val kianColors = KianTheme.colors
     var producerName by remember { mutableStateOf(formatAssetRef(item.producer)) }
@@ -240,84 +267,95 @@ fun BalanceRow(
     }
 
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
         shape = RoundedCornerShape(20.dp),
         color = kianColors.panel,
         tonalElevation = 2.dp,
         border = androidx.compose.foundation.BorderStroke(1.dp, kianColors.line.copy(alpha = 0.5f))
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = item.name, 
-                        fontSize = 20.sp, 
-                        fontWeight = FontWeight.ExtraBold, 
-                        color = kianColors.ink
-                    )
-                    if (item.description.isNotEmpty()) {
-                        Text(
-                            text = item.description,
-                            fontSize = 14.sp,
-                            color = kianColors.muted,
-                            maxLines = 2,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-                    }
-                }
-                
-                // Asset Badge
-                Surface(
-                    color = kianColors.accent,
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.padding(start = 16.dp)
+            Column(modifier = Modifier.clickable { onEdit(item) }) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = item.name, 
+                            fontSize = 20.sp, 
+                            fontWeight = FontWeight.ExtraBold, 
+                            color = kianColors.ink
+                        )
+                        if (item.description.isNotEmpty()) {
+                            Text(
+                                text = item.description,
+                                fontSize = 14.sp,
+                                color = kianColors.muted,
+                                maxLines = 2,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
+                    }
+                    
+                    // Asset Badge
+                    Surface(
+                        color = kianColors.accent,
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.padding(start = 16.dp)
                     ) {
-                        Text(
-                            text = item.amount.toString(), 
-                            fontSize = 24.sp, 
-                            fontWeight = FontWeight.Black, 
-                            color = Color.White
-                        )
-                        Text(
-                            text = item.unit.lowercase(), 
-                            fontSize = 11.sp, 
-                            fontWeight = FontWeight.Bold, 
-                            color = Color.White.copy(alpha = 0.8f)
-                        )
-                    }
-                }
-            }
-            
-            if (item.categories.isNotEmpty()) {
-                FlowRow(
-                    modifier = Modifier.padding(top = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    item.categories.forEach { category ->
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = kianColors.accent.copy(alpha = 0.1f)
+                        Column(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                text = "#$category",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = kianColors.accent,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                text = item.amount.toString(), 
+                                fontSize = 24.sp, 
+                                fontWeight = FontWeight.Black, 
+                                color = Color.White
+                            )
+                            Text(
+                                text = item.unit.lowercase(), 
+                                fontSize = 11.sp, 
+                                fontWeight = FontWeight.Bold, 
+                                color = Color.White.copy(alpha = 0.8f)
                             )
                         }
                     }
                 }
+                
+                if (item.categories.isNotEmpty()) {
+                    FlowRow(
+                        modifier = Modifier.padding(top = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        item.categories.forEach { categoryId ->
+                            val categoryName = myCategories.find { it.id == categoryId }?.name ?: categoryId
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = kianColors.accent.copy(alpha = 0.1f)
+                            ) {
+                                Text(
+                                    text = "#$categoryName",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = kianColors.accent,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Text(
+                    text = "Tap to edit",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = kianColors.accent,
+                    modifier = Modifier.padding(top = 12.dp)
+                )
             }
             
             HorizontalDivider(
@@ -392,6 +430,192 @@ fun BalanceRow(
                 
                 IconButton(onClick = { /* TODO: Show detailed token history/UTXOs */ }) {
                     Icon(Icons.Default.ChevronRight, contentDescription = "Details", tint = kianColors.muted)
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TokenEditBottomSheet(
+    token: BalanceItem,
+    allCategories: List<com.ely.kian.data.local.entities.ProductCategory>,
+    onDismiss: () -> Unit,
+    onSave: (String, String, List<String>) -> Unit
+) {
+    val kianColors = KianTheme.colors
+    var name by remember { mutableStateOf(token.name) }
+    var description by remember { mutableStateOf(token.description) }
+    var selectedCategoryIds by remember { mutableStateOf(token.categories) }
+    
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = kianColors.canvas,
+        dragHandle = null,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(20.dp)
+                .fillMaxWidth()
+                .navigationBarsPadding()
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Edit Token",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = kianColors.ink
+                    )
+                    Text(
+                        text = "Customize how this token appears in your wallet and showcase.",
+                        fontSize = 14.sp,
+                        color = kianColors.muted
+                    )
+                }
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.background(kianColors.panel, CircleShape)
+                ) {
+                    Icon(Icons.Default.Close, contentDescription = "Close", modifier = Modifier.size(20.dp), tint = kianColors.ink)
+                }
+            }
+
+            TokenCategoryPicker(
+                categories = allCategories,
+                selectedIds = selectedCategoryIds,
+                onChange = { selectedCategoryIds = it }
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                placeholder = { Text("Token Name", color = kianColors.muted) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = kianColors.line,
+                    focusedBorderColor = kianColors.accent,
+                    unfocusedContainerColor = kianColors.panel,
+                    focusedContainerColor = kianColors.panel,
+                    focusedTextColor = kianColors.ink,
+                    unfocusedTextColor = kianColors.ink
+                )
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            OutlinedTextField(
+                value = description,
+                onValueChange = { description = it },
+                placeholder = { Text("Description", color = kianColors.muted) },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 88.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = kianColors.line,
+                    focusedBorderColor = kianColors.accent,
+                    unfocusedContainerColor = kianColors.panel,
+                    focusedContainerColor = kianColors.panel,
+                    focusedTextColor = kianColors.ink,
+                    unfocusedTextColor = kianColors.ink
+                )
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            com.ely.kian.ui.components.KianButton(
+                text = "Save Changes",
+                onClick = { onSave(name, description, selectedCategoryIds) },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(20.dp))
+        }
+    }
+}
+
+@Composable
+fun TokenCategoryPicker(
+    categories: List<com.ely.kian.data.local.entities.ProductCategory>,
+    selectedIds: List<String>,
+    onChange: (List<String>) -> Unit
+) {
+    val kianColors = KianTheme.colors
+    val selectedPath = remember(categories, selectedIds) {
+        val path = mutableListOf<com.ely.kian.data.local.entities.ProductCategory>()
+        var currentId = selectedIds.lastOrNull()
+        while (currentId != null) {
+            val cat = categories.find { it.id == currentId }
+            if (cat != null) {
+                path.add(0, cat)
+                currentId = cat.parentId
+            } else {
+                currentId = null
+            }
+        }
+        path
+    }
+
+    Column(modifier = Modifier.padding(bottom = 10.dp)) {
+        Text("Category", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = kianColors.ink, modifier = Modifier.padding(bottom = 8.dp))
+
+        if (categories.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(kianColors.panel)
+                    .padding(12.dp)
+            ) {
+                Text(
+                    "Create categories in the product manager to use them for tokens.",
+                    fontSize = 14.sp,
+                    color = kianColors.muted,
+                    lineHeight = 20.sp
+                )
+            }
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    item {
+                        com.ely.kian.ui.components.KianChip(
+                            text = "No category",
+                            selected = selectedPath.isEmpty(),
+                            onClick = { onChange(emptyList()) }
+                        )
+                    }
+                    items(selectedPath) { category ->
+                        val index = selectedPath.indexOf(category)
+                        com.ely.kian.ui.components.KianChip(
+                            text = category.name,
+                            selected = true,
+                            onClick = { onChange(selectedPath.take(index + 1).map { it.id }) }
+                        )
+                    }
+                }
+                
+                val parentId = selectedPath.lastOrNull()?.id
+                val options = categories.filter { it.parentId == parentId }.sortedBy { it.name }
+                if (options.isNotEmpty()) {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(options) { category ->
+                            com.ely.kian.ui.components.KianChip(
+                                text = category.name,
+                                selected = false,
+                                onClick = { onChange((selectedPath + category).map { it.id }) }
+                            )
+                        }
+                    }
                 }
             }
         }
