@@ -18,6 +18,9 @@ class RelayPoolManager {
     
     // Message Queue for each relay (Amethyst style logic)
     private val pendingMessages = mutableMapOf<String, MutableList<String>>()
+    private val _pendingMessagesFlow = MutableStateFlow<Map<String, List<String>>>(emptyMap())
+    val pendingMessagesFlow: StateFlow<Map<String, List<String>>> = _pendingMessagesFlow.asStateFlow()
+
     private val connectionStates = mutableMapOf<String, ConnectionState>()
     private val _connectionStatesFlow = MutableStateFlow<Map<String, ConnectionState>>(emptyMap())
     val connectionStatesFlow: StateFlow<Map<String, ConnectionState>> = _connectionStatesFlow.asStateFlow()
@@ -54,7 +57,10 @@ class RelayPoolManager {
                 // Flush pending messages
                 val queue = synchronized(pendingMessages) { pendingMessages[url]?.toList() ?: emptyList() }
                 queue.forEach { webSocket.send(it) }
-                synchronized(pendingMessages) { pendingMessages[url]?.clear() }
+                synchronized(pendingMessages) { 
+                    pendingMessages[url]?.clear() 
+                    _pendingMessagesFlow.value = pendingMessages.mapValues { it.value.toList() }
+                }
                 
                 listeners[url]?.forEach { it.onOpen(webSocket, response) }
             }
@@ -130,6 +136,7 @@ class RelayPoolManager {
             if (queue.size < 100) { 
                 queue.add(message)
             }
+            _pendingMessagesFlow.value = pendingMessages.mapValues { it.value.toList() }
         }
     }
 

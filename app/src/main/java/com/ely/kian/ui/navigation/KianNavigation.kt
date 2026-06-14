@@ -46,6 +46,8 @@ import com.ely.kian.ui.screens.relays.RelayManagementScreen
 import com.ely.kian.ui.screens.chat.ChatInboxScreen
 import com.ely.kian.ui.screens.chat.ChatroomScreen
 import com.ely.kian.ui.screens.chat.ChatViewModel
+import com.ely.kian.ui.screens.pending.PendingEventsScreen
+import com.ely.kian.ui.screens.pending.PendingEventsViewModel
 import com.ely.kian.ui.theme.KianTheme
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
@@ -278,7 +280,19 @@ fun KianScaffold() {
                 }
                 composable("relays") { RelayManagementScreen() }
                 composable("backups") { BackupScreen(onBack = { navController.popBackStack() }) }
-                composable("pending") { PlaceholderScreen("Pending Events Screen") }
+                composable("pending") {
+                    val pendingViewModel: PendingEventsViewModel = viewModel(
+                        factory = PendingEventsViewModel.provideFactory(
+                            app.container.relayPoolManager,
+                            app.container.nostrSyncManager,
+                            app.container.offlineQueueDao
+                        )
+                    )
+                    PendingEventsScreen(
+                        viewModel = pendingViewModel,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
                 composable("private-key") {
                     val privateKeyViewModel: PrivateKeyViewModel = viewModel(factory = PrivateKeyViewModel.provideFactory(app.container.keyDao, app.container.secureStorage))
                     PrivateKeyScreen(viewModel = privateKeyViewModel, onContinue = { navController.popBackStack() })

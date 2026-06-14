@@ -38,7 +38,7 @@ fun HomeScreen(
     val selectedSort by viewModel.selectedSort.collectAsState()
     val userGeohash by viewModel.userGeohash.collectAsState()
     
-    val sortOptions = listOf("All", "Nearest", "Top Rated", "Verified")
+    val sortOptions = listOf("Nearest", "Top Rated", "Verified")
 
     Column(
         modifier = Modifier.fillMaxSize()

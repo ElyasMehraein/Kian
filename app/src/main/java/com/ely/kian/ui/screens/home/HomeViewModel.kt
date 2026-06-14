@@ -26,7 +26,7 @@ class HomeViewModel(
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    private val _selectedSort = MutableStateFlow("All")
+    private val _selectedSort = MutableStateFlow("Nearest")
     val selectedSort: StateFlow<String> = _selectedSort.asStateFlow()
 
     private val _userGeohash = MutableStateFlow<String?>(null)

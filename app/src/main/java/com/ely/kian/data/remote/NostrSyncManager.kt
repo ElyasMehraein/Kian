@@ -134,6 +134,10 @@ class NostrSyncManager(
         }
     }
 
+    fun processExternalEvent(message: String) {
+        handleMessage(message)
+    }
+
     private fun handleMessage(message: String) {
         try {
             val element = json.parseToJsonElement(message)
@@ -222,8 +226,15 @@ class NostrSyncManager(
             }
 
             Log.d(TAG, "Publishing event kind=${event.kind} to ${relaysToUse.size} relays")
-            relaysToUse.forEach { url ->
-                relayPool.publish(url, message)
+            if (relaysToUse.isEmpty()) {
+                Log.w(TAG, "No relays to publish to. Queueing in memory for default relays anyway.")
+                defaultRelays.forEach { url ->
+                    relayPool.publish(url, message)
+                }
+            } else {
+                relaysToUse.forEach { url ->
+                    relayPool.publish(url, message)
+                }
             }
         }
     }
