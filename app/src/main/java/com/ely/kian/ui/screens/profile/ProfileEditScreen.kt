@@ -15,9 +15,12 @@ import com.ely.kian.KianApp
 import com.ely.kian.ui.components.InitialAvatar
 import com.ely.kian.ui.components.KianButton
 import com.ely.kian.ui.components.KianInput
+import com.ely.kian.ui.components.LocationPicker
 import com.ely.kian.ui.components.ScreenHeader
 import com.ely.kian.ui.theme.KianTheme
 import androidx.compose.ui.Alignment
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
 
 @Composable
 fun ProfileEditScreen(
@@ -114,6 +117,43 @@ fun ProfileEditScreen(
                 onValueChange = { viewModel.location = it },
                 placeholder = "City, Country",
                 label = "Location"
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Map Location",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (viewModel.geohash.isNotBlank()) {
+                    TextButton(
+                        onClick = {
+                            viewModel.geohash = ""
+                            viewModel.latitude = null
+                            viewModel.longitude = null
+                        },
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Icon(Icons.Default.Clear, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Clear", fontSize = 12.sp)
+                    }
+                }
+            }
+
+            LocationPicker(
+                initialLat = viewModel.latitude,
+                initialLon = viewModel.longitude,
+                onLocationSelected = { lat, lon ->
+                    viewModel.updateLocation(lat, lon)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(250.dp)
             )
 
             KianInput(

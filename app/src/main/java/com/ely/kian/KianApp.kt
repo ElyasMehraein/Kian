@@ -1,7 +1,9 @@
 package com.ely.kian
 
 import android.app.Application
+import android.content.Context
 import com.ely.kian.di.KianContainer
+import org.osmdroid.config.Configuration
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -13,6 +15,11 @@ class KianApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        
+        // Initialize Osmdroid (OpenStreetMap)
+        Configuration.getInstance().load(this, getSharedPreferences("osmdroid", Context.MODE_PRIVATE))
+        Configuration.getInstance().userAgentValue = packageName
+
         try {
             container = KianContainer(this)
             

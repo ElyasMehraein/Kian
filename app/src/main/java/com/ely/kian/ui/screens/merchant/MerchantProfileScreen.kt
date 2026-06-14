@@ -39,14 +39,21 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.animation.core.*
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.viewinterop.AndroidView
 import com.ely.kian.KianApp
 import com.ely.kian.data.local.entities.Product
 import com.ely.kian.data.local.entities.Review
 import com.ely.kian.ui.components.InitialAvatar
 import com.ely.kian.ui.components.KianButton
 import com.ely.kian.ui.theme.KianTheme
+import com.ely.kian.util.Geohash
+import com.ely.kian.util.NavigationUtils
 import coil.compose.AsyncImage
 import kotlinx.serialization.json.Json
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -172,6 +179,7 @@ fun MerchantProfileScreen(
                             .padding(horizontal = 20.dp)
                             .offset(y = (-60).dp)
                     ) {
+                        val context = LocalContext.current
                         InitialAvatar(
                             name = profile?.displayName ?: profile?.name ?: "Merchant", 
                             pictureUrl = profile?.picture, 
@@ -222,30 +230,119 @@ fun MerchantProfileScreen(
                             }
                         }
 
-                        if (!profile?.location.isNullOrBlank()) {
+                        if (!profile?.location.isNullOrBlank() || !profile?.geohash.isNullOrBlank()) {
+                            val context = LocalContext.current
                             Row(
-                                modifier = Modifier.padding(top = 8.dp),
+                                modifier = Modifier
+                                    .padding(top = 8.dp)
+                                    .clickable(enabled = !profile?.geohash.isNullOrBlank()) {
+                                        profile?.geohash?.let { hash ->
+                                            try {
+                                                val (lat, lon) = Geohash.decode(hash)
+                                                NavigationUtils.openInMaps(
+                                                    context,
+                                                    lat,
+                                                    lon,
+                                                    profile?.displayName ?: profile?.name ?: "Merchant"
+                                                )
+                                            } catch (e: Exception) { /* Ignore */ }
+                                        }
+                                    },
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Default.LocationOn, contentDescription = null, tint = kianColors.muted, modifier = Modifier.size(16.dp))
+                                Icon(
+                                    imageVector = Icons.Default.LocationOn,
+                                    contentDescription = null,
+                                    tint = if (!profile?.geohash.isNullOrBlank()) kianColors.accent else kianColors.muted,
+                                    modifier = Modifier.size(16.dp)
+                                )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = profile?.location!!,
+                                    text = profile?.location ?: "View on Map",
                                     fontSize = 14.sp,
-                                    color = kianColors.muted,
-                                    fontWeight = FontWeight.Medium
+                                    color = if (!profile?.geohash.isNullOrBlank()) kianColors.accent else kianColors.muted,
+                                    fontWeight = FontWeight.Medium,
+                                    textDecoration = if (!profile?.geohash.isNullOrBlank()) androidx.compose.ui.text.style.TextDecoration.Underline else null
                                 )
                             }
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
                         
-                        Text(
-                            text = profile?.about ?: "Professional Merchant on Kian Network.", 
-                            fontSize = 15.sp, 
-                            lineHeight = 22.sp, 
-                            color = kianColors.ink.copy(alpha = 0.8f)
-                        )
+                        if (!profile?.about.isNullOrBlank()) {
+                            Text(
+                                text = profile?.about ?: "",
+                                fontSize = 15.sp,
+                                lineHeight = 22.sp,
+                                color = kianColors.ink.copy(alpha = 0.8f)
+                            )
+                        }
+
+                        if (!profile?.geohash.isNullOrBlank()) {
+                            Spacer(modifier = Modifier.height(20.dp))
+                            Text(
+                                text = "Location",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = kianColors.ink
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            val coords = remember(profile?.geohash) {
+                                try { Geohash.decode(profile?.geohash!!) } catch (e: Exception) { null }
+                            }
+                            
+                            if (coords != null) {
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(180.dp)
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .border(1.dp, kianColors.line, RoundedCornerShape(16.dp)),
+                                    onClick = {
+                                        NavigationUtils.openInMaps(context, coords.first, coords.second, profile?.displayName ?: profile?.name ?: "Merchant")
+                                    }
+                                ) {
+                                    Box(modifier = Modifier.fillMaxSize()) {
+                                        AndroidView(
+                                            modifier = Modifier.fillMaxSize(),
+                                            factory = { ctx ->
+                                                MapView(ctx).apply {
+                                                    setTileSource(TileSourceFactory.MAPNIK)
+                                                    setMultiTouchControls(false) // Read only basically
+                                                    zoomController.setVisibility(org.osmdroid.views.CustomZoomButtonsController.Visibility.NEVER)
+                                                    controller.setZoom(15.0)
+                                                    val point = GeoPoint(coords.first, coords.second)
+                                                    controller.setCenter(point)
+                                                    
+                                                    val marker = Marker(this)
+                                                    marker.position = point
+                                                    marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                                                    overlays.add(marker)
+                                                }
+                                            }
+                                        )
+                                        
+                                        // Overlay to prevent map interaction but allow card click
+                                        Box(modifier = Modifier.fillMaxSize().background(Color.Transparent))
+                                        
+                                        Surface(
+                                            modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp),
+                                            color = kianColors.ink.copy(alpha = 0.8f),
+                                            shape = RoundedCornerShape(8.dp)
+                                        ) {
+                                            Text(
+                                                text = "Open in Navigation",
+                                                color = kianColors.canvas,
+                                                fontSize = 12.sp,
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
                         
                         // Stats Row
                         Row(

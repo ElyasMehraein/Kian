@@ -13,6 +13,7 @@ import com.ely.kian.data.remote.NostrSyncManager
 import com.ely.kian.data.remote.model.NostrEvent
 import com.ely.kian.crypto.KianKeys
 import com.ely.kian.crypto.SecureStorage
+import com.ely.kian.util.Geohash
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.*
 
@@ -32,6 +33,9 @@ class ProfileEditViewModel(
     var nip05 by mutableStateOf("")
     var location by mutableStateOf("")
     var geohash by mutableStateOf("")
+    
+    var latitude by mutableStateOf<Double?>(null)
+    var longitude by mutableStateOf<Double?>(null)
     
     var isSaving by mutableStateOf(false)
     var pubkey by mutableStateOf<String?>(null)
@@ -58,8 +62,24 @@ class ProfileEditViewModel(
                 nip05 = profile?.nip05 ?: ""
                 location = profile?.location ?: ""
                 geohash = profile?.geohash ?: ""
+                
+                if (geohash.isNotBlank()) {
+                    try {
+                        val coords = Geohash.decode(geohash)
+                        latitude = coords.first
+                        longitude = coords.second
+                    } catch (e: Exception) {
+                        // Ignore malformed geohash
+                    }
+                }
             }
         }
+    }
+
+    fun updateLocation(lat: Double, lon: Double) {
+        latitude = lat
+        longitude = lon
+        geohash = Geohash.encode(lat, lon)
     }
 
     fun saveProfile(onSuccess: () -> Unit) {

@@ -1,6 +1,8 @@
 package com.ely.kian.services
 
 import com.ely.kian.data.local.entities.Profile
+import com.ely.kian.util.Geohash
+import kotlin.math.*
 
 data class MerchantInfo(
     val pubkey: String,
@@ -52,9 +54,22 @@ object MerchantRankingEngine {
         }
     }
 
-    // Simplified geohash distance for now
+    // Improved geohash distance calculation
     private fun calculateGeohashDistance(geohash1: String, geohash2: String): Float {
-        // Implementation of geohash distance
-        return 5.0f // Placeholder
+        try {
+            val (lat1, lon1) = Geohash.decode(geohash1)
+            val (lat2, lon2) = Geohash.decode(geohash2)
+            
+            val earthRadius = 6371.0 // kilometers
+            val dLat = Math.toRadians(lat2 - lat1)
+            val dLon = Math.toRadians(lon2 - lon1)
+            val a = sin(dLat / 2).pow(2) +
+                    cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
+                    sin(dLon / 2).pow(2)
+            val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+            return (earthRadius * c).toFloat()
+        } catch (e: Exception) {
+            return 999f
+        }
     }
 }
