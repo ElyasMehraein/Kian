@@ -9,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -26,6 +27,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel(
         factory = HomeViewModel.provideFactory(
             (LocalContext.current.applicationContext as KianApp).container.userProfileDao,
+            (LocalContext.current.applicationContext as KianApp).container.reviewDao,
             (LocalContext.current.applicationContext as KianApp).container.secureStorage
         )
     )
@@ -34,6 +36,7 @@ fun HomeScreen(
     val merchants by viewModel.merchants.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val selectedSort by viewModel.selectedSort.collectAsState()
+    val userGeohash by viewModel.userGeohash.collectAsState()
     
     val sortOptions = listOf("All", "Nearest", "Top Rated", "Verified")
 
@@ -58,6 +61,15 @@ fun HomeScreen(
             }
         }
 
+        if (selectedSort == "Top Rated") {
+            Text(
+                text = "Based on ratings by you and people you follow",
+                fontSize = 12.sp,
+                color = kianColors.ink.copy(alpha = 0.6f),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+            )
+        }
+
         if (selectedSort == "Verified") {
             Text(
                 text = "Based on follows by you and people you follow",
@@ -65,6 +77,24 @@ fun HomeScreen(
                 color = kianColors.ink.copy(alpha = 0.6f),
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
             )
+        }
+
+        if (selectedSort == "Nearest") {
+            if (userGeohash == null) {
+                Text(
+                    text = "To see merchants near a location, you must register your location on the map",
+                    fontSize = 12.sp,
+                    color = Color.Red,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+            } else {
+                Text(
+                    text = "Sorted by distance from your registered location",
+                    fontSize = 12.sp,
+                    color = kianColors.ink.copy(alpha = 0.6f),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+            }
         }
 
         if (isLoading) {

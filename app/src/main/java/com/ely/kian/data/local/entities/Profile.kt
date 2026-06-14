@@ -40,5 +40,5 @@ data class UserFollow(
 
 data class PubkeyCount(
     val pubkey: String,
-    val count: Int
+    val count: Float
 )
