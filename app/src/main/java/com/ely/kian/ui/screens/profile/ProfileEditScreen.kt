@@ -109,6 +109,20 @@ fun ProfileEditScreen(
                 label = "Nostr Verification (NIP-05)"
             )
 
+            KianInput(
+                value = viewModel.location,
+                onValueChange = { viewModel.location = it },
+                placeholder = "City, Country",
+                label = "Location"
+            )
+
+            KianInput(
+                value = viewModel.geohash,
+                onValueChange = { viewModel.geohash = it },
+                placeholder = "Geohash string",
+                label = "Geohash"
+            )
+
             Spacer(modifier = Modifier.height(8.dp))
 
             Row(

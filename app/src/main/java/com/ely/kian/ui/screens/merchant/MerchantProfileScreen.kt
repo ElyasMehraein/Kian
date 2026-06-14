@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
@@ -221,6 +222,22 @@ fun MerchantProfileScreen(
                             }
                         }
 
+                        if (!profile?.location.isNullOrBlank()) {
+                            Row(
+                                modifier = Modifier.padding(top = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.LocationOn, contentDescription = null, tint = kianColors.muted, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = profile?.location!!,
+                                    fontSize = 14.sp,
+                                    color = kianColors.muted,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+
                         Spacer(modifier = Modifier.height(16.dp))
                         
                         Text(
@@ -235,27 +252,27 @@ fun MerchantProfileScreen(
                             modifier = Modifier.padding(top = 24.dp).fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            ProfileStat(label = "محصولات", value = products.size.toString())
-                            ProfileStat(label = "دنبال‌کننده", value = "1.2k")
-                            ProfileStat(label = "امتیاز", value = "4.9", icon = Icons.Default.Star)
+                            ProfileStat(label = "Products", value = products.size.toString())
+                            ProfileStat(label = "Followers", value = "1.2k")
+                            ProfileStat(label = "Rating", value = "4.9", icon = Icons.Default.Star)
                         }
 
                         // Action Buttons
                         Row(modifier = Modifier.padding(top = 24.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             if (isOwnProfile) {
                                 KianButton(
-                                    text = "ویرایش پروفایل",
+                                    text = "Edit Profile",
                                     onClick = onEdit,
                                     modifier = Modifier.weight(1f)
                                 )
                             } else {
                                 KianButton(
-                                    text = "گفتگو",
+                                    text = "Message",
                                     onClick = { onMessage(pubkey) },
                                     modifier = Modifier.weight(1f)
                                 )
                                 KianButton(
-                                    text = "دنبال کردن",
+                                    text = "Follow",
                                     onClick = {},
                                     type = com.ely.kian.ui.components.ButtonType.Secondary,
                                     modifier = Modifier.weight(1f)
@@ -283,12 +300,12 @@ fun MerchantProfileScreen(
                         Tab(
                             selected = selectedTab == 0,
                             onClick = { selectedTab = 0 },
-                            text = { Text("ویترین", fontWeight = FontWeight.Bold) }
+                            text = { Text("Showcase", fontWeight = FontWeight.Bold) }
                         )
                         Tab(
                             selected = selectedTab == 1,
                             onClick = { selectedTab = 1 },
-                            text = { Text("نظرات", fontWeight = FontWeight.Bold) }
+                            text = { Text("Reviews", fontWeight = FontWeight.Bold) }
                         )
                     }
                 }
@@ -297,7 +314,7 @@ fun MerchantProfileScreen(
                     if (products.isEmpty()) {
                         item {
                             Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
-                                Text("محصولی در ویترین موجود نیست.", color = kianColors.muted)
+                                Text("No products available in showcase.", color = kianColors.muted)
                             }
                         }
                     } else {
@@ -326,7 +343,7 @@ fun MerchantProfileScreen(
                     if (reviews.isEmpty()) {
                         item {
                             Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
-                                Text("نظری ثبت نشده است.", color = kianColors.muted)
+                                Text("No reviews posted yet.", color = kianColors.muted)
                             }
                         }
                     } else {
@@ -517,7 +534,7 @@ fun ProductCard(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Default.AddShoppingCart, contentDescription = null, modifier = Modifier.size(20.dp))
-                    Text(text = "افزودن به سبد", fontWeight = FontWeight.Bold)
+                    Text(text = "Add to Cart", fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -535,7 +552,7 @@ fun ReviewCard(review: Review) {
             .padding(18.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(text = review.authorName ?: "کاربر ناشناس", fontWeight = FontWeight.Bold, color = kianColors.ink, modifier = Modifier.weight(1f))
+            Text(text = review.authorName ?: "Anonymous User", fontWeight = FontWeight.Bold, color = kianColors.ink, modifier = Modifier.weight(1f))
             repeat(review.rating) {
                 Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFB800), modifier = Modifier.size(16.dp))
             }

@@ -62,6 +62,7 @@ object DemoDataSeeder {
             },
             website = "https://kian.social/traders/${name.lowercase().replace(" ", "")}",
             nip05 = "${name.lowercase().replace(" ", "")}@kian.social",
+            location = "Tehran, Iran",
             geohash = null,
             rawJson = "{}",
             isTrader = true,

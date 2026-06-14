@@ -121,6 +121,7 @@ class EventProcessor(
                 banner = content["banner"]?.jsonPrimitive?.contentOrNull,
                 website = content["website"]?.jsonPrimitive?.contentOrNull,
                 nip05 = content["nip05"]?.jsonPrimitive?.contentOrNull,
+                location = content["location"]?.jsonPrimitive?.contentOrNull,
                 geohash = content["geohash"]?.jsonPrimitive?.contentOrNull,
                 rawJson = event.content,
                 isTrader = isTrader,

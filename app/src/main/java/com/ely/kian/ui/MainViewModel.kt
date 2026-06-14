@@ -126,6 +126,7 @@ class MainViewModel(
                     banner = null,
                     website = null,
                     nip05 = null,
+                    location = null,
                     geohash = null,
                     rawJson = "{}",
                     isTrader = mode == "merchant",
@@ -148,6 +149,8 @@ class MainViewModel(
                 put("banner", updatedProfile.banner ?: "")
                 put("website", updatedProfile.website ?: "")
                 put("nip05", updatedProfile.nip05 ?: "")
+                put("location", updatedProfile.location ?: "")
+                put("geohash", updatedProfile.geohash ?: "")
             }
             val content = contentObj.toString()
             val createdAt = System.currentTimeMillis() / 1000

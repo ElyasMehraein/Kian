@@ -14,6 +14,7 @@ data class Profile(
     val banner: String?,
     val website: String?,
     val nip05: String?,
+    val location: String?,
     val geohash: String?,
     val rawJson: String,
     val isTrader: Boolean = false,

@@ -30,6 +30,8 @@ class ProfileEditViewModel(
     var banner by mutableStateOf("")
     var website by mutableStateOf("")
     var nip05 by mutableStateOf("")
+    var location by mutableStateOf("")
+    var geohash by mutableStateOf("")
     
     var isSaving by mutableStateOf(false)
     var pubkey by mutableStateOf<String?>(null)
@@ -54,6 +56,8 @@ class ProfileEditViewModel(
                 banner = profile?.banner ?: ""
                 website = profile?.website ?: ""
                 nip05 = profile?.nip05 ?: ""
+                location = profile?.location ?: ""
+                geohash = profile?.geohash ?: ""
             }
         }
     }
@@ -74,7 +78,8 @@ class ProfileEditViewModel(
                 banner = banner.ifBlank { null },
                 website = website.ifBlank { null },
                 nip05 = nip05.ifBlank { null },
-                geohash = existingProfile?.geohash,
+                location = location.ifBlank { null },
+                geohash = geohash.ifBlank { null },
                 rawJson = existingProfile?.rawJson ?: "{}",
                 isTrader = existingProfile?.isTrader ?: false,
                 createdAt = existingProfile?.createdAt ?: now,
@@ -84,7 +89,10 @@ class ProfileEditViewModel(
             userProfileDao.upsert(profile)
             
             // Publish to Nostr
-            val tags = if (profile.isTrader) listOf(listOf("t", "trader")) else emptyList()
+            val tags = mutableListOf<List<String>>()
+            if (profile.isTrader) tags.add(listOf("t", "trader"))
+            profile.location?.let { tags.add(listOf("location", it)) }
+            profile.geohash?.let { tags.add(listOf("g", it)) }
             
             val contentObj = buildJsonObject {
                 put("name", profile.name ?: "")
@@ -94,6 +102,8 @@ class ProfileEditViewModel(
                 put("banner", profile.banner ?: "")
                 put("website", profile.website ?: "")
                 put("nip05", profile.nip05 ?: "")
+                put("location", profile.location ?: "")
+                put("geohash", profile.geohash ?: "")
             }
             val content = contentObj.toString()
             

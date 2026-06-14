@@ -46,9 +46,9 @@ object MerchantRankingEngine {
 
     private fun getTitle(score: Float): String {
         return when {
-            score >= 10 -> "KianBan"
-            score >= 5 -> "BazarGardan"
-            else -> "Tajer"
+            score >= 10 -> "Guardian"
+            score >= 5 -> "Market Maker"
+            else -> "Merchant"
         }
     }
 
