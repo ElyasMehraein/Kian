@@ -72,7 +72,8 @@ fun MerchantProfileScreen(
             (LocalContext.current.applicationContext as KianApp).container.userProfileDao,
             (LocalContext.current.applicationContext as KianApp).container.productRepository,
             (LocalContext.current.applicationContext as KianApp).container.reviewDao,
-            (LocalContext.current.applicationContext as KianApp).container.nostrSyncManager
+            (LocalContext.current.applicationContext as KianApp).container.nostrSyncManager,
+            (LocalContext.current.applicationContext as KianApp).container.secureStorage
         )
     )
 ) {
@@ -81,11 +82,13 @@ fun MerchantProfileScreen(
     val products by viewModel.products.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val reviews by viewModel.reviews.collectAsState()
+    val userReview by viewModel.userReview.collectAsState()
     val isOwnProfile = viewModel.isOwnProfile
     val uriHandler = LocalUriHandler.current
     
     var cartIconPosition by remember { mutableStateOf(Offset.Zero) }
     var selectedTab by remember { mutableIntStateOf(0) }
+    var showReviewDialog by remember { mutableStateOf(false) }
     
     // Animation states
     var flyingImage by remember { mutableStateOf<String?>(null) }
@@ -101,6 +104,11 @@ fun MerchantProfileScreen(
             isFlying = false
             flyingImage = null
         }
+    }
+
+    val avgRating = remember(reviews) {
+        if (reviews.isEmpty()) "0.0"
+        else "%.1f".format(reviews.map { it.rating }.average())
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -303,7 +311,12 @@ fun MerchantProfileScreen(
                                         NavigationUtils.openInMaps(context, coords.first, coords.second, profile?.displayName ?: profile?.name ?: "Merchant")
                                     }
                                 ) {
-                                    Box(modifier = Modifier.fillMaxSize()) {
+                                    val avgRating = remember(reviews) {
+        if (reviews.isEmpty()) "0.0"
+        else "%.1f".format(reviews.map { it.rating }.average())
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
                                         AndroidView(
                                             modifier = Modifier.fillMaxSize(),
                                             factory = { ctx ->
@@ -344,14 +357,13 @@ fun MerchantProfileScreen(
                             }
                         }
                         
-                        // Stats Row
                         Row(
                             modifier = Modifier.padding(top = 24.dp).fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             ProfileStat(label = "Products", value = products.size.toString())
                             ProfileStat(label = "Followers", value = "1.2k")
-                            ProfileStat(label = "Rating", value = "4.9", icon = Icons.Default.Star)
+                            ProfileStat(label = "Rating", value = avgRating, icon = Icons.Default.Star)
                         }
 
                         // Action Buttons
@@ -437,6 +449,19 @@ fun MerchantProfileScreen(
                         }
                     }
                 } else {
+                    if (!isOwnProfile) {
+                        item {
+                            Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
+                                KianButton(
+                                    text = if (userReview != null) "Edit Your Review" else "Write a Review",
+                                    onClick = { showReviewDialog = true },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    type = com.ely.kian.ui.components.ButtonType.Secondary
+                                )
+                            }
+                        }
+                    }
+                    
                     if (reviews.isEmpty()) {
                         item {
                             Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
@@ -477,6 +502,79 @@ fun MerchantProfileScreen(
             )
         }
     }
+
+    if (showReviewDialog) {
+        ReviewDialog(
+            initialRating = userReview?.rating ?: 5,
+            initialComment = userReview?.comment ?: "",
+            onDismiss = { showReviewDialog = false },
+            onConfirm = { rating, comment ->
+                viewModel.postReview(rating, comment)
+                showReviewDialog = false
+            }
+        )
+    }
+}
+
+@Composable
+fun ReviewDialog(
+    initialRating: Int,
+    initialComment: String,
+    onDismiss: () -> Unit,
+    onConfirm: (Int, String) -> Unit
+) {
+    var rating by remember { mutableIntStateOf(initialRating) }
+    var comment by remember { mutableStateOf(initialComment) }
+    val kianColors = KianTheme.colors
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = kianColors.panel,
+        title = { Text("Rate this Merchant", color = kianColors.ink) },
+        text = {
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    repeat(5) { index ->
+                        val starIndex = index + 1
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = null,
+                            tint = if (starIndex <= rating) Color(0xFFFFB800) else kianColors.line,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clickable { rating = starIndex }
+                        )
+                    }
+                }
+                
+                OutlinedTextField(
+                    value = comment,
+                    onValueChange = { comment = it },
+                    placeholder = { Text("Write your review here...", color = kianColors.muted) },
+                    modifier = Modifier.fillMaxWidth().height(120.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = kianColors.ink,
+                        unfocusedTextColor = kianColors.ink,
+                        focusedBorderColor = kianColors.accent,
+                        unfocusedBorderColor = kianColors.line
+                    )
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(rating, comment) }) {
+                Text("Post Review", color = kianColors.accent, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = kianColors.muted)
+            }
+        }
+    )
 }
 
 @Composable

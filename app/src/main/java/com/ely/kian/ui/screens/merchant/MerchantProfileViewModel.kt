@@ -10,7 +10,13 @@ import com.ely.kian.data.local.entities.Product
 import com.ely.kian.data.local.entities.ProductCategory
 import com.ely.kian.data.local.entities.Review
 import com.ely.kian.data.remote.NostrSyncManager
+import com.ely.kian.data.remote.model.NostrEvent
 import com.ely.kian.data.repository.ProductRepository
+import com.ely.kian.crypto.SecureStorage
+import com.ely.kian.crypto.KianKeys
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.encodeToString
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -23,8 +29,10 @@ class MerchantProfileViewModel(
     private val userProfileDao: UserProfileDao,
     private val productRepository: ProductRepository,
     private val reviewDao: ReviewDao,
-    private val nostrSyncManager: NostrSyncManager
+    private val nostrSyncManager: NostrSyncManager,
+    private val secureStorage: SecureStorage
 ) : ViewModel() {
+    private val json = Json { ignoreUnknownKeys = true }
 
     init {
         nostrSyncManager.requestMerchantData(pubkey)
@@ -48,7 +56,119 @@ class MerchantProfileViewModel(
     val reviews: StateFlow<List<Review>> = reviewDao.getReviewsForTarget(pubkey)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val userReview: StateFlow<Review?> = if (ownPubkey != null) {
+        reviewDao.getReviewsForTarget(pubkey)
+            .map { list -> list.find { it.pubkey == ownPubkey } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    } else {
+        MutableStateFlow(null)
+    }
+
     val isOwnProfile: Boolean = pubkey == ownPubkey
+
+    fun postReview(rating: Int, comment: String) {
+        val reviewerPubkey = ownPubkey ?: return
+        viewModelScope.launch {
+            val ownProfile = userProfileDao.getProfile(reviewerPubkey)
+            val now = System.currentTimeMillis() / 1000
+            val review = Review(
+                pubkey = reviewerPubkey,
+                targetPubkey = pubkey,
+                authorName = ownProfile?.displayName ?: ownProfile?.name ?: "User",
+                rating = rating,
+                comment = comment,
+                createdAt = now
+            )
+            reviewDao.upsertReview(review)
+
+            // 1. Broadcast Individual Review (Standard NIP-32 Kind 1985)
+            try {
+                val privKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: return@launch
+                val privKey = KianKeys.hexToBytes(privKeyHex)
+                
+                val tags1985 = listOf(
+                    listOf("p", pubkey),
+                    listOf("l", rating.toString(), "rating"),
+                    listOf("L", "reviews")
+                )
+                
+                val id1985 = KianKeys.computeEventId(reviewerPubkey, now, 1985, tags1985, comment)
+                val sig1985 = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(id1985), privKey))
+                
+                val event1985 = NostrEvent(
+                    id = id1985,
+                    pubkey = reviewerPubkey,
+                    createdAt = now,
+                    kind = 1985,
+                    tags = tags1985,
+                    content = comment,
+                    sig = sig1985
+                )
+                nostrSyncManager.publishEvent(event1985)
+
+                // 2. Update Personal Rating File (Kind 31999 - ARCHITECTURE.md)
+                // This is the "One file along with account" that stores ALL reviews by this user.
+                val allMyReviews = reviewDao.getReviewsByAuthor(reviewerPubkey)
+                val tags31999 = allMyReviews.map { r ->
+                    listOf("p", r.targetPubkey, r.rating.toString(), r.comment ?: "")
+                }
+                
+                val id31999 = KianKeys.computeEventId(reviewerPubkey, now, 31999, tags31999, "Kian Social Ratings")
+                val sig31999 = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(id31999), privKey))
+                
+                val event31999 = NostrEvent(
+                    id = id31999,
+                    pubkey = reviewerPubkey,
+                    createdAt = now,
+                    kind = 31999,
+                    tags = tags31999,
+                    content = "Kian Social Ratings",
+                    sig = sig31999
+                )
+                nostrSyncManager.publishEvent(event31999)
+
+            } catch (e: Exception) {
+                android.util.Log.e("MerchantProfileVM", "Failed to publish review", e)
+            }
+        }
+    }
+
+    fun updateMerchantReviewBundle() {
+        if (!isOwnProfile) return
+        viewModelScope.launch {
+            val allReviews = reviews.value
+            if (allReviews.isEmpty()) return@launch
+            
+            try {
+                val privKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: return@launch
+                val privKey = KianKeys.hexToBytes(privKeyHex)
+                val now = System.currentTimeMillis() / 1000
+                
+                // Bundle all reviews into one event content (Merchant's Review File)
+                // This allows others to download all reviews in one go (offline support)
+                // Note: In a real app, you'd store the original signed events, 
+                // but for now we'll bundle the current review objects as JSON.
+                val content = json.encodeToString(allReviews)
+                
+                val tags30019 = listOf(listOf("d", "review_bundle"))
+                val id30019 = KianKeys.computeEventId(pubkey, now, 30019, tags30019, content)
+                val sig30019 = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(id30019), privKey))
+                
+                val event30019 = NostrEvent(
+                    id = id30019,
+                    pubkey = pubkey,
+                    createdAt = now,
+                    kind = 30019,
+                    tags = tags30019,
+                    content = content,
+                    sig = sig30019
+                )
+                nostrSyncManager.publishEvent(event30019)
+            } catch (e: Exception) {
+                android.util.Log.e("MerchantProfileVM", "Failed to publish review bundle", e)
+            }
+        }
+    }
 
     companion object {
         fun provideFactory(
@@ -57,11 +177,12 @@ class MerchantProfileViewModel(
             userProfileDao: UserProfileDao, 
             productRepository: ProductRepository,
             reviewDao: ReviewDao,
-            nostrSyncManager: NostrSyncManager
+            nostrSyncManager: NostrSyncManager,
+            secureStorage: SecureStorage
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return MerchantProfileViewModel(pubkey, ownPubkey, userProfileDao, productRepository, reviewDao, nostrSyncManager) as T
+                return MerchantProfileViewModel(pubkey, ownPubkey, userProfileDao, productRepository, reviewDao, nostrSyncManager, secureStorage) as T
             }
         }
     }

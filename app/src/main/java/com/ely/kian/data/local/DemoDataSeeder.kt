@@ -144,6 +144,7 @@ object DemoDataSeeder {
             )
         }
 
+/*
         val reviewData = listOf(
             Pair("سینا", "کیفیت محصولات عالی بود. حتما باز هم سفارش میدم!"),
             Pair("سارا", "ارسال خیلی سریع و برخورد محترمانه. ممنون از شما."),
@@ -162,6 +163,7 @@ object DemoDataSeeder {
                 )
             )
         }
+*/
     }
 
     private data class ProductData(val name: String, val description: String, val images: List<String>)

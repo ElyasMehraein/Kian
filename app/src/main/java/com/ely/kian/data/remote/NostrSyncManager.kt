@@ -117,8 +117,10 @@ class NostrSyncManager(
     fun requestMerchantData(pubkey: String) {
         syncScope.launch {
             val filter = """{"kinds": [30017, 30018, 30019, 10002, 0], "authors": ["$pubkey"]}"""
+            val reviewsFilter = """{"kinds": [1984], "#p": ["$pubkey"]}"""
             relayPool.getAllConnectedUrls().forEach { url ->
                 relayPool.subscribe(url, "merchant_data_$pubkey", filter)
+                relayPool.subscribe(url, "merchant_reviews_$pubkey", reviewsFilter)
             }
         }
     }
@@ -127,6 +129,7 @@ class NostrSyncManager(
         syncScope.launch {
             relayPool.getAllConnectedUrls().forEach { url ->
                 relayPool.unsubscribe(url, "merchant_data_$pubkey")
+                relayPool.unsubscribe(url, "merchant_reviews_$pubkey")
             }
         }
     }

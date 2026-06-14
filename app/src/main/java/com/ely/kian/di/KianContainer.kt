@@ -83,6 +83,7 @@ class KianContainer(private val context: Context) {
             productRepository = productRepository,
             tokenRepository = tokenRepository,
             userProfileDao = userProfileDao,
+            reviewDao = reviewDao,
             chatRepository = chatRepository
         )
     }

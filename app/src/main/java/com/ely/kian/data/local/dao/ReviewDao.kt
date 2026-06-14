@@ -14,4 +14,7 @@ interface ReviewDao {
 
     @Query("SELECT * FROM reviews WHERE pubkey = :pubkey AND targetPubkey = :targetPubkey LIMIT 1")
     suspend fun getReview(pubkey: String, targetPubkey: String): Review?
+
+    @Query("SELECT * FROM reviews WHERE pubkey = :pubkey")
+    suspend fun getReviewsByAuthor(pubkey: String): List<Review>
 }
