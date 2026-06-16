@@ -230,4 +230,12 @@
     <string name="logout_warning">Logging out will wipe all local data including products and wallet entries. This is an offline-first app; your data is stored locally on this device.</string>
     <string name="backup_database">Backup Database</string>
     <string name="logout_wipe_data">Logout and Wipe Data</string>
+
+    <!-- Updates -->
+    <string name="check_for_updates">Check for Updates</string>
+    <string name="checking_updates">Checking for updates...</string>
+    <string name="update_available">Update available: %1$s</string>
+    <string name="update_not_available">You are using the latest version.</string>
+    <string name="download_update">Download Update</string>
+    <string name="update_failed">Failed to check for updates.</string>
 </resources>

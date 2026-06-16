@@ -85,7 +85,8 @@ fun KianScaffold() {
             app.container.userProfileDao,
             app.container.nostrSyncManager,
             app.container.secureStorage,
-            app.container.database
+            app.container.database,
+            app.container.updateManager
         )
     )
 
@@ -361,11 +362,17 @@ fun KianScaffold() {
             isOpen = isMenuOpen,
             accountMode = viewModel.accountMode,
             currentLanguage = viewModel.currentLanguage,
+            updateResult = viewModel.updateResult,
+            updateError = viewModel.updateError,
+            isCheckingUpdate = viewModel.isCheckingUpdate,
             onAccountModeChange = { mode -> viewModel.updateAccountMode(mode) },
             onLanguageChange = { lang ->
                 viewModel.updateLanguage(lang)
                 (context as? android.app.Activity)?.recreate()
             },
+            onCheckUpdate = { viewModel.checkForUpdates() },
+            onDownloadUpdate = { viewModel.downloadUpdate() },
+            onClearUpdateResult = { viewModel.clearUpdateResult() },
             onDismiss = { isMenuOpen = false },
             onNavigate = { route ->
                 if (route == "logout") {

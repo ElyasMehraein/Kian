@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.ely.kian.R
+import com.ely.kian.services.GitHubUpdateManager
 import com.ely.kian.ui.theme.KianTheme
 
 @Composable
@@ -55,8 +56,14 @@ fun AppMenuDialog(
     isOpen: Boolean,
     accountMode: String,
     currentLanguage: String,
+    updateResult: GitHubUpdateManager.UpdateResult?,
+    updateError: String?,
+    isCheckingUpdate: Boolean,
     onAccountModeChange: (String) -> Unit,
     onLanguageChange: (String) -> Unit,
+    onCheckUpdate: () -> Unit,
+    onDownloadUpdate: () -> Unit,
+    onClearUpdateResult: () -> Unit,
     onDismiss: () -> Unit,
     onNavigate: (String) -> Unit
 ) {
@@ -110,6 +117,12 @@ fun AppMenuDialog(
                         icon = Icons.Default.Backup,
                         label = stringResource(R.string.backups),
                         onClick = { onNavigate("backups"); onDismiss() }
+                    )
+
+                    MenuItem(
+                        icon = Icons.Default.SystemUpdate,
+                        label = stringResource(R.string.check_for_updates),
+                        onClick = { onCheckUpdate() }
                     )
                     
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = kianColors.line)
@@ -168,6 +181,67 @@ fun AppMenuDialog(
                     )
                 }
             }
+        }
+
+        if (isCheckingUpdate) {
+            AlertDialog(
+                onDismissRequest = { },
+                confirmButton = { },
+                title = { Text(stringResource(R.string.check_for_updates)) },
+                text = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(stringResource(R.string.checking_updates))
+                    }
+                }
+            )
+        }
+
+        updateError?.let { error ->
+            AlertDialog(
+                onDismissRequest = { onClearUpdateResult() },
+                title = { Text(stringResource(R.string.check_for_updates)) },
+                text = { Text(stringResource(R.string.update_failed) + "\n" + error) },
+                confirmButton = {
+                    TextButton(onClick = { onClearUpdateResult() }) {
+                        Text(stringResource(R.string.confirm))
+                    }
+                }
+            )
+        }
+
+        updateResult?.let { result ->
+            AlertDialog(
+                onDismissRequest = { onClearUpdateResult() },
+                title = { Text(stringResource(R.string.check_for_updates)) },
+                text = {
+                    Text(
+                        if (result.isUpdateAvailable) 
+                            stringResource(R.string.update_available, result.latestVersion ?: "") 
+                        else 
+                            stringResource(R.string.update_not_available)
+                    )
+                },
+                confirmButton = {
+                    if (result.isUpdateAvailable) {
+                        Button(onClick = { onDownloadUpdate(); onClearUpdateResult() }) {
+                            Text(stringResource(R.string.download_update))
+                        }
+                    } else {
+                        TextButton(onClick = { onClearUpdateResult() }) {
+                            Text(stringResource(R.string.confirm))
+                        }
+                    }
+                },
+                dismissButton = {
+                    if (result.isUpdateAvailable) {
+                        TextButton(onClick = { onClearUpdateResult() }) {
+                            Text(stringResource(R.string.cancel))
+                        }
+                    }
+                }
+            )
         }
     }
 }

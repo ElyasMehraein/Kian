@@ -13,6 +13,7 @@ import com.ely.kian.data.remote.NostrSyncManager
 import com.ely.kian.data.remote.model.NostrEvent
 import com.ely.kian.crypto.KianKeys
 import com.ely.kian.crypto.SecureStorage
+import com.ely.kian.services.GitHubUpdateManager
 import com.ely.kian.data.local.DemoDataSeeder
 import android.util.Log
 import kotlinx.coroutines.flow.*
@@ -24,7 +25,8 @@ class MainViewModel(
     private val userProfileDao: UserProfileDao,
     private val nostrSyncManager: NostrSyncManager,
     private val secureStorage: SecureStorage,
-    private val database: com.ely.kian.data.local.KianDatabase
+    private val database: com.ely.kian.data.local.KianDatabase,
+    private val updateManager: GitHubUpdateManager
 ) : ViewModel() {
 
     // Wrap in catch to prevent crashes during DB integrity issues
@@ -58,11 +60,12 @@ class MainViewModel(
             userProfileDao: UserProfileDao, 
             nostrSyncManager: NostrSyncManager,
             secureStorage: SecureStorage,
-            database: com.ely.kian.data.local.KianDatabase
+            database: com.ely.kian.data.local.KianDatabase,
+            updateManager: GitHubUpdateManager
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return MainViewModel(keyDao, userProfileDao, nostrSyncManager, secureStorage, database) as T
+                return MainViewModel(keyDao, userProfileDao, nostrSyncManager, secureStorage, database, updateManager) as T
             }
         }
     }
@@ -78,6 +81,40 @@ class MainViewModel(
 
     var currentLanguage by mutableStateOf(secureStorage.getLanguage())
         private set
+
+    var updateResult by mutableStateOf<GitHubUpdateManager.UpdateResult?>(null)
+        private set
+
+    var isCheckingUpdate by mutableStateOf(false)
+        private set
+
+    var updateError by mutableStateOf<String?>(null)
+        private set
+
+    fun checkForUpdates() {
+        viewModelScope.launch {
+            isCheckingUpdate = true
+            updateError = null
+            updateManager.checkForUpdates().onSuccess {
+                updateResult = it
+            }.onFailure {
+                Log.e("MainViewModel", "Update check failed", it)
+                updateError = it.message
+            }
+            isCheckingUpdate = false
+        }
+    }
+
+    fun downloadUpdate() {
+        updateResult?.downloadUrl?.let {
+            updateManager.openDownloadUrl(it)
+        }
+    }
+
+    fun clearUpdateResult() {
+        updateResult = null
+        updateError = null
+    }
 
     fun updateLanguage(language: String) {
         if (currentLanguage == language) return

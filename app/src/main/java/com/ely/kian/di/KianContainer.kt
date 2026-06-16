@@ -10,10 +10,12 @@ import com.ely.kian.data.remote.RelayPoolManager
 import com.ely.kian.data.repository.ProductRepository
 import com.ely.kian.data.repository.TokenRepository
 import com.ely.kian.data.repository.ChatRepository
+import com.ely.kian.services.GitHubUpdateManager
 
 class KianContainer(private val context: Context) {
     val secureStorage = SecureStorage(context)
     val relayPoolManager = RelayPoolManager()
+    val updateManager = GitHubUpdateManager(context)
 
     // Using a more robust way to handle DB creation in development
     val database: KianDatabase by lazy {

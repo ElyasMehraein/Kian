@@ -230,4 +230,12 @@
     <string name="logout_warning">خروج از حساب باعث پاک شدن تمام داده‌های محلی از جمله محصولات و ورودی‌های کیف پول می‌شود. این یک برنامه مبتنی بر آفلاین است و داده‌های شما به صورت محلی در این دستگاه ذخیره می‌شوند.</string>
     <string name="backup_database">پشتیبان‌گیری از پایگاه داده</string>
     <string name="logout_wipe_data">خروج و پاکسازی داده‌ها</string>
+
+    <!-- Updates -->
+    <string name="check_for_updates">بررسی بروزرسانی</string>
+    <string name="checking_updates">در حال بررسی بروزرسانی...</string>
+    <string name="update_available">بروزرسانی موجود است: %1$s</string>
+    <string name="update_not_available">شما از آخرین نسخه استفاده می‌کنید.</string>
+    <string name="download_update">دانلود بروزرسانی</string>
+    <string name="update_failed">خطا در بررسی بروزرسانی.</string>
 </resources>
