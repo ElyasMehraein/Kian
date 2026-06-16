@@ -172,8 +172,7 @@ class MerchantProfileViewModel(
                 )
                 nostrSyncManager.publishEvent(event1985)
 
-                // 2. Update Personal Rating File (Kind 31999 - ARCHITECTURE.md)
-                // This is the "One file along with account" that stores ALL reviews by this user.
+                // 2. Update Personal Rating File (Kind 31999)
                 val allMyReviews = reviewDao.getReviewsByAuthor(reviewerPubkey)
                 val tags31999 = allMyReviews.map { r ->
                     listOf("p", r.targetPubkey, r.rating.toString(), r.comment ?: "")
@@ -195,43 +194,6 @@ class MerchantProfileViewModel(
 
             } catch (e: Exception) {
                 android.util.Log.e("MerchantProfileVM", "Failed to publish review", e)
-            }
-        }
-    }
-
-    fun updateMerchantReviewBundle() {
-        if (!isOwnProfile) return
-        viewModelScope.launch {
-            val allReviews = reviews.value
-            if (allReviews.isEmpty()) return@launch
-            
-            try {
-                val privKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: return@launch
-                val privKey = KianKeys.hexToBytes(privKeyHex)
-                val now = System.currentTimeMillis() / 1000
-                
-                // Bundle all reviews into one event content (Merchant's Review File)
-                // This allows others to download all reviews in one go (offline support)
-                // Note: In a real app, you'd store the original signed events, 
-                // but for now we'll bundle the current review objects as JSON.
-                val content = json.encodeToString(allReviews)
-                
-                val tags30019 = listOf(listOf("d", "review_bundle"))
-                val id30019 = KianKeys.computeEventId(pubkey, now, 30019, tags30019, content)
-                val sig30019 = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(id30019), privKey))
-                
-                val event30019 = NostrEvent(
-                    id = id30019,
-                    pubkey = pubkey,
-                    createdAt = now,
-                    kind = 30019,
-                    tags = tags30019,
-                    content = content,
-                    sig = sig30019
-                )
-                nostrSyncManager.publishEvent(event30019)
-            } catch (e: Exception) {
-                android.util.Log.e("MerchantProfileVM", "Failed to publish review bundle", e)
             }
         }
     }

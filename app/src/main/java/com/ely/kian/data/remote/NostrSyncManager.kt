@@ -133,11 +133,9 @@ class NostrSyncManager(
 
     fun requestMerchantData(pubkey: String) {
         syncScope.launch {
-            val filter = """{"kinds": [30017, 30018, 30019, 10002, 0], "authors": ["$pubkey"]}"""
-            val reviewsFilter = """{"kinds": [1984], "#p": ["$pubkey"]}"""
+            val filter = """{"kinds": [30017, 30018, 10002, 0], "authors": ["$pubkey"]}"""
             relayPool.getAllConnectedUrls().forEach { url ->
                 relayPool.subscribe(url, "merchant_data_$pubkey", filter)
-                relayPool.subscribe(url, "merchant_reviews_$pubkey", reviewsFilter)
             }
         }
     }
@@ -146,7 +144,6 @@ class NostrSyncManager(
         syncScope.launch {
             relayPool.getAllConnectedUrls().forEach { url ->
                 relayPool.unsubscribe(url, "merchant_data_$pubkey")
-                relayPool.unsubscribe(url, "merchant_reviews_$pubkey")
             }
         }
     }
@@ -219,6 +216,18 @@ class NostrSyncManager(
         syncScope.launch {
             userProfileDao.replaceFollows(event.pubkey, follows)
             Log.d(TAG, "Saved ${follows.size} followings for ${event.pubkey}")
+
+            // If this is MY follow list, we only download reviews from people I follow
+            if (event.pubkey == currentSyncPubkey) {
+                val followPubkeys = follows.map { it.followsPubkey }
+                if (followPubkeys.isNotEmpty()) {
+                    // Sync Personal Rating Files (Kind 31999) of everyone I follow
+                    val filter = """{"kinds": [31999, 0], "authors": ${json.encodeToString(followPubkeys)}}"""
+                    relayPool.getAllConnectedUrls().forEach { url ->
+                        relayPool.subscribe(url, "follows_data_sync", filter)
+                    }
+                }
+            }
         }
     }
 

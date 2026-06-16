@@ -44,7 +44,6 @@ class EventProcessor(
                 62 -> handleVanish(event)
                 1984, 1985 -> handleReview(event)
                 31999 -> handleSocialRating(event)
-                30019 -> handleReviewBundle(event)
                 1059 -> {
                     Log.i(TAG, "Processing GiftWrap (Kind 1059)")
                     handleGiftWrap(event)
@@ -181,19 +180,6 @@ class EventProcessor(
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to parse social rating bundle (31999)", e)
-        }
-    }
-
-    private suspend fun handleReviewBundle(event: NostrEvent) {
-        // Kind 30019: Merchant's Review Bundle (Merchant's Account File)
-        try {
-            val reviewsArray = json.parseToJsonElement(event.content).jsonArray
-            reviewsArray.forEach { reviewElement ->
-                val reviewEvent = json.decodeFromJsonElement<NostrEvent>(reviewElement)
-                handleReview(reviewEvent)
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to parse review bundle (30019)", e)
         }
     }
 }
