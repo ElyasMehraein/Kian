@@ -17,7 +17,9 @@ data class ChatMessage(
     val kind: Int,
     val isMine: Boolean,
     val status: String = "sent", // sent, delivered, read, pending, waiting_auth, semi_burnt, received
-    val metadata: String? = null // For tokens, products, etc.
+    val metadata: String? = null, // For tokens, products, etc.
+    val replyTo: String? = null, // ID of the message being replied to
+    val reactions: String? = null // JSON string of emoji to list of pubkeys mapping
 )
 
 @Entity(tableName = "conversations")

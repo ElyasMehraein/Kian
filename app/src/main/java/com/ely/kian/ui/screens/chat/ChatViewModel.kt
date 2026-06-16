@@ -37,6 +37,8 @@ class ChatViewModel(
         }
     }
 
+    suspend fun getMessageById(id: String) = repository.getMessageById(id)
+
     fun getMyProducts(): Flow<List<Product>> {
         return flow {
             val key = repository.getOwnPubkey()
@@ -120,9 +122,9 @@ class ChatViewModel(
     }
 
 
-    fun sendMessage(contactPubkey: String, content: String) {
+    fun sendMessage(contactPubkey: String, content: String, replyToId: String? = null) {
         viewModelScope.launch {
-            repository.sendMessage(contactPubkey, content)
+            repository.sendMessage(contactPubkey, content, replyToId = replyToId)
         }
     }
 
@@ -141,6 +143,12 @@ class ChatViewModel(
     fun deleteConversation(contactPubkey: String) {
         viewModelScope.launch {
             repository.deleteConversationFull(contactPubkey)
+        }
+    }
+
+    fun toggleReaction(messageId: String, contactPubkey: String, emoji: String) {
+        viewModelScope.launch {
+            repository.sendReaction(messageId, contactPubkey, emoji)
         }
     }
 

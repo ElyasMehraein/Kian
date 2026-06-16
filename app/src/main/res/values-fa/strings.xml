@@ -72,6 +72,7 @@
     <string name="delete_conversation">حذف گفتگو</string>
     <string name="delete_conversation_confirm">آیا از حذف این گفتگو اطمینان دارید؟ این عمل همچنین درخواست حذف پیام‌های شما را به رله‌های نوستر ارسال می‌کند.</string>
     <string name="reply">پاسخ</string>
+    <string name="you">شما</string>
     <string name="copy">کپی</string>
     <string name="replying_to_yourself">در حال پاسخ به خودتان</string>
     <string name="replying_to">در حال پاسخ به %1$s</string>

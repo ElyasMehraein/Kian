@@ -36,6 +36,10 @@ class EventProcessor(
                     Log.i(TAG, "Processing Chat Message (Kind 14)")
                     chatRepository.handleChatMessage(event)
                 }
+                7 -> {
+                    Log.i(TAG, "Processing Reaction (Kind 7)")
+                    chatRepository.handleReaction(event)
+                }
                 20001, 20002 -> chatRepository.handleReceipt(event)
                 62 -> handleVanish(event)
                 1984, 1985 -> handleReview(event)

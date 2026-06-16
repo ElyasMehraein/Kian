@@ -72,6 +72,7 @@
     <string name="delete_conversation">Delete Conversation</string>
     <string name="delete_conversation_confirm">Are you sure you want to delete this conversation? This will also request to delete your messages on Nostr relays.</string>
     <string name="reply">Reply</string>
+    <string name="you">You</string>
     <string name="copy">Copy</string>
     <string name="replying_to_yourself">Replying to yourself</string>
     <string name="replying_to">Replying to %1$s</string>

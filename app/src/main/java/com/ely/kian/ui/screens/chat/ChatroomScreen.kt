@@ -111,7 +111,7 @@ fun ChatroomScreen(
                     onTextChange = { textState = it },
                     onSend = {
                         if (textState.isNotBlank()) {
-                            viewModel.sendMessage(contactPubkey, textState)
+                            viewModel.sendMessage(contactPubkey, textState, replyingTo?.id)
                             textState = ""
                             replyingTo = null
                         }
@@ -174,7 +174,13 @@ fun ChatroomScreen(
                 ChatBubbleLayout(
                     isMine = message.isMine,
                     colors = kianColors,
-                    onLongClick = { showMenu = true }
+                    onLongClick = { showMenu = true },
+                    onDoubleClick = { viewModel.toggleReaction(message.id, contactPubkey, "❤️") },
+                    reactions = {
+                        if (message.reactions != null) {
+                            MessageReactions(message.reactions!!, kianColors)
+                        }
+                    }
                 ) {
                     MessageContent(
                         message = message,
@@ -190,6 +196,23 @@ fun ChatroomScreen(
                         onDismissRequest = { showMenu = false },
                         modifier = Modifier.background(kianColors.panel)
                     ) {
+                        Row(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
+                            listOf("❤️", "😂", "😮", "😢", "👍", "🔥", "🙏").forEach { emoji ->
+                                Text(
+                                    text = emoji,
+                                    modifier = Modifier
+                                        .padding(4.dp)
+                                        .clickable {
+                                            viewModel.toggleReaction(message.id, contactPubkey, emoji)
+                                            showMenu = false
+                                        },
+                                    fontSize = 24.sp
+                                )
+                            }
+                        }
+                        
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = kianColors.line)
+
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.reply), color = kianColors.ink) },
                             onClick = {
@@ -253,6 +276,47 @@ fun ReplyPreview(message: ChatMessage, colors: com.ely.kian.ui.theme.KianColors,
 }
 
 @Composable
+fun ReplyBubble(replyToId: String, viewModel: ChatViewModel, colors: com.ely.kian.ui.theme.KianColors, isMine: Boolean) {
+    var repliedMessage by remember { mutableStateOf<ChatMessage?>(null) }
+    
+    LaunchedEffect(replyToId) {
+        repliedMessage = viewModel.getMessageById(replyToId)
+    }
+
+    repliedMessage?.let { msg ->
+        val background = if (isMine) Color.White.copy(alpha = 0.15f) else colors.ink.copy(alpha = 0.05f)
+        val accentColor = if (isMine) Color.White.copy(alpha = 0.7f) else colors.accent
+        val contentColor = if (isMine) Color.White.copy(alpha = 0.6f) else colors.ink.copy(alpha = 0.6f)
+
+        Surface(
+            color = background,
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier.padding(bottom = 6.dp).fillMaxWidth()
+        ) {
+            Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(modifier = Modifier.width(3.dp).height(24.dp).background(accentColor, RoundedCornerShape(2.dp)))
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text(
+                        text = if (msg.isMine) stringResource(R.string.you) else msg.pubkey.take(8),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = accentColor
+                    )
+                    Text(
+                        text = msg.content,
+                        fontSize = 12.sp,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        color = contentColor
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun MessageContent(
     message: ChatMessage,
     viewModel: ChatViewModel,
@@ -269,6 +333,10 @@ fun MessageContent(
     }
 
     Column {
+        if (message.replyTo != null) {
+            ReplyBubble(message.replyTo, viewModel, colors, message.isMine)
+        }
+
         if (metadata != null) {
             TokenMessageCard(message, metadata, viewModel, colors)
         } else {
@@ -305,6 +373,42 @@ fun MessageContent(
                     modifier = Modifier.size(17.dp),
                     tint = tint
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun MessageReactions(reactionsJson: String, colors: com.ely.kian.ui.theme.KianColors) {
+    val reactions = remember(reactionsJson) {
+        try {
+            Json.decodeFromString<Map<String, List<String>>>(reactionsJson)
+        } catch (e: Exception) {
+            emptyMap()
+        }
+    }
+
+    if (reactions.isNotEmpty()) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            reactions.forEach { (emoji, pubkeys) ->
+                Row(
+                    modifier = Modifier.padding(horizontal = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = emoji, fontSize = 16.sp) // Slightly larger emoji since no background
+                    if (pubkeys.size > 1) {
+                        Text(
+                            text = pubkeys.size.toString(), 
+                            fontSize = 10.sp, 
+                            fontWeight = FontWeight.Bold,
+                            color = colors.muted,
+                            modifier = Modifier.padding(top = 4.dp) // Align number slightly lower
+                        )
+                    }
+                }
             }
         }
     }

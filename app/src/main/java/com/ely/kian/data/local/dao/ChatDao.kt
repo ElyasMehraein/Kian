@@ -37,6 +37,9 @@ interface ChatDao {
     @Query("UPDATE chat_messages SET status = :status WHERE id = :id")
     suspend fun updateMessageStatus(id: String, status: String)
 
+    @Query("UPDATE chat_messages SET reactions = :reactions WHERE id = :id")
+    suspend fun updateMessageReactions(id: String, reactions: String?)
+
     @Query("SELECT * FROM chat_messages WHERE contactPubkey = :contactPubkey AND isMine = 0 AND status != 'read'")
     suspend fun getUnreadMessagesFrom(contactPubkey: String): List<ChatMessage>
 

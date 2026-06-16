@@ -40,12 +40,14 @@ class ChatRepository(
     fun getConversations(): Flow<List<Conversation>> = 
         chatDao.getConversations()
 
+    suspend fun getMessageById(id: String): ChatMessage? = chatDao.getMessageById(id)
+
     suspend fun getOwnPubkey(): String? {
         val privKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: return null
         return KianKeys.bytesToHex(KianKeys.getPubKey(KianKeys.hexToBytes(privKeyHex)))
     }
 
-    suspend fun sendMessage(contactPubkey: String, content: String, metadata: String? = null) {
+    suspend fun sendMessage(contactPubkey: String, content: String, metadata: String? = null, replyToId: String? = null) {
         val myPrivKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: return
         val myPrivKey = KianKeys.hexToBytes(myPrivKeyHex)
         val myPubKey = KianKeys.bytesToHex(KianKeys.getPubKey(myPrivKey))
@@ -57,6 +59,9 @@ class ChatRepository(
         val tags = mutableListOf(listOf("p", contactPubkey))
         if (metadata != null) {
             tags.add(listOf("metadata", metadata))
+        }
+        if (replyToId != null) {
+            tags.add(listOf("e", replyToId, "", "reply"))
         }
         
         val id = KianKeys.computeEventId(myPubKey, createdAt, kind, tags, content)
@@ -99,7 +104,8 @@ class ChatRepository(
             kind = kind,
             isMine = true,
             status = "pending",
-            metadata = metadata
+            metadata = metadata,
+            replyTo = replyToId
         )
         chatDao.insertMessage(message)
         updateConversation(contactPubkey, content, createdAt)
@@ -110,6 +116,68 @@ class ChatRepository(
         val targetRelays = (recipientInbox + myOutbox).distinct()
         nostrSyncManager.publishEvent(giftWrapToRecipient, targetRelays)
         nostrSyncManager.publishEvent(giftWrapToSelf, myOutbox)
+    }
+
+    suspend fun sendReaction(messageId: String, contactPubkey: String, emoji: String) {
+        val myPrivKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: return
+        val myPrivKey = KianKeys.hexToBytes(myPrivKeyHex)
+        val myPubKey = KianKeys.bytesToHex(KianKeys.getPubKey(myPrivKey))
+        
+        val createdAt = System.currentTimeMillis() / 1000
+        val kind = 7 // Reaction
+        
+        val tags = listOf(
+            listOf("e", messageId),
+            listOf("p", contactPubkey)
+        )
+        
+        val id = KianKeys.computeEventId(myPubKey, createdAt, kind, tags, emoji)
+        val sig = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(id), myPrivKey))
+        
+        val reactionEvent = NostrEvent(id, myPubKey, createdAt, kind, tags, emoji, sig)
+        
+        // 1. Update locally first
+        updateLocalReactions(messageId, myPubKey, emoji)
+        
+        // 2. Publish to relays (gift wrapped)
+        val giftWrap = Nip59.giftWrap(json.encodeToString(reactionEvent), myPrivKey, KianKeys.hexToBytes(contactPubkey), myPubKey)
+        nostrSyncManager.publishEvent(giftWrap)
+    }
+
+    private suspend fun updateLocalReactions(messageId: String, senderPubkey: String, emoji: String) {
+        val message = chatDao.getMessageById(messageId) ?: return
+        val existingReactionsJson = message.reactions
+        
+        val reactionsMap = if (existingReactionsJson != null) {
+            try {
+                json.decodeFromString<Map<String, List<String>>>(existingReactionsJson).toMutableMap()
+            } catch (e: Exception) {
+                mutableMapOf()
+            }
+        } else {
+            mutableMapOf()
+        }
+        
+        val pubkeys = reactionsMap[emoji]?.toMutableList() ?: mutableListOf()
+        if (pubkeys.contains(senderPubkey)) {
+            pubkeys.remove(senderPubkey)
+        } else {
+            pubkeys.add(senderPubkey)
+        }
+        
+        if (pubkeys.isEmpty()) {
+            reactionsMap.remove(emoji)
+        } else {
+            reactionsMap[emoji] = pubkeys
+        }
+        
+        val newJson = if (reactionsMap.isEmpty()) null else json.encodeToString(reactionsMap)
+        chatDao.updateMessageReactions(messageId, newJson)
+    }
+
+    suspend fun handleReaction(event: NostrEvent) {
+        val targetMessageId = event.tags.find { it.size >= 2 && it[0] == "e" }?.get(1) ?: return
+        updateLocalReactions(targetMessageId, event.pubkey, event.content)
     }
 
     suspend fun handleChatMessage(event: NostrEvent) {
@@ -133,6 +201,7 @@ class ChatRepository(
             }
 
             val metadata = event.tags.find { it.size >= 2 && it[0] == "metadata" }?.get(1)
+            val replyToId = event.tags.find { it.size >= 2 && it[0] == "e" }?.get(1)
 
             val message = ChatMessage(
                 id = event.id,
@@ -142,7 +211,8 @@ class ChatRepository(
                 content = event.content,
                 kind = event.kind,
                 isMine = isMine,
-                metadata = metadata
+                metadata = metadata,
+                replyTo = replyToId
             )
             
             chatDao.insertMessage(message)
