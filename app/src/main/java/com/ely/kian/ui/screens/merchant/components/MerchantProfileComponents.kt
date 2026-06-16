@@ -21,9 +21,17 @@ import com.ely.kian.data.local.entities.Review
 import com.ely.kian.ui.theme.KianTheme
 
 @Composable
-fun ProfileStat(label: String, value: String, icon: androidx.compose.ui.graphics.vector.ImageVector? = null) {
+fun ProfileStat(
+    label: String,
+    value: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    onClick: (() -> Unit)? = null
+) {
     val colors = KianTheme.colors
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (icon != null) {
                 Icon(icon, contentDescription = null, tint = Color(0xFFFFB800), modifier = Modifier.size(16.dp))

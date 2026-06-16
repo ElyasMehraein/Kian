@@ -40,6 +40,8 @@ import com.ely.kian.ui.screens.backups.BackupScreen
 import com.ely.kian.ui.screens.onboarding.OnboardingScreen
 import com.ely.kian.ui.screens.onboarding.PrivateKeyScreen
 import com.ely.kian.ui.screens.merchant.MerchantProfileScreen
+import com.ely.kian.ui.screens.merchant.FollowersScreen
+import com.ely.kian.ui.screens.merchant.FollowersViewModel
 import com.ely.kian.ui.screens.profile.ProfileEditScreen
 import com.ely.kian.ui.screens.cart.CartScreen
 import com.ely.kian.ui.screens.relays.RelayManagementScreen
@@ -62,6 +64,7 @@ sealed class Screen(val route: String, val labelId: Int, val icon: ImageVector) 
     
     // Sub-screens
     object MerchantProfile : Screen("merchant/{pubkey}", R.string.merchant, Icons.Default.Person)
+    object Followers : Screen("merchant/{pubkey}/followers", R.string.followers, Icons.Default.Group)
     object Chatroom : Screen("chat/{roomId}", R.string.chatroom, Icons.Default.Chat)
     object Cart : Screen("cart", R.string.cart, Icons.Default.ShoppingCart)
     object Backups : Screen("backups", R.string.backups, Icons.Default.Backup)
@@ -285,7 +288,8 @@ fun KianScaffold(initialChatRoomId: String? = null) {
                         onBack = { /* No back on main tab */ },
                         onCart = { navController.navigate("cart") },
                         onEdit = { navController.navigate("profile/edit") },
-                        onMessage = { pubkey -> navController.navigate("chat/$pubkey") }
+                        onMessage = { pubkey -> navController.navigate("chat/$pubkey") },
+                        onFollowersClick = { pubkey -> navController.navigate("merchant/$pubkey/followers") }
                     ) 
                 }
                 composable("profile/edit") {
@@ -344,7 +348,25 @@ fun KianScaffold(initialChatRoomId: String? = null) {
                         onBack = { navController.popBackStack() },
                         onCart = { navController.navigate("cart") },
                         onEdit = { navController.navigate("profile/edit") },
-                        onMessage = { pk -> navController.navigate("chat/$pk") }
+                        onMessage = { pk -> navController.navigate("chat/$pk") },
+                        onFollowersClick = { pk -> navController.navigate("merchant/$pk/followers") }
+                    )
+                }
+
+                composable(Screen.Followers.route) { backStackEntry ->
+                    val pubkey = backStackEntry.arguments?.getString("pubkey") ?: ""
+                    val followersViewModel: FollowersViewModel = viewModel(
+                        factory = FollowersViewModel.provideFactory(
+                            app.container.userProfileDao,
+                            pubkey
+                        )
+                    )
+                    FollowersScreen(
+                        viewModel = followersViewModel,
+                        onBack = { navController.popBackStack() },
+                        onProfileClick = { pk ->
+                            navController.navigate("merchant/$pk")
+                        }
                     )
                 }
                 

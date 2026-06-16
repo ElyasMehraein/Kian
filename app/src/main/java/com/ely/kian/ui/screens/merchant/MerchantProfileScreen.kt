@@ -67,6 +67,7 @@ fun MerchantProfileScreen(
     onCart: () -> Unit,
     onEdit: () -> Unit = {},
     onMessage: (String) -> Unit = {},
+    onFollowersClick: (String) -> Unit = {},
     ownPubkey: String? = null,
     viewModel: MerchantProfileViewModel = viewModel(
         factory = MerchantProfileViewModel.provideFactory(
@@ -392,7 +393,11 @@ fun MerchantProfileScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             ProfileStat(label = stringResource(R.string.products), value = products.size.toString())
-                            ProfileStat(label = stringResource(R.string.followers), value = followerCount.toString())
+                            ProfileStat(
+                                label = stringResource(R.string.followers),
+                                value = followerCount.toString(),
+                                onClick = { onFollowersClick(pubkey) }
+                            )
                             ProfileStat(label = stringResource(R.string.rating), value = avgRating, icon = Icons.Default.Star)
                         }
 

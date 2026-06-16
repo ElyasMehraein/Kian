@@ -156,6 +156,7 @@
     <string name="edit_your_review">Edit Your Review</string>
     <string name="write_review">Write a Review</string>
     <string name="no_reviews_yet">No reviews posted yet.</string>
+    <string name="no_followers_yet">No followers yet.</string>
     <string name="rate_merchant">Rate this Merchant</string>
     <string name="write_review_here">Write your review here...</string>
     <string name="post_review">Post Review</string>

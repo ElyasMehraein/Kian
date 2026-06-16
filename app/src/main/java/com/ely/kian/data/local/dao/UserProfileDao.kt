@@ -60,6 +60,13 @@ interface UserProfileDao {
     suspend fun getFollowingPubkeys(pubkey: String): List<String>
 
     @Query("""
+        SELECT p.* FROM profiles p
+        JOIN user_follows f ON p.pubkey = f.pubkey
+        WHERE f.followsPubkey = :pubkey
+    """)
+    fun getFollowers(pubkey: String): Flow<List<Profile>>
+
+    @Query("""
         SELECT followsPubkey as pubkey, COUNT(*) as count 
         FROM user_follows 
         WHERE pubkey IN (:followerPubkeys)

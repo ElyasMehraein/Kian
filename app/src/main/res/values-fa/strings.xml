@@ -156,6 +156,7 @@
     <string name="edit_your_review">ویرایش نظر شما</string>
     <string name="write_review">نوشتن نظر</string>
     <string name="no_reviews_yet">هنوز هیچ نظری ثبت نشده است.</string>
+    <string name="no_followers_yet">هنوز دنبال‌کننده‌ای وجود ندارد.</string>
     <string name="rate_merchant">امتیاز به این فروشنده</string>
     <string name="write_review_here">نظر خود را اینجا بنویسید...</string>
     <string name="post_review">ثبت نظر</string>
