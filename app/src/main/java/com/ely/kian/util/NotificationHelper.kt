@@ -47,7 +47,7 @@ class NotificationHelper(private val context: Context) {
         )
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_notification_k)
             .setContentTitle(senderName ?: "New Message")
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
