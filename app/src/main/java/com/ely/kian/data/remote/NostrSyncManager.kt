@@ -22,8 +22,10 @@ class NostrSyncManager(
     private val syncScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     
     private val defaultRelays = listOf(
-        "ws://192.168.1.14:8080",
-//        "wss://relay.damus.io"
+        "wss://relay.damus.io",
+        "wss://nos.lol",
+        "wss://relay.snort.social",
+        "wss://nostr.mom"
     )
 
     fun startSyncing(myPubkey: String? = null) {

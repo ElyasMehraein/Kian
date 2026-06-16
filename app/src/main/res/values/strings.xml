@@ -238,4 +238,5 @@
     <string name="update_not_available">You are using the latest version.</string>
     <string name="download_update">Download Update</string>
     <string name="update_failed">Failed to check for updates.</string>
+    <string name="github_project">Project on GitHub</string>
 </resources>

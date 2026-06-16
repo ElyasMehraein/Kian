@@ -12,9 +12,17 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.util.concurrent.TimeUnit
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 
 class GitHubUpdateManager(private val context: Context) {
-    private val client = OkHttpClient()
+    private val client = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .build()
+
     private val json = Json { ignoreUnknownKeys = true }
 
     // GitHub repository details
@@ -33,6 +41,7 @@ class GitHubUpdateManager(private val context: Context) {
             // Fetch all releases to include pre-releases (alphas/betas)
             val request = Request.Builder()
                 .url("https://api.github.com/repos/$repoOwner/$repoName/releases")
+                .header("User-Agent", "Kian-App")
                 .build()
 
             client.newCall(request).execute().use { response ->
@@ -60,17 +69,26 @@ class GitHubUpdateManager(private val context: Context) {
 
                 Result.success(UpdateResult(isUpdateAvailable, tagName, downloadUrl, releaseNotes))
             }
+        } catch (_: SocketTimeoutException) {
+            Result.failure(Exception("ارتباط با سرور برقرار نشد. لطفاً وضعیت اینترنت خود را بررسی کنید (Timeout)"))
+        } catch (_: UnknownHostException) {
+            Result.failure(Exception("سرور یافت نشد. لطفاً وضعیت اینترنت و فیلترشکن خود را بررسی کنید."))
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
     private fun isVersionNewer(current: String, latest: String): Boolean {
-        val currentClean = current.removePrefix("v").split("-")[0]
-        val latestClean = latest.removePrefix("v").split("-")[0]
+        val currentClean = current.removePrefix("v")
+        val latestClean = latest.removePrefix("v")
         
-        val currentParts = currentClean.split(".").mapNotNull { it.toIntOrNull() }
-        val latestParts = latestClean.split(".").mapNotNull { it.toIntOrNull() }
+        if (currentClean == latestClean) return false
+        
+        val currentMain = currentClean.split("-")[0]
+        val latestMain = latestClean.split("-")[0]
+        
+        val currentParts = currentMain.split(".").mapNotNull { it.toIntOrNull() }
+        val latestParts = latestMain.split(".").mapNotNull { it.toIntOrNull() }
         
         for (i in 0 until maxOf(currentParts.size, latestParts.size)) {
             val c = currentParts.getOrElse(i) { 0 }
@@ -78,7 +96,21 @@ class GitHubUpdateManager(private val context: Context) {
             if (l > c) return true
             if (c > l) return false
         }
-        return false
+        
+        // If main parts are equal, compare suffixes
+        val currentHasSuffix = currentClean.contains("-")
+        val latestHasSuffix = latestClean.contains("-")
+        
+        return when {
+            currentHasSuffix && !latestHasSuffix -> true // e.g. current=1.0.0-alpha, latest=1.0.0 -> true
+            !currentHasSuffix && latestHasSuffix -> false // e.g. current=1.0.0, latest=1.0.0-alpha -> false
+            currentHasSuffix && latestHasSuffix -> {
+                val currentSuffix = currentClean.substringAfter("-")
+                val latestSuffix = latestClean.substringAfter("-")
+                latestSuffix > currentSuffix
+            }
+            else -> false
+        }
     }
 
     fun openDownloadUrl(url: String) {

@@ -238,4 +238,5 @@
     <string name="update_not_available">شما از آخرین نسخه استفاده می‌کنید.</string>
     <string name="download_update">دانلود بروزرسانی</string>
     <string name="update_failed">خطا در بررسی بروزرسانی.</string>
+    <string name="github_project">پروژه در گیت‌هاب</string>
 </resources>

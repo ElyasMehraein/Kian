@@ -373,6 +373,10 @@ fun KianScaffold() {
             onCheckUpdate = { viewModel.checkForUpdates() },
             onDownloadUpdate = { viewModel.downloadUpdate() },
             onClearUpdateResult = { viewModel.clearUpdateResult() },
+            onOpenUrl = { url ->
+                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                context.startActivity(intent)
+            },
             onDismiss = { isMenuOpen = false },
             onNavigate = { route ->
                 if (route == "logout") {

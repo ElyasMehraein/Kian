@@ -64,6 +64,7 @@ fun AppMenuDialog(
     onCheckUpdate: () -> Unit,
     onDownloadUpdate: () -> Unit,
     onClearUpdateResult: () -> Unit,
+    onOpenUrl: (String) -> Unit,
     onDismiss: () -> Unit,
     onNavigate: (String) -> Unit
 ) {
@@ -123,6 +124,15 @@ fun AppMenuDialog(
                         icon = Icons.Default.SystemUpdate,
                         label = stringResource(R.string.check_for_updates),
                         onClick = { onCheckUpdate() }
+                    )
+
+                    MenuItem(
+                        icon = Icons.Default.Code,
+                        label = stringResource(R.string.github_project),
+                        onClick = { 
+                            onOpenUrl("https://github.com/ElyasMehraein/Kian")
+                            onDismiss()
+                        }
                     )
                     
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = kianColors.line)
