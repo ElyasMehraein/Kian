@@ -1,11 +1,8 @@
 package com.ely.kian.ui.screens.products
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,22 +13,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.ui.layout.ContentScale
-import coil.compose.AsyncImage
-import androidx.compose.ui.res.stringResource
 import com.ely.kian.R
 import com.ely.kian.data.local.entities.Product
-import com.ely.kian.data.local.entities.ProductCategory
 import com.ely.kian.ui.components.KianButton
-import com.ely.kian.ui.components.KianChip
 import com.ely.kian.ui.components.ScreenHeader
+import com.ely.kian.ui.screens.products.components.*
 import com.ely.kian.ui.theme.KianTheme
 import kotlinx.serialization.json.Json
 
@@ -49,7 +40,6 @@ fun ProductManagerScreen(
     var showBottomSheet by remember { mutableStateOf(false) }
     var editingProduct by remember { mutableStateOf<Product?>(null) }
     
-    // Draft states
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var imageUrls by remember { mutableStateOf("") }
@@ -99,20 +89,18 @@ fun ProductManagerScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Header
             ScreenHeader(
                 title = stringResource(R.string.manage_products),
                 subtitle = if (pubkey != null) stringResource(R.string.manage_products_desc) else stringResource(R.string.create_keys_first)
             )
 
-            // Category Filter Bar
             CategoryFilterBar(
                 categories = categories,
                 selectedPath = viewModel.selectedFilterPath,
-                onPathChange = { viewModel.selectedFilterPath = it }
+                onPathChange = { viewModel.selectedFilterPath = it },
+                colors = kianColors
             )
 
-            // Product List
             val filteredProducts = remember(products, viewModel.selectedFilterPath, categories) {
                 val selectedLeaf = viewModel.selectedFilterPath.lastOrNull()
                 if (selectedLeaf == null) {
@@ -153,7 +141,8 @@ fun ProductManagerScreen(
                             showBottomSheet = true
                         },
                         onDelete = { viewModel.deleteProduct(it) },
-                        onToggleShowcase = { product, isShowcase -> viewModel.toggleShowcase(product, isShowcase) }
+                        onToggleShowcase = { product, isShowcase -> viewModel.toggleShowcase(product, isShowcase) },
+                        colors = kianColors
                     )
                 }
             }
@@ -203,7 +192,8 @@ fun ProductManagerScreen(
                         categories = categories,
                         selectedIds = selectedCategoryIds,
                         onChange = { selectedCategoryIds = it },
-                        onManageCategories = onNavigateToCategories
+                        onManageCategories = onNavigateToCategories,
+                        colors = kianColors
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -281,307 +271,4 @@ fun ProductManagerScreen(
             }
         }
     }
-}
-
-@Composable
-fun ProductRow(
-    product: Product,
-    categoryName: String?,
-    onEdit: (Product) -> Unit,
-    onDelete: (Product) -> Unit,
-    onToggleShowcase: (Product, Boolean) -> Unit
-) {
-    val kianColors = KianTheme.colors
-    val imageUrls = remember(product.images) {
-        try { Json.decodeFromString<List<String>>(product.images) } catch (e: Exception) { emptyList<String>() }
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(kianColors.panel, RoundedCornerShape(16.dp))
-            .border(1.dp, kianColors.line, RoundedCornerShape(16.dp))
-            .padding(14.dp)
-    ) {
-        Column(modifier = Modifier.clickable { onEdit(product) }) {
-            if (imageUrls.size == 1) {
-                AsyncImage(
-                    model = imageUrls.first(),
-                    contentDescription = product.name,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(kianColors.line),
-                    contentScale = ContentScale.Crop
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-            } else if (imageUrls.size > 1) {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    items(imageUrls) { url ->
-                        AsyncImage(
-                            model = url,
-                            contentDescription = product.name,
-                            modifier = Modifier
-                                .width(280.dp)
-                                .height(180.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(kianColors.line),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-
-            Text(text = product.name, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = kianColors.ink)
-            Text(
-                text = product.description ?: stringResource(R.string.no_description),
-                fontSize = 14.sp,
-                color = kianColors.muted,
-                modifier = Modifier.padding(top = 6.dp)
-            )
-            
-            if (categoryName != null) {
-                Spacer(modifier = Modifier.height(10.dp))
-                Surface(
-                    color = kianColors.accent.copy(alpha = 0.1f),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text(
-                        text = categoryName.uppercase(),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = kianColors.accent,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
-            }
-
-            Text(
-                text = "Tap to edit",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = kianColors.accent,
-                modifier = Modifier.padding(top = 10.dp)
-            )
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Switch(
-                    checked = product.isShowcase,
-                    onCheckedChange = { onToggleShowcase(product, it) },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = kianColors.canvas,
-                        checkedTrackColor = kianColors.accent,
-                        uncheckedThumbColor = kianColors.muted,
-                        uncheckedTrackColor = kianColors.line
-                    ),
-                    modifier = Modifier.scale(0.8f)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = stringResource(R.string.showcase),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = kianColors.ink
-                )
-            }
-
-            Button(
-                onClick = { onDelete(product) },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = kianColors.danger.copy(alpha = 0.1f),
-                    contentColor = kianColors.danger
-                ),
-                shape = RoundedCornerShape(12.dp),
-                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
-                modifier = Modifier.height(40.dp)
-            ) {
-                Text(stringResource(R.string.delete_product), fontWeight = FontWeight.SemiBold)
-            }
-        }
-    }
-}
-
-@Composable
-fun CategoryFilterBar(
-    categories: List<ProductCategory>,
-    selectedPath: List<ProductCategory>,
-    onPathChange: (List<ProductCategory>) -> Unit
-) {
-    val kianColors = KianTheme.colors
-    
-    Column(modifier = Modifier.padding(bottom = 16.dp)) {
-        // Path View
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = 20.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.padding(bottom = 12.dp)
-        ) {
-            item {
-                KianChip(
-                    text = stringResource(R.string.all),
-                    selected = selectedPath.isEmpty(),
-                    onClick = { onPathChange(emptyList()) }
-                )
-            }
-            items(selectedPath) { category ->
-                KianChip(
-                    text = category.name,
-                    selected = true,
-                    onClick = { 
-                        val index = selectedPath.indexOf(category)
-                        onPathChange(selectedPath.take(index + 1))
-                    },
-                    backgroundColor = kianColors.accentSoft,
-                    contentColor = kianColors.accent
-                )
-            }
-        }
-        
-        // Next level options
-        val parentId = selectedPath.lastOrNull()?.id
-        val options = categories.filter { it.parentId == parentId }.sortedBy { it.name }
-        
-        if (options.isNotEmpty()) {
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 20.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(options) { category ->
-                    KianChip(
-                        text = category.name,
-                        selected = false,
-                        onClick = { onPathChange(selectedPath + category) },
-                        backgroundColor = kianColors.line,
-                        contentColor = kianColors.ink
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun DraftCategoryPicker(
-    categories: List<ProductCategory>,
-    selectedIds: List<String>,
-    onChange: (List<String>) -> Unit,
-    onManageCategories: () -> Unit
-) {
-    val kianColors = KianTheme.colors
-    val selectedPath = remember(categories, selectedIds) {
-        val path = mutableListOf<ProductCategory>()
-        var currentId = selectedIds.lastOrNull()
-        while (currentId != null) {
-            val cat = categories.find { it.id == currentId }
-            if (cat != null) {
-                path.add(0, cat)
-                currentId = cat.parentId
-            } else {
-                currentId = null
-            }
-        }
-        path
-    }
-
-    Column(modifier = Modifier.padding(bottom = 10.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(stringResource(R.string.category), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = kianColors.ink)
-            Text(
-                stringResource(R.string.manage_categories),
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = kianColors.accent,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(kianColors.accentSoft)
-                    .clickable { onManageCategories() }
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
-            )
-        }
-
-        if (categories.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(kianColors.panel)
-                    .padding(12.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.create_categories_first),
-                    fontSize = 14.sp,
-                    color = kianColors.muted,
-                    lineHeight = 20.sp
-                )
-            }
-        } else {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Current path row
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    item {
-                        KianChip(
-                            text = stringResource(R.string.no_category),
-                            selected = selectedPath.isEmpty(),
-                            onClick = { onChange(emptyList()) },
-                            backgroundColor = if (selectedPath.isEmpty()) kianColors.ink else kianColors.panel,
-                            contentColor = if (selectedPath.isEmpty()) kianColors.canvas else kianColors.ink
-                        )
-                    }
-                    items(selectedPath) { category ->
-                        val index = selectedPath.indexOf(category)
-                        KianChip(
-                            text = category.name,
-                            selected = true,
-                            onClick = { onChange(selectedPath.take(index + 1).map { it.id }) },
-                            backgroundColor = kianColors.accentSoft,
-                            contentColor = kianColors.accent
-                        )
-                    }
-                }
-                
-                // Next level row
-                val parentId = selectedPath.lastOrNull()?.id
-                val options = categories.filter { it.parentId == parentId }.sortedBy { it.name }
-                if (options.isNotEmpty()) {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(options) { category ->
-                            KianChip(
-                                text = category.name,
-                                selected = false,
-                                onClick = { onChange((selectedPath + category).map { it.id }) },
-                                backgroundColor = kianColors.panel,
-                                contentColor = kianColors.ink
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-private fun getBranchIds(categories: List<ProductCategory>, rootId: String): List<String> {
-    val ids = mutableListOf(rootId)
-    val children = categories.filter { it.parentId == rootId }
-    for (child in children) {
-        ids.addAll(getBranchIds(categories, child.id))
-    }
-    return ids
 }
