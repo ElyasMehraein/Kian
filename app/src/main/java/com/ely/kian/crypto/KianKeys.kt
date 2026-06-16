@@ -103,6 +103,12 @@ object KianKeys {
             add(tagsJson)
             add(content)
         }
-        return bytesToHex(sha256(eventJson.toString().toByteArray()))
+        // Use a minified, deterministic JSON for ID computation
+        val jsonMinified = Json { 
+            encodeDefaults = true
+            prettyPrint = false
+        }
+        val serialized = jsonMinified.encodeToString(JsonArray.serializer(), eventJson)
+        return bytesToHex(sha256(serialized.toByteArray()))
     }
 }

@@ -126,25 +126,39 @@ class ChatRepository(
         val createdAt = System.currentTimeMillis() / 1000
         val kind = 7 // Reaction
         
+        // Find the actual author of the message for the 'p' tag (NIP-25)
+        val targetMessage = chatDao.getMessageById(messageId)
+        val authorPubkey = targetMessage?.pubkey ?: contactPubkey
+
         val tags = listOf(
             listOf("e", messageId),
-            listOf("p", contactPubkey)
+            listOf("p", authorPubkey)
         )
         
         val id = KianKeys.computeEventId(myPubKey, createdAt, kind, tags, emoji)
         val sig = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(id), myPrivKey))
         
         val reactionEvent = NostrEvent(id, myPubKey, createdAt, kind, tags, emoji, sig)
+        val reactionJson = json.encodeToString(reactionEvent)
         
-        // 1. Update locally first
-        updateLocalReactions(messageId, myPubKey, emoji)
+        // 1. Update locally first (toggle mode for UI)
+        updateLocalReactions(messageId, myPubKey, emoji, toggle = true)
         
-        // 2. Publish to relays (gift wrapped)
-        val giftWrap = Nip59.giftWrap(json.encodeToString(reactionEvent), myPrivKey, KianKeys.hexToBytes(contactPubkey), myPubKey)
-        nostrSyncManager.publishEvent(giftWrap)
+        // 2. Publish to recipient's inbox relays
+        val giftWrapToRecipient = Nip59.giftWrap(reactionJson, myPrivKey, KianKeys.hexToBytes(contactPubkey), myPubKey)
+        
+        val recipientInbox = relayDao.getDmInboxRelayUrls(contactPubkey)
+        val myOutbox = relayDao.getDmInboxRelayUrls(myPubKey)
+        val targetRelays = (recipientInbox + myOutbox).distinct()
+        
+        nostrSyncManager.publishEvent(giftWrapToRecipient, targetRelays)
+        
+        // 3. Wrap for self to keep it synced across devices
+        val giftWrapToSelf = Nip59.giftWrap(reactionJson, myPrivKey, KianKeys.hexToBytes(myPubKey), myPubKey)
+        nostrSyncManager.publishEvent(giftWrapToSelf, myOutbox)
     }
 
-    private suspend fun updateLocalReactions(messageId: String, senderPubkey: String, emoji: String) {
+    private suspend fun updateLocalReactions(messageId: String, senderPubkey: String, emoji: String, toggle: Boolean = false) {
         val message = chatDao.getMessageById(messageId) ?: return
         val existingReactionsJson = message.reactions
         
@@ -159,10 +173,16 @@ class ChatRepository(
         }
         
         val pubkeys = reactionsMap[emoji]?.toMutableList() ?: mutableListOf()
-        if (pubkeys.contains(senderPubkey)) {
-            pubkeys.remove(senderPubkey)
+        if (toggle) {
+            if (pubkeys.contains(senderPubkey)) {
+                pubkeys.remove(senderPubkey)
+            } else {
+                pubkeys.add(senderPubkey)
+            }
         } else {
-            pubkeys.add(senderPubkey)
+            if (!pubkeys.contains(senderPubkey)) {
+                pubkeys.add(senderPubkey)
+            }
         }
         
         if (pubkeys.isEmpty()) {
@@ -177,7 +197,8 @@ class ChatRepository(
 
     suspend fun handleReaction(event: NostrEvent) {
         val targetMessageId = event.tags.find { it.size >= 2 && it[0] == "e" }?.get(1) ?: return
-        updateLocalReactions(targetMessageId, event.pubkey, event.content)
+        // When receiving from relay, we just ensure it's added (not toggled)
+        updateLocalReactions(targetMessageId, event.pubkey, event.content, toggle = false)
     }
 
     suspend fun handleChatMessage(event: NostrEvent) {
@@ -294,6 +315,47 @@ class ChatRepository(
         val status = if (event.kind == 20001) "delivered" else "read"
         event.tags.filter { it.size >= 2 && it[0] == "e" }.forEach { tag ->
             chatDao.updateMessageStatus(tag[1], status)
+        }
+    }
+
+    suspend fun retryPendingMessages() {
+        val pending = chatDao.getPendingMessages()
+        if (pending.isEmpty()) return
+        
+        Log.d(TAG, "Retrying ${pending.size} pending messages")
+        val myPrivKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: return
+        val myPrivKey = KianKeys.hexToBytes(myPrivKeyHex)
+        val myPubKey = KianKeys.bytesToHex(KianKeys.getPubKey(myPrivKey))
+        
+        pending.forEach { message ->
+            try {
+                val tags = mutableListOf(listOf("p", message.contactPubkey))
+                if (message.metadata != null) tags.add(listOf("metadata", message.metadata))
+                if (message.replyTo != null) tags.add(listOf("e", message.replyTo, "", "reply"))
+                
+                val rumor = NostrEvent(
+                    id = message.id,
+                    pubkey = myPubKey,
+                    createdAt = message.createdAt,
+                    kind = message.kind,
+                    tags = tags,
+                    content = message.content,
+                    sig = "" 
+                )
+                val rumorJson = json.encodeToString(rumor)
+
+                val giftWrapToRecipient = Nip59.giftWrap(rumorJson, myPrivKey, KianKeys.hexToBytes(message.contactPubkey), myPubKey)
+                val giftWrapToSelf = Nip59.giftWrap(rumorJson, myPrivKey, KianKeys.hexToBytes(myPubKey), myPubKey)
+                
+                val recipientInbox = relayDao.getDmInboxRelayUrls(message.contactPubkey)
+                val myOutbox = relayDao.getDmInboxRelayUrls(myPubKey)
+                val targetRelays = (recipientInbox + myOutbox).distinct()
+                
+                nostrSyncManager.publishEvent(giftWrapToRecipient, targetRelays)
+                nostrSyncManager.publishEvent(giftWrapToSelf, myOutbox)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to retry message ${message.id}", e)
+            }
         }
     }
 

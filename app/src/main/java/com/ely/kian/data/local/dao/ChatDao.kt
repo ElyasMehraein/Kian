@@ -58,6 +58,9 @@ interface ChatDao {
     @Query("SELECT * FROM chat_messages WHERE metadata LIKE '%' || :metadataPart || '%' LIMIT 1")
     suspend fun getMessageByMetadata(metadataPart: String): ChatMessage?
 
+    @Query("SELECT * FROM chat_messages WHERE status = 'pending' ORDER BY createdAt ASC")
+    suspend fun getPendingMessages(): List<ChatMessage>
+
     @Query("SELECT SUM(unreadCount) FROM conversations")
     fun getTotalUnreadCount(): Flow<Int?>
 }

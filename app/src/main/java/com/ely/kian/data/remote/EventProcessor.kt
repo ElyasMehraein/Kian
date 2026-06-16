@@ -17,7 +17,7 @@ class EventProcessor(
     private val tokenRepository: TokenRepository,
     private val userProfileDao: UserProfileDao,
     private val reviewDao: com.ely.kian.data.local.dao.ReviewDao,
-    private val chatRepository: com.ely.kian.data.repository.ChatRepository,
+    val chatRepository: com.ely.kian.data.repository.ChatRepository,
     private val json: Json = Json { ignoreUnknownKeys = true }
 ) {
     private val TAG = "EventProcessor"

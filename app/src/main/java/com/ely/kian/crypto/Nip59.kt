@@ -15,20 +15,17 @@ object Nip59 {
         recipientPubKey: ByteArray,
         innerEventPubkey: String
     ): NostrEvent {
-        // 0. Parse rumor and sign it (Amethyst style for extra reliability)
+        // 0. Parse rumor and sign it
         val rumor = try {
             val element = json.parseToJsonElement(innerEventJson).jsonObject
-            val tags = element["tags"]?.jsonArray?.map { tag ->
-                tag.jsonArray.map { it.jsonPrimitive.content }
-            } ?: emptyList()
-            
-            val id = KianKeys.computeEventId(
+            val id = element["id"]?.jsonPrimitive?.content ?: KianKeys.computeEventId(
                 pubkey = innerEventPubkey,
                 createdAt = element["created_at"]!!.jsonPrimitive.long,
                 kind = element["kind"]!!.jsonPrimitive.int,
-                tags = tags,
+                tags = element["tags"]?.jsonArray?.map { it.jsonArray.map { v -> v.jsonPrimitive.content } } ?: emptyList(),
                 content = element["content"]!!.jsonPrimitive.content
             )
+            
             val sig = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(id), senderPrivKey))
             
             NostrEvent(
@@ -36,7 +33,7 @@ object Nip59 {
                 pubkey = innerEventPubkey,
                 createdAt = element["created_at"]!!.jsonPrimitive.long,
                 kind = element["kind"]!!.jsonPrimitive.int,
-                tags = tags,
+                tags = element["tags"]?.jsonArray?.map { it.jsonArray.map { v -> v.jsonPrimitive.content } } ?: emptyList(),
                 content = element["content"]!!.jsonPrimitive.content,
                 sig = sig
             )
@@ -44,6 +41,21 @@ object Nip59 {
             json.decodeFromString<NostrEvent>(innerEventJson)
         }
 
+        if (rumor.sig.isEmpty()) {
+            // This is a safety catch: a rumor MUST be signed
+            val sig = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(rumor.id), senderPrivKey))
+            return giftWrapInternal(rumor.copy(sig = sig), senderPrivKey, recipientPubKey, innerEventPubkey)
+        }
+
+        return giftWrapInternal(rumor, senderPrivKey, recipientPubKey, innerEventPubkey)
+    }
+
+    private fun giftWrapInternal(
+        rumor: NostrEvent,
+        senderPrivKey: ByteArray,
+        recipientPubKey: ByteArray,
+        innerEventPubkey: String
+    ): NostrEvent {
         val signedRumorJson = json.encodeToString(NostrEvent.serializer(), rumor)
 
         // 1. Create the Seal (Kind 13)

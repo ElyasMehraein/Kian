@@ -78,6 +78,12 @@ class NostrSyncManager(
             allRelays.forEach { url ->
                 connectToRelay(url, myPubkey)
             }
+            
+            // Retry pending chat messages once connected
+            if (myPubkey != null) {
+                delay(2000) // Wait a bit for connections to establish
+                eventProcessor.chatRepository.retryPendingMessages()
+            }
         }
     }
 

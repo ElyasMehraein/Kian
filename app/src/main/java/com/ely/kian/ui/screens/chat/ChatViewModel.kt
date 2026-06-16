@@ -125,6 +125,14 @@ class ChatViewModel(
     fun sendMessage(contactPubkey: String, content: String, replyToId: String? = null) {
         viewModelScope.launch {
             repository.sendMessage(contactPubkey, content, replyToId = replyToId)
+            // After sending a new message, try to push any stuck pending messages
+            repository.retryPendingMessages()
+        }
+    }
+
+    fun retryPending() {
+        viewModelScope.launch {
+            repository.retryPendingMessages()
         }
     }
 
