@@ -6,21 +6,14 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-// import com.ely.kian.R // Uncomment after adding fonts to res/font
+import com.ely.kian.R 
 
 // Define Vazir Font Family
-// Note: Place vazir_regular.ttf, vazir_medium.ttf, and vazir_bold.ttf in app/src/main/res/font/
-// Then uncomment the VazirFontFamily and update Typography to use it.
-
-val VazirFontFamily = FontFamily.SansSerif 
-/* 
-// Use this once font files are added:
 val VazirFontFamily = FontFamily(
-    Font(R.font.vazir_regular, FontWeight.Normal),
-    Font(R.font.vazir_medium, FontWeight.Medium),
-    Font(R.font.vazir_bold, FontWeight.Bold)
+    Font(R.font.vazirmatn_regular, FontWeight.Normal),
+    Font(R.font.vazirmatn_medium, FontWeight.Medium),
+    Font(R.font.vazirmatn_bold, FontWeight.Bold)
 )
-*/
 
 val Typography = Typography(
     headlineLarge = TextStyle(
