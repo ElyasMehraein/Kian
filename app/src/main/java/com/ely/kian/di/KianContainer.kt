@@ -11,11 +11,16 @@ import com.ely.kian.data.repository.ProductRepository
 import com.ely.kian.data.repository.TokenRepository
 import com.ely.kian.data.repository.ChatRepository
 import com.ely.kian.services.GitHubUpdateManager
+import com.ely.kian.util.NotificationHelper
+import com.ely.kian.KianApp
 
 class KianContainer(private val context: Context) {
     val secureStorage = SecureStorage(context)
     val relayPoolManager = RelayPoolManager()
     val updateManager = GitHubUpdateManager(context)
+    val notificationHelper = NotificationHelper(context)
+
+    private val app = context.applicationContext as KianApp
 
     // Using a more robust way to handle DB creation in development
     val database: KianDatabase by lazy {
@@ -74,8 +79,11 @@ class KianContainer(private val context: Context) {
             chatDao = database.chatDao(),
             relayDao = database.relayDao(),
             offlineQueueDao = database.offlineQueueDao(),
+            userProfileDao = userProfileDao,
             secureStorage = secureStorage,
-            nostrSyncManager = nostrSyncManager
+            nostrSyncManager = nostrSyncManager,
+            notificationHelper = notificationHelper,
+            isAppInForeground = { app.isAppInForeground }
         )
     }
 

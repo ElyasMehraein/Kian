@@ -20,6 +20,7 @@ class NostrSyncManager(
     private val eventProcessor by lazy { eventProcessorProvider() }
     private val TAG = "NostrSyncManager"
     private val syncScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private var currentSyncPubkey: String? = null
     
     private val defaultRelays = listOf(
         "wss://relay.damus.io",
@@ -29,7 +30,12 @@ class NostrSyncManager(
     )
 
     fun startSyncing(myPubkey: String? = null) {
+        if (currentSyncPubkey == myPubkey && myPubkey != null) {
+            Log.d(TAG, "Already syncing for $myPubkey, skipping start")
+            return
+        }
         stopSyncing()
+        currentSyncPubkey = myPubkey
         
         // Amethyst-style: Message Processor Loop
         syncScope.launch {
@@ -110,11 +116,14 @@ class NostrSyncManager(
     }
 
     fun stopSyncing() {
+        currentSyncPubkey = null
         relayPool.disconnectAll()
         // Cancel any pending work in the sync scope to avoid processing old events
         syncScope.coroutineContext[kotlinx.coroutines.Job]?.cancelChildren()
         Log.d(TAG, "Syncing stopped and pending work cancelled")
     }
+
+    fun isSyncing(): Boolean = currentSyncPubkey != null
 
     fun requestMerchantData(pubkey: String) {
         syncScope.launch {

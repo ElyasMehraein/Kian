@@ -76,7 +76,7 @@ val items = listOf(
 )
 
 @Composable
-fun KianScaffold() {
+fun KianScaffold(initialChatRoomId: String? = null) {
     val context = LocalContext.current
     val app = context.applicationContext as KianApp
     val viewModel: MainViewModel = viewModel(
@@ -103,6 +103,15 @@ fun KianScaffold() {
     val isLoggedIn = viewModel.isLoggedIn
     val totalUnreadCount by viewModel.totalUnreadCount.collectAsState()
     val userProfile by viewModel.userProfile.collectAsState()
+
+    LaunchedEffect(isLoggedIn, initialChatRoomId) {
+        if (isLoggedIn == true && initialChatRoomId != null) {
+            navController.navigate("chat/$initialChatRoomId") {
+                popUpTo(Screen.Home.route)
+                launchSingleTop = true
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         app.container.tokenRepository.notifications.collect { message ->

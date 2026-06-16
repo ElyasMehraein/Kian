@@ -12,6 +12,8 @@ import com.ely.kian.data.remote.NostrSyncManager
 import com.ely.kian.data.remote.model.NostrEvent
 import com.ely.kian.data.local.dao.OfflineQueueDao
 import com.ely.kian.data.local.entities.OfflineQueue
+import com.ely.kian.util.NotificationHelper
+import com.ely.kian.data.local.dao.UserProfileDao
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -22,8 +24,11 @@ class ChatRepository(
     private val chatDao: ChatDao,
     private val relayDao: RelayDao,
     private val offlineQueueDao: OfflineQueueDao,
+    private val userProfileDao: UserProfileDao,
     private val secureStorage: SecureStorage,
     private val nostrSyncManager: NostrSyncManager,
+    private val notificationHelper: NotificationHelper,
+    private val isAppInForeground: () -> Boolean,
     private val json: Json = Json { ignoreUnknownKeys = true }
 ) {
     private val TAG = "ChatRepository"
@@ -145,6 +150,16 @@ class ChatRepository(
 
             if (!isMine) {
                 sendReceipt(contactPubkey, listOf(event.id), 20001) // Delivered
+                
+                // Show notification only if app is in background
+                if (!isAppInForeground()) {
+                    val profile = userProfileDao.getProfile(contactPubkey)
+                    notificationHelper.showChatNotification(
+                        senderPubkey = contactPubkey,
+                        senderName = profile?.displayName ?: profile?.name,
+                        message = event.content
+                    )
+                }
             }
         }
     }
