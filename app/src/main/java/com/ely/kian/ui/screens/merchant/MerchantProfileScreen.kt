@@ -5,10 +5,12 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Language
@@ -45,6 +47,7 @@ import com.ely.kian.ui.components.InitialAvatar
 import com.ely.kian.ui.components.KianButton
 import com.ely.kian.ui.screens.merchant.components.*
 import com.ely.kian.ui.theme.KianTheme
+import com.ely.kian.ui.screens.vouchers.components.FilterChip
 import com.ely.kian.util.Geohash
 import com.ely.kian.util.NavigationUtils
 import androidx.compose.ui.res.stringResource
@@ -80,6 +83,23 @@ fun MerchantProfileScreen(
     val kianColors = KianTheme.colors
     val profile by viewModel.profile.collectAsState()
     val showcaseTokens by viewModel.showcaseTokens.collectAsState()
+    val merchantCategories by viewModel.categories.collectAsState()
+    val selectedCat by viewModel.selectedCategoryId.collectAsState()
+
+    val breadcrumbPath = remember(selectedCat, merchantCategories) {
+        val path = mutableListOf<VoucherCategory>()
+        var current = merchantCategories.find { it.id == selectedCat }
+        while (current != null) {
+            path.add(0, current)
+            current = merchantCategories.find { it.id == current.parentId }
+        }
+        path
+    }
+
+    val currentOptions = remember(selectedCat, merchantCategories) {
+        merchantCategories.filter { it.parentId == selectedCat }.sortedBy { it.name }
+    }
+
     val reviews by viewModel.reviews.collectAsState()
     val userReview by viewModel.userReview.collectAsState()
     val isFollowing by viewModel.isFollowing.collectAsState()
@@ -404,6 +424,74 @@ fun MerchantProfileScreen(
                 }
 
                 if (selectedTab == 0) {
+                    if (merchantCategories.isNotEmpty()) {
+                        item {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp)
+                                    .offset(y = (-20).dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                // Level Path (Breadcrumb)
+                                LazyRow(
+                                    contentPadding = PaddingValues(horizontal = 20.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    item {
+                                        TextButton(
+                                            onClick = { viewModel.selectCategory(null) },
+                                            contentPadding = PaddingValues(horizontal = 8.dp),
+                                            colors = ButtonDefaults.textButtonColors(
+                                                contentColor = if (selectedCat == null) kianColors.accent else kianColors.muted
+                                            )
+                                        ) {
+                                            Text(stringResource(R.string.all), fontWeight = if (selectedCat == null) FontWeight.Bold else FontWeight.Normal)
+                                        }
+                                    }
+
+                                    items(breadcrumbPath) { cat ->
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                                contentDescription = null,
+                                                tint = kianColors.line,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            TextButton(
+                                                onClick = { viewModel.selectCategory(cat.id) },
+                                                contentPadding = PaddingValues(horizontal = 8.dp),
+                                                colors = ButtonDefaults.textButtonColors(
+                                                    contentColor = if (selectedCat == cat.id) kianColors.accent else kianColors.muted
+                                                )
+                                            ) {
+                                                Text(cat.name, fontWeight = if (selectedCat == cat.id) FontWeight.Bold else FontWeight.Normal)
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Children Options
+                                if (currentOptions.isNotEmpty()) {
+                                    LazyRow(
+                                        contentPadding = PaddingValues(horizontal = 20.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        items(currentOptions) { cat ->
+                                            FilterChip(
+                                                label = cat.name,
+                                                selected = false,
+                                                onClick = { viewModel.selectCategory(cat.id) },
+                                                colors = kianColors
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     if (showcaseTokens.isEmpty()) {
                         item {
                             Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {

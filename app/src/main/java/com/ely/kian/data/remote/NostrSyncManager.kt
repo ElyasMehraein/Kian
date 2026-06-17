@@ -101,6 +101,10 @@ class NostrSyncManager(
                     val inboxRelayFilter = """{"kinds": [0, 3, 10002, 10050], "authors": ["$myPubkey"], "limit": 5}"""
                     relayPool.subscribe(url, "my_meta_sync", inboxRelayFilter)
                     
+                    // 2b. Followers (Who follows me)
+                    val followersFilter = """{"kinds": [3], "#p": ["$myPubkey"]}"""
+                    relayPool.subscribe(url, "my_followers_sync", followersFilter)
+
                     // 3. Direct Messages (GiftWrap)
                     val dmFilter = """{"kinds": [1059], "#p": ["$myPubkey"], "since": ${System.currentTimeMillis() / 1000 - 86400 * 7}}"""
                     relayPool.subscribe(url, "my_dm_sync", dmFilter)
@@ -133,9 +137,14 @@ class NostrSyncManager(
 
     fun requestMerchantData(pubkey: String) {
         syncScope.launch {
-            val filter = """{"kinds": [30017, 30018, 10002, 0], "authors": ["$pubkey"]}"""
+            // Include 35001 (Genesis) and 35002 (Activity) for product catalog
+            val filter = """{"kinds": [35001, 35002, 30017, 30018, 10002, 0], "authors": ["$pubkey"]}"""
+            // Also subscribe to people following this merchant
+            val followerFilter = """{"kinds": [3], "#p": ["$pubkey"]}"""
+            
             relayPool.getAllConnectedUrls().forEach { url ->
                 relayPool.subscribe(url, "merchant_data_$pubkey", filter)
+                relayPool.subscribe(url, "merchant_followers_$pubkey", followerFilter)
             }
         }
     }
@@ -144,6 +153,7 @@ class NostrSyncManager(
         syncScope.launch {
             relayPool.getAllConnectedUrls().forEach { url ->
                 relayPool.unsubscribe(url, "merchant_data_$pubkey")
+                relayPool.unsubscribe(url, "merchant_followers_$pubkey")
             }
         }
     }

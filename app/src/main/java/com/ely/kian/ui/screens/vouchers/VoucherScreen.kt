@@ -57,6 +57,15 @@ fun VoucherScreen(
     var editingToken by remember { mutableStateOf<BalanceItem?>(null) }
     var showEditSheet by remember { mutableStateOf(false) }
     var showMintDialog by remember { mutableStateOf(false) }
+    var alertDialogInfo by remember { mutableStateOf<Pair<String, String>?>(null) }
+
+    LaunchedEffect(Unit) {
+        viewModel.uiEvent.collect { event ->
+            if (event is VoucherViewModel.UiEvent.Alert) {
+                alertDialogInfo = event.title to event.message
+            }
+        }
+    }
 
     val filteredBalances = remember(balances, searchQuery, selectedCat) {
         balances.filter { item ->
@@ -156,6 +165,22 @@ fun VoucherScreen(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        item {
+                            IconButton(
+                                onClick = onNavigateToCategories,
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .background(kianColors.panel, CircleShape)
+                            ) {
+                                Icon(
+                                    Icons.Default.Category,
+                                    contentDescription = "Manage Categories",
+                                    tint = kianColors.muted,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+
                         item {
                             TextButton(
                                 onClick = { viewModel.selectCategory(null) },
@@ -292,6 +317,22 @@ fun VoucherScreen(
                 showMintDialog = false
             },
             colors = kianColors
+        )
+    }
+
+    alertDialogInfo?.let { info ->
+        AlertDialog(
+            onDismissRequest = { alertDialogInfo = null },
+            title = { Text(info.first) },
+            text = { Text(info.second) },
+            confirmButton = {
+                TextButton(onClick = { alertDialogInfo = null }) {
+                    Text(stringResource(R.string.confirm))
+                }
+            },
+            containerColor = kianColors.panel,
+            titleContentColor = kianColors.ink,
+            textContentColor = kianColors.ink
         )
     }
 }

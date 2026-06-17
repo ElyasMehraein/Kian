@@ -168,6 +168,8 @@ class VoucherRepository(
 
     fun getCategories(pubkey: String) = voucherDao.listCategoriesByPubkey(pubkey)
 
+    fun getDefinitionsByProducer(pubkey: String) = voucherDao.getDefinitionsByProducer(pubkey)
+
     suspend fun saveCategory(name: String, parentId: String?, level: Int, pubkey: String) {
         val id = "cat-${System.currentTimeMillis()}"
         val category = VoucherCategory(
@@ -324,6 +326,40 @@ class VoucherRepository(
         nostrHandler.handleTokenEvent(event)
     }
 
+    suspend fun republishDefinitions() {
+        val privKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: return
+        val privKey = KianKeys.hexToBytes(privKeyHex)
+        val pubkey = KianKeys.bytesToHex(KianKeys.getPubKey(privKey))
+
+        val definitions = voucherDao.getDefinitionsByProducer(pubkey).first()
+        val myOutbox = relayDao.getDmInboxRelayUrls(pubkey)
+
+        definitions.forEach { def ->
+            // Re-construct the original event to publish publicly
+            val createdAt = def.createdAt
+            val dTag = def.assetId
+            val content = buildJsonObject {
+                put("amount", 0) // We don't know the original amount easily from the def, but we can put 0 or just ignore
+                put("name", def.name)
+                put("description", def.description)
+                put("images", json.parseToJsonElement(def.images))
+                putJsonArray("categories") { }
+            }.toString()
+
+            val tags = listOf(
+                listOf("d", dTag),
+                listOf("p", pubkey),
+                listOf("t", "trader")
+            )
+
+            val id = KianKeys.computeEventId(pubkey, createdAt, 35001, tags, content)
+            val sig = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(id), privKey))
+
+            val event = NostrEvent(id, pubkey, createdAt, 35001, tags, content, sig)
+            syncManager.publishEvent(event, myOutbox)
+        }
+    }
+
     suspend fun mintToken(
         name: String,
         description: String,
@@ -398,5 +434,8 @@ class VoucherRepository(
 
         val myOutbox = relayDao.getDmInboxRelayUrls(pubkey)
         syncManager.publishEvent(giftWrapToSelf, myOutbox)
+        
+        // Also publish the definition PUBLICLY so others can see it in our showcase
+        syncManager.publishEvent(event, myOutbox)
     }
 }

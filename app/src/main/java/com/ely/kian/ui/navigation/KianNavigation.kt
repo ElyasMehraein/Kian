@@ -301,7 +301,8 @@ fun KianScaffold(initialChatRoomId: String? = null) {
                             app.container.userProfileDao,
                             app.container.voucherDao,
                             app.container.reviewDao,
-                            app.container.secureStorage
+                            app.container.secureStorage,
+                            app.container.database
                         )
                     )
                     OnboardingScreen(

@@ -26,7 +26,7 @@ object MerchantRankingEngine {
         socialRatingsMap: Map<String, Float>
     ): List<MerchantInfo> {
         val now = System.currentTimeMillis() / 1000
-        val onlineThreshold = 2 * 3600 // 2 hours
+        val onlineThreshold = 3600 // 1 hour
         
         return merchants.map { merchant ->
             val mutualFollows = mutualFollowsMap[merchant.pubkey] ?: 0

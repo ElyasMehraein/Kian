@@ -30,7 +30,8 @@ class OnboardingViewModel(
     private val userProfileDao: UserProfileDao,
     private val voucherDao: VoucherDao,
     private val reviewDao: ReviewDao,
-    private val secureStorage: SecureStorage
+    private val secureStorage: SecureStorage,
+    private val database: com.ely.kian.data.local.KianDatabase
 ) : ViewModel() {
 
     companion object {
@@ -39,11 +40,12 @@ class OnboardingViewModel(
             userProfileDao: UserProfileDao,
             voucherDao: VoucherDao,
             reviewDao: ReviewDao,
-            secureStorage: SecureStorage
+            secureStorage: SecureStorage,
+            database: com.ely.kian.data.local.KianDatabase
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return OnboardingViewModel(keyDao, userProfileDao, voucherDao, reviewDao, secureStorage) as T
+                return OnboardingViewModel(keyDao, userProfileDao, voucherDao, reviewDao, secureStorage, database) as T
             }
         }
     }
@@ -102,6 +104,10 @@ class OnboardingViewModel(
                 val pubkeyBytes = KianKeys.getPubKey(privKey)
                 val pubkeyHex = KianKeys.bytesToHex(pubkeyBytes)
                 
+                // Clear everything before saving new account data
+                secureStorage.clearAll()
+                database.clearAllTables()
+                
                 secureStorage.saveSecret(SecureStorage.MNEMONIC, trimmed)
                 secureStorage.saveSecret(SecureStorage.PRIVATE_KEY, KianKeys.bytesToHex(privKey))
                 
@@ -131,6 +137,10 @@ class OnboardingViewModel(
                 val pubkeyBytes = KianKeys.getPubKey(privKey)
                 val pubkeyHex = KianKeys.bytesToHex(pubkeyBytes)
 
+                // Clear everything before saving new account data
+                secureStorage.clearAll()
+                database.clearAllTables()
+
                 secureStorage.saveSecret(SecureStorage.PRIVATE_KEY, KianKeys.bytesToHex(privKey))
                 
                 persistKeyPair(pubkeyHex, "Logged in with private key.")
@@ -152,6 +162,9 @@ class OnboardingViewModel(
     fun saveGeneratedKeys() {
         val keys = generatedKeys ?: return
         viewModelScope.launch {
+            secureStorage.clearAll()
+            database.clearAllTables()
+
             secureStorage.saveSecret(SecureStorage.MNEMONIC, keys.mnemonic)
             secureStorage.saveSecret(SecureStorage.PRIVATE_KEY, KianKeys.bytesToHex(keys.privKey))
             persistKeyPair(keys.pubkey, "Your keys were stored securely.")

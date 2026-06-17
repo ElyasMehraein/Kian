@@ -56,7 +56,7 @@ interface UserProfileDao {
     @Query("DELETE FROM user_follows WHERE pubkey = :pubkey")
     suspend fun clearFollows(pubkey: String)
 
-    @Query("UPDATE profiles SET updatedAt = :timestamp WHERE pubkey = :pubkey")
+    @Query("UPDATE profiles SET updatedAt = :timestamp WHERE pubkey = :pubkey AND updatedAt < :timestamp")
     suspend fun updateLastActive(pubkey: String, timestamp: Long)
 
     @Query("SELECT followsPubkey FROM user_follows WHERE pubkey = :pubkey")

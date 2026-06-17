@@ -23,8 +23,8 @@ class EventProcessor(
     suspend fun process(event: NostrEvent) {
         Log.d(TAG, "Processing event: kind=${event.kind} id=${event.id.take(8)} author=${event.pubkey.take(8)}")
         
-        // Update last active time for the author
-        userProfileDao.updateLastActive(event.pubkey, System.currentTimeMillis() / 1000)
+        // Update last active time for the author based on the event's timestamp
+        userProfileDao.updateLastActive(event.pubkey, event.createdAt)
         
         try {
             when (event.kind) {
@@ -120,7 +120,7 @@ class EventProcessor(
                 rawJson = event.content,
                 isTrader = isTrader,
                 createdAt = event.createdAt,
-                updatedAt = System.currentTimeMillis() / 1000
+                updatedAt = event.createdAt
             )
             userProfileDao.upsert(profile)
         } catch (e: Exception) {

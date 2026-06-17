@@ -89,6 +89,16 @@ class VoucherViewModel(
 
     fun toggleAssetShowcase(assetRef: String, isShowcase: Boolean) {
         viewModelScope.launch {
+            if (isShowcase) {
+                val currentBalance = balances.value.find { it.assetRef == assetRef }
+                if (currentBalance == null || currentBalance.categories.isEmpty()) {
+                    _uiEvent.emit(UiEvent.Alert(
+                        "خطای ویترین", 
+                        "برای نمایش این محصول در ویترین، ابتدا باید حداقل یک دسته‌بندی برای آن انتخاب کنید."
+                    ))
+                    return@launch
+                }
+            }
             voucherRepository.updateAssetShowcase(assetRef, isShowcase)
         }
     }

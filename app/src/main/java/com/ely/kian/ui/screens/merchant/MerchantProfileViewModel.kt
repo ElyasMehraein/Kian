@@ -8,6 +8,7 @@ import com.ely.kian.data.local.dao.ReviewDao
 import com.ely.kian.data.local.entities.Profile
 import com.ely.kian.data.local.entities.UserFollow
 import com.ely.kian.data.local.entities.Review
+import com.ely.kian.data.local.entities.VoucherCategory
 import com.ely.kian.data.remote.NostrSyncManager
 import com.ely.kian.data.remote.model.NostrEvent
 import com.ely.kian.data.repository.VoucherRepository
@@ -19,6 +20,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -34,9 +36,19 @@ class MerchantProfileViewModel(
     private val secureStorage: SecureStorage
 ) : ViewModel() {
     private val json = Json { ignoreUnknownKeys = true }
+    val isOwnProfile: Boolean = pubkey == ownPubkey
 
     init {
         nostrSyncManager.requestMerchantData(pubkey)
+        if (isOwnProfile) {
+            viewModelScope.launch {
+                try {
+                    voucherRepository.republishDefinitions()
+                } catch (e: Exception) {
+                    android.util.Log.e("MerchantProfileVM", "Failed to republish definitions", e)
+                }
+            }
+        }
     }
 
     override fun onCleared() {
@@ -47,9 +59,54 @@ class MerchantProfileViewModel(
     val profile: StateFlow<Profile?> = userProfileDao.getProfileFlow(pubkey)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    val showcaseTokens: StateFlow<List<BalanceItem>> = voucherRepository.getBalancesForPubkey(pubkey)
-        .map { list -> list.filter { it.isShowcase } }
+    val categories: StateFlow<List<VoucherCategory>> = voucherRepository.getCategories(pubkey)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private val _selectedCategoryId = MutableStateFlow<String?>(null)
+    val selectedCategoryId: StateFlow<String?> = _selectedCategoryId
+
+    val showcaseTokens: StateFlow<List<BalanceItem>> = if (isOwnProfile) {
+        combine(
+            voucherRepository.getBalancesForPubkey(pubkey),
+            _selectedCategoryId
+        ) { list, selectedId ->
+            list.filter { it.isShowcase && (selectedId == null || it.categories.contains(selectedId)) }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    } else {
+        // For customers: Show all products minted by this merchant
+        combine(
+            voucherRepository.getDefinitionsByProducer(pubkey),
+            voucherRepository.getCategories(pubkey),
+            voucherRepository.getBalancesForPubkey(pubkey), // We need this to check local mappings if available
+            _selectedCategoryId
+        ) { defs, cats, balances, selectedId ->
+            defs.map { def ->
+                val assetRef = "35001:${def.pubkey}:${def.assetId}"
+                val localBalance = balances.find { it.assetRef == assetRef }
+                BalanceItem(
+                    assetRef = assetRef,
+                    amount = 0,
+                    description = def.description ?: "",
+                    images = try { json.decodeFromString<List<String>>(def.images) } catch(e: Exception) { emptyList() },
+                    name = def.name,
+                    producer = def.pubkey,
+                    categories = localBalance?.categories ?: emptyList(),
+                    isShowcase = true
+                )
+            }.filter { 
+                // Only show if it has at least one category (Showcase Rule)
+                it.categories.isNotEmpty() && (selectedId == null || it.categories.contains(selectedId))
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    }
+
+    fun selectCategory(categoryId: String?) {
+        if (categoryId == null) {
+            _selectedCategoryId.value = null
+        } else {
+            _selectedCategoryId.value = if (_selectedCategoryId.value == categoryId) null else categoryId
+        }
+    }
 
     val reviews: StateFlow<List<Review>> = reviewDao.getReviewsForTarget(pubkey)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -115,8 +172,6 @@ class MerchantProfileViewModel(
     } else {
         MutableStateFlow(null)
     }
-
-    val isOwnProfile: Boolean = pubkey == ownPubkey
 
     fun postReview(rating: Int, comment: String) {
         val reviewerPubkey = ownPubkey ?: return
