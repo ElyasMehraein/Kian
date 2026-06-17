@@ -1,4 +1,4 @@
-package com.ely.kian.ui.screens.wallet.components
+package com.ely.kian.ui.screens.vouchers.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -18,7 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ely.kian.R
-import com.ely.kian.data.local.entities.ProductCategory
+import com.ely.kian.data.local.entities.VoucherCategory
 import com.ely.kian.data.repository.BalanceItem
 import com.ely.kian.ui.components.KianButton
 import com.ely.kian.ui.components.KianChip
@@ -26,17 +26,14 @@ import com.ely.kian.ui.theme.KianColors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TokenEditBottomSheet(
+fun VoucherEditBottomSheet(
     token: BalanceItem,
-    allCategories: List<ProductCategory>,
+    allCategories: List<VoucherCategory>,
     onDismiss: () -> Unit,
     onSave: (String, String, List<String>) -> Unit,
     colors: KianColors
 ) {
-    var name by remember { mutableStateOf(token.name) }
-    var description by remember { mutableStateOf(token.description) }
     var selectedCategoryIds by remember { mutableStateOf(token.categories) }
-    
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     ModalBottomSheet(
@@ -59,7 +56,7 @@ fun TokenEditBottomSheet(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = stringResource(R.string.edit_token),
+                        text = stringResource(R.string.edit_categories),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = colors.ink
@@ -78,54 +75,43 @@ fun TokenEditBottomSheet(
                 }
             }
 
-            TokenCategoryPicker(
+            VoucherCategoryPicker(
                 categories = allCategories,
                 selectedIds = selectedCategoryIds,
                 onChange = { selectedCategoryIds = it },
                 colors = colors
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
-
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                placeholder = { Text(stringResource(R.string.token_name), color = colors.muted) },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = colors.line,
-                    focusedBorderColor = colors.accent,
-                    unfocusedContainerColor = colors.panel,
-                    focusedContainerColor = colors.panel,
-                    focusedTextColor = colors.ink,
-                    unfocusedTextColor = colors.ink
-                )
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            OutlinedTextField(
-                value = description,
-                onValueChange = { description = it },
-                placeholder = { Text(stringResource(R.string.description), color = colors.muted) },
-                modifier = Modifier.fillMaxWidth().heightIn(min = 88.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = colors.line,
-                    focusedBorderColor = colors.accent,
-                    unfocusedContainerColor = colors.panel,
-                    focusedContainerColor = colors.panel,
-                    focusedTextColor = colors.ink,
-                    unfocusedTextColor = colors.ink
-                )
-            )
-
             Spacer(modifier = Modifier.height(16.dp))
+
+            Surface(
+                color = colors.panel,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = token.name,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.ink
+                    )
+                    if (token.description.isNotEmpty()) {
+                        Text(
+                            text = token.description,
+                            fontSize = 14.sp,
+                            color = colors.muted,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
 
             KianButton(
                 text = stringResource(R.string.save_changes),
-                onClick = { onSave(name, description, selectedCategoryIds) },
+                onClick = { onSave(token.name, token.description, selectedCategoryIds) },
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(20.dp))
@@ -134,14 +120,14 @@ fun TokenEditBottomSheet(
 }
 
 @Composable
-fun TokenCategoryPicker(
-    categories: List<ProductCategory>,
+fun VoucherCategoryPicker(
+    categories: List<VoucherCategory>,
     selectedIds: List<String>,
     onChange: (List<String>) -> Unit,
     colors: KianColors
 ) {
     val selectedPath = remember(categories, selectedIds) {
-        val path = mutableListOf<ProductCategory>()
+        val path = mutableListOf<VoucherCategory>()
         var currentId = selectedIds.lastOrNull()
         while (currentId != null) {
             val cat = categories.find { it.id == currentId }

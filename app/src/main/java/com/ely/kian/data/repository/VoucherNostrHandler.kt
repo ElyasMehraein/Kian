@@ -5,28 +5,26 @@ import com.ely.kian.crypto.KianKeys
 import com.ely.kian.crypto.Nip59
 import com.ely.kian.crypto.SecureStorage
 import com.ely.kian.data.local.dao.KeyDao
-import com.ely.kian.data.local.dao.ProductDao
 import com.ely.kian.data.local.dao.RelayDao
-import com.ely.kian.data.local.dao.TokenDao
-import com.ely.kian.data.local.entities.TokenDefinition
-import com.ely.kian.data.local.entities.TokenUtxo
+import com.ely.kian.data.local.dao.VoucherDao
+import com.ely.kian.data.local.entities.VoucherDefinition
+import com.ely.kian.data.local.entities.VoucherUtxo
 import com.ely.kian.data.remote.NostrSyncManager
 import com.ely.kian.data.remote.model.NostrEvent
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
 
-class TokenNostrHandler(
+class VoucherNostrHandler(
     private val keyDao: KeyDao,
-    private val tokenDao: TokenDao,
-    private val productDao: ProductDao,
+    private val voucherDao: VoucherDao,
     private val relayDao: RelayDao,
     private val secureStorage: SecureStorage,
     private val syncManager: NostrSyncManager,
     private val notifications: MutableSharedFlow<String>,
     private val json: Json
 ) {
-    private val TAG = "TokenNostrHandler"
+    private val TAG = "VoucherNostrHandler"
 
     suspend fun handleTokenEvent(event: NostrEvent) {
         when (event.kind) {
@@ -53,7 +51,7 @@ class TokenNostrHandler(
             val assetRef = contentObj["asset_ref"]?.jsonPrimitive?.content ?: return
             val isRedemption = contentObj["type"]?.jsonPrimitive?.content == "redemption"
 
-            val existingUtxo = tokenDao.getUtxo(utxoId)
+            val existingUtxo = voucherDao.getUtxo(utxoId)
             if (existingUtxo == null || existingUtxo.producer != myPubkey) {
                 Log.w(TAG, "Received transfer request for unknown or invalid UTXO: $utxoId")
                 return
@@ -64,11 +62,11 @@ class TokenNostrHandler(
                 return
             }
 
-            tokenDao.markSpent(utxoId)
+            voucherDao.markSpent(utxoId)
 
             if (isRedemption) {
-                Log.i(TAG, "Token redemption request received from ${event.pubkey}")
-                notifications.emit("🎁 Product redemption request from ${event.pubkey}")
+                Log.i(TAG, "Voucher redemption request received from ${event.pubkey}")
+                notifications.emit("🎁 Voucher redemption request from ${event.pubkey}")
             } else {
                 issueRemint(recipient, assetRef, amount, utxoId, myPrivKey)
                 
@@ -81,8 +79,8 @@ class TokenNostrHandler(
                     issueRemint(event.pubkey, assetRef, change, utxoId, myPrivKey)
                 }
                 
-                Log.i(TAG, "Approved token transfer: $amount from ${event.pubkey} to $recipient")
-                notifications.emit("✅ Approved token transfer ($amount units) to $recipient")
+                Log.i(TAG, "Approved voucher transfer: $amount from ${event.pubkey} to $recipient")
+                notifications.emit("✅ Approved voucher transfer ($amount units) to $recipient")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to handle transfer request", e)
@@ -129,8 +127,8 @@ class TokenNostrHandler(
         
         val transferEventId = event.tags.find { it.size >= 2 && it[0] == "e" }?.get(1) ?: return
         
-        Log.i(TAG, "Product receipt confirmed by ${event.pubkey} for transfer $transferEventId")
-        notifications.emit("Product receipt confirmed by ${event.pubkey}")
+        Log.i(TAG, "Voucher receipt confirmed by ${event.pubkey} for transfer $transferEventId")
+        notifications.emit("Voucher receipt confirmed by ${event.pubkey}")
     }
 
     private suspend fun issueRemint(
@@ -163,7 +161,7 @@ class TokenNostrHandler(
         val recipientInbox = relayDao.getDmInboxRelayUrls(recipientPubkey)
         syncManager.publishEvent(giftWrap, recipientInbox)
         
-        val utxo = TokenUtxo(
+        val utxo = VoucherUtxo(
             utxoId = id,
             assetRef = assetRef,
             producer = myPubkey,
@@ -173,7 +171,7 @@ class TokenNostrHandler(
             createdAt = createdAt,
             spent = false
         )
-        tokenDao.insertUtxo(utxo)
+        voucherDao.insertUtxo(utxo)
     }
 
     private suspend fun handleGenesis(event: NostrEvent) {
@@ -186,10 +184,9 @@ class TokenNostrHandler(
             
             val contentObj = json.parseToJsonElement(event.content).jsonObject
             
-            val definition = TokenDefinition(
+            val definition = VoucherDefinition(
                 assetId = dTag,
                 pubkey = event.pubkey,
-                productId = null,
                 name = contentObj["name"]?.jsonPrimitive?.content ?: dTag,
                 description = contentObj["description"]?.jsonPrimitive?.contentOrNull,
                 images = contentObj["images"]?.toString() ?: "[]",
@@ -198,14 +195,14 @@ class TokenNostrHandler(
                 eventId = event.id,
                 createdAt = event.createdAt
             )
-            tokenDao.upsertDefinition(definition)
+            voucherDao.upsertDefinition(definition)
 
-            if (tokenDao.getUtxo(event.id) != null) return
+            if (voucherDao.getUtxo(event.id) != null) return
             if (recipient != myPubkey) return
 
             val amount = contentObj["amount"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
             
-            val utxo = TokenUtxo(
+            val utxo = VoucherUtxo(
                 utxoId = event.id,
                 assetRef = assetRef,
                 producer = event.pubkey,
@@ -215,8 +212,8 @@ class TokenNostrHandler(
                 createdAt = event.createdAt,
                 spent = false
             )
-            tokenDao.insertUtxo(utxo)
-            notifications.emit("New asset received: ${definition.name} ($amount ${definition.unit})")
+            voucherDao.insertUtxo(utxo)
+            notifications.emit("New voucher received: ${definition.name} ($amount ${definition.unit})")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to handle genesis", e)
         }
@@ -229,7 +226,7 @@ class TokenNostrHandler(
         try {
             val myPubkey = keyDao.getKey()?.pubkey
             
-            if (tokenDao.getUtxo(event.id) != null) return
+            if (voucherDao.getUtxo(event.id) != null) return
             if (pTag != myPubkey) return
 
             val contentObj = json.parseToJsonElement(event.content).jsonObject
@@ -237,10 +234,10 @@ class TokenNostrHandler(
             val amount = contentObj["amount"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
             
             if (prevUtxoId != null) {
-                tokenDao.markSpent(prevUtxoId)
+                voucherDao.markSpent(prevUtxoId)
             }
             
-            val utxo = TokenUtxo(
+            val utxo = VoucherUtxo(
                 utxoId = event.id,
                 assetRef = aTag,
                 producer = event.pubkey,
@@ -250,11 +247,11 @@ class TokenNostrHandler(
                 createdAt = event.createdAt,
                 spent = false
             )
-            tokenDao.insertUtxo(utxo)
+            voucherDao.insertUtxo(utxo)
             
             val parsed = parseAssetRef(aTag)
-            val name = parsed?.let { tokenDao.getDefinition(it.assetId, it.producer)?.name } ?: "Asset"
-            notifications.emit("Token transfer completed: $name ($amount units)")
+            val name = parsed?.let { voucherDao.getDefinition(it.assetId, it.producer)?.name } ?: "Asset"
+            notifications.emit("Voucher transfer completed: $name ($amount units)")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to handle remint", e)
         }

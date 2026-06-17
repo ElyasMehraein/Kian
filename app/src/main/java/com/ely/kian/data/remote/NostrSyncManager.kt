@@ -222,7 +222,7 @@ class NostrSyncManager(
                 val followPubkeys = follows.map { it.followsPubkey }
                 if (followPubkeys.isNotEmpty()) {
                     // Sync Personal Rating Files (Kind 31999) of everyone I follow
-                    val filter = """{"kinds": [31999, 0], "authors": ${json.encodeToString(followPubkeys)}}"""
+                    val filter = """{"kinds": [31999, 0], "authors": ${json.encodeToJsonElement(followPubkeys)}}"""
                     relayPool.getAllConnectedUrls().forEach { url ->
                         relayPool.subscribe(url, "follows_data_sync", filter)
                     }

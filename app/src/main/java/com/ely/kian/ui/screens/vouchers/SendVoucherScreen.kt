@@ -1,4 +1,4 @@
-package com.ely.kian.ui.screens.wallet
+package com.ely.kian.ui.screens.vouchers
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -13,7 +13,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Send
-import androidx.compose.material.icons.filled.Wallet
+import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -33,11 +33,11 @@ import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SendTokenScreen(onBack: () -> Unit) {
+fun SendVoucherScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val app = context.applicationContext as KianApp
-    val viewModel: SendTokenViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
-        factory = SendTokenViewModel.provideFactory(app.container.tokenRepository)
+    val viewModel: SendVoucherViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+        factory = SendVoucherViewModel.provideFactory(app.container.voucherRepository)
     )
 
     val kianColors = KianTheme.colors
@@ -50,14 +50,14 @@ fun SendTokenScreen(onBack: () -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(kianColors.canvas)
-                    .border(1.dp, kianColors.line, RectangleShape),
+                    .border(1.dp, kianColors.line, androidx.compose.ui.graphics.RectangleShape),
                 color = kianColors.canvas
             ) {
                 Button(
                     onClick = {
                         viewModel.handleSend(
                             onSuccess = { onBack() },
-                            onError = { /* Show error toast/alert */ }
+                            onError = { /* Show error */ }
                         )
                     },
                     modifier = Modifier
@@ -168,7 +168,7 @@ fun SendTokenScreen(onBack: () -> Unit) {
                 }
             } else {
                 items(tokenItems) { item ->
-                    TokenSendCard(
+                    VoucherSendCard(
                         item = item,
                         quantity = quantities[item.utxo.utxoId] ?: 0L,
                         onUpdateQuantity = { delta ->
@@ -183,8 +183,8 @@ fun SendTokenScreen(onBack: () -> Unit) {
 }
 
 @Composable
-fun TokenSendCard(
-    item: TokenCardItem,
+fun VoucherSendCard(
+    item: VoucherCardItem,
     quantity: Long,
     onUpdateQuantity: (Long) -> Unit
 ) {
@@ -203,7 +203,6 @@ fun TokenSendCard(
         shadowElevation = 2.dp
     ) {
         Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            // Token Image Placeholder
             Box(
                 modifier = Modifier
                     .size(90.dp)
@@ -213,7 +212,7 @@ fun TokenSendCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    Icons.Default.Wallet,
+                    Icons.Default.ConfirmationNumber,
                     contentDescription = null,
                     tint = kianColors.muted,
                     modifier = Modifier.size(30.dp)
@@ -293,5 +292,3 @@ fun TokenSendCard(
         }
     }
 }
-
-private val RectangleShape = androidx.compose.ui.graphics.RectangleShape

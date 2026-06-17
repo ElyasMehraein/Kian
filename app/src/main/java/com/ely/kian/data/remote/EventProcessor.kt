@@ -5,16 +5,14 @@ import com.ely.kian.crypto.KianKeys
 import com.ely.kian.crypto.Nip59
 import com.ely.kian.crypto.SecureStorage
 import com.ely.kian.data.remote.model.NostrEvent
-import com.ely.kian.data.repository.ProductRepository
-import com.ely.kian.data.repository.TokenRepository
+import com.ely.kian.data.repository.VoucherRepository
 import com.ely.kian.data.local.dao.UserProfileDao
 import com.ely.kian.data.local.entities.Profile
 import kotlinx.serialization.json.*
 
 class EventProcessor(
     private val secureStorage: SecureStorage,
-    private val productRepository: ProductRepository,
-    private val tokenRepository: TokenRepository,
+    private val voucherRepository: VoucherRepository,
     private val userProfileDao: UserProfileDao,
     private val reviewDao: com.ely.kian.data.local.dao.ReviewDao,
     val chatRepository: com.ely.kian.data.repository.ChatRepository,
@@ -41,38 +39,32 @@ class EventProcessor(
                     chatRepository.handleReaction(event)
                 }
                 20001, 20002 -> chatRepository.handleReceipt(event)
-                62 -> handleVanish(event)
-                1984, 1985 -> handleReview(event)
                 31999 -> handleSocialRating(event)
                 1059 -> {
                     Log.i(TAG, "Processing GiftWrap (Kind 1059)")
                     handleGiftWrap(event)
                 }
-                30017, 30018 -> productRepository.handleProductEvent(event)
                 35001, 35002 -> {
-                    Log.i(TAG, "Processing Token Event (Kind ${event.kind})")
-                    tokenRepository.handleTokenEvent(event)
+                    Log.i(TAG, "Processing Voucher Event (Kind ${event.kind})")
+                    voucherRepository.handleTokenEvent(event)
                     
                     if (event.kind == 35002) {
-                        // Update chat message status if it was a remint from a transfer
                         try {
                             val contentObj = json.parseToJsonElement(event.content).jsonObject
                             val prevUtxoId = contentObj["previous_utxo"]?.jsonPrimitive?.content
                             if (prevUtxoId != null) {
-                                // If I am the sender, my message status becomes 'delivered' (verified)
-                                // If I am the recipient, this helps the UI 'isConfirmed' check
                                 chatRepository.updateMessageStatusByMetadata(prevUtxoId, "delivered")
                             }
                         } catch (e: Exception) {}
                     }
                 }
                 1050 -> {
-                    Log.i(TAG, "Processing Token Transfer Request (Kind 1050)")
-                    tokenRepository.handleTokenEvent(event)
+                    Log.i(TAG, "Processing Voucher Transfer Request (Kind 1050)")
+                    voucherRepository.handleTokenEvent(event)
                 }
                 1051 -> {
                     Log.i(TAG, "Processing Receipt Confirmation (Kind 1051)")
-                    tokenRepository.handleTokenEvent(event)
+                    voucherRepository.handleTokenEvent(event)
                     val targetId = event.tags.find { it.size >= 2 && it[0] == "e" }?.get(1)
                     if (targetId != null) {
                         chatRepository.updateMessageStatusByMetadata(targetId, "received")
@@ -85,17 +77,10 @@ class EventProcessor(
         }
     }
 
-    private fun handleVanish(event: NostrEvent) {
-        // NIP-62 Vanish: Logic for non-commerce entities if needed
-        Log.i(TAG, "Author ${event.pubkey.take(8)} is vanishing.")
-    }
-
     private suspend fun handleDeletion(event: NostrEvent) {
-        // Standard Kind 5 Deletion
         val targetIds = event.tags.filter { it.size >= 2 && it[0] == "e" }.map { it[1] }
         targetIds.forEach { id ->
-            // If it's a Kind 0, 30017, 30018, 35001, or 35002 - we do NOTHING.
-            // These records stay in Kian's DB even if requested to be deleted.
+            // Logic for deletion
         }
     }
 
@@ -107,7 +92,6 @@ class EventProcessor(
             val rumor = Nip59.unwrap(wrap, privKey)
             if (rumor != null) {
                 Log.d(TAG, "Unwrapped GiftWrap: kind=${rumor.kind} id=${rumor.id.take(8)}")
-                // Recursive call to process the inner rumor
                 process(rumor)
             }
         } catch (e: Exception) {
@@ -141,27 +125,8 @@ class EventProcessor(
         }
     }
 
-    private suspend fun handleReview(event: NostrEvent) {
-        val targetPubkey = event.tags.find { it.size >= 2 && it[0] == "p" }?.get(1) ?: return
-        val rating = event.tags.find { it.size >= 2 && (it[0] == "rating" || (it[0] == "l" && it.size >= 3 && it[2] == "rating")) }?.get(1)?.toIntOrNull() ?: 5
-        
-        val authorProfile = userProfileDao.getProfile(event.pubkey)
-        
-        val review = com.ely.kian.data.local.entities.Review(
-            pubkey = event.pubkey,
-            targetPubkey = targetPubkey,
-            authorName = authorProfile?.displayName ?: authorProfile?.name,
-            rating = rating,
-            comment = event.content,
-            createdAt = event.createdAt
-        )
-        reviewDao.upsertReview(review)
-    }
-
     private suspend fun handleSocialRating(event: NostrEvent) {
-        // Kind 31999: Personal Rating File (Reviewer's Account File)
         try {
-            // Expecting tags like ["p", "target_pubkey", "rating", "comment"]
             event.tags.filter { it.size >= 3 && it[0] == "p" }.forEach { tag ->
                 val targetPubkey = tag[1]
                 val rating = tag[2].toIntOrNull() ?: 5

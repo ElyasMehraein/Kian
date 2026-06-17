@@ -169,7 +169,7 @@ fun TokenMessageCard(
     colors: KianColors
 ) {
     val type = metadata["type"]?.jsonPrimitive?.content ?: ""
-    val assetName = metadata["asset_name"]?.jsonPrimitive?.content ?: "Token"
+    val assetName = metadata["asset_name"]?.jsonPrimitive?.content ?: "Voucher"
     val amount = metadata["amount"]?.jsonPrimitive?.content ?: ""
     val utxoId = metadata["utxo_id"]?.jsonPrimitive?.content
     

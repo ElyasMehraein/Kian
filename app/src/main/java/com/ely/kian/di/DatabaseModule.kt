@@ -32,10 +32,7 @@ object DatabaseModule {
     fun provideUserProfileDao(db: KianDatabase): UserProfileDao = db.userProfileDao()
 
     @Provides
-    fun provideProductDao(db: KianDatabase): ProductDao = db.productDao()
-
-    @Provides
-    fun provideTokenDao(db: KianDatabase): TokenDao = db.tokenDao()
+    fun provideVoucherDao(db: KianDatabase): VoucherDao = db.voucherDao()
 
     @Provides
     fun provideReviewDao(db: KianDatabase): ReviewDao = db.reviewDao()

@@ -4,11 +4,10 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "token_definitions", primaryKeys = ["assetId", "pubkey"])
-data class TokenDefinition(
+@Entity(tableName = "voucher_definitions", primaryKeys = ["assetId", "pubkey"])
+data class VoucherDefinition(
     val assetId: String,
     val pubkey: String,
-    val productId: String?,
     val name: String,
     val description: String?,
     val images: String, // JSON array
@@ -20,14 +19,14 @@ data class TokenDefinition(
 )
 
 @Entity(
-    tableName = "token_utxos",
+    tableName = "voucher_utxos",
     indices = [
         Index(value = ["owner"]),
         Index(value = ["producer"]),
         Index(value = ["assetRef"])
     ]
 )
-data class TokenUtxo(
+data class VoucherUtxo(
     @PrimaryKey val utxoId: String,
     val assetRef: String,
     val producer: String,

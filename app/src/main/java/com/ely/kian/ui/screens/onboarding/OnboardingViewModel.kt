@@ -10,9 +10,8 @@ import com.ely.kian.crypto.KianKeys
 import com.ely.kian.crypto.SecureStorage
 import com.ely.kian.data.local.dao.KeyDao
 import com.ely.kian.data.local.dao.UserProfileDao
-import com.ely.kian.data.local.dao.ProductDao
+import com.ely.kian.data.local.dao.VoucherDao
 import com.ely.kian.data.local.dao.ReviewDao
-import com.ely.kian.data.local.dao.TokenDao
 import com.ely.kian.data.local.DemoDataSeeder
 import com.ely.kian.data.local.entities.Key
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -30,8 +29,7 @@ data class GeneratedKeys(
 class OnboardingViewModel(
     private val keyDao: KeyDao,
     private val userProfileDao: UserProfileDao,
-    private val productDao: ProductDao,
-    private val tokenDao: TokenDao,
+    private val voucherDao: VoucherDao,
     private val reviewDao: ReviewDao,
     private val secureStorage: SecureStorage
 ) : ViewModel() {
@@ -40,14 +38,13 @@ class OnboardingViewModel(
         fun provideFactory(
             keyDao: KeyDao,
             userProfileDao: UserProfileDao,
-            productDao: ProductDao,
-            tokenDao: TokenDao,
+            voucherDao: VoucherDao,
             reviewDao: ReviewDao,
             secureStorage: SecureStorage
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return OnboardingViewModel(keyDao, userProfileDao, productDao, tokenDao, reviewDao, secureStorage) as T
+                return OnboardingViewModel(keyDao, userProfileDao, voucherDao, reviewDao, secureStorage) as T
             }
         }
     }
@@ -109,7 +106,7 @@ class OnboardingViewModel(
                 secureStorage.saveSecret(SecureStorage.MNEMONIC, trimmed)
                 secureStorage.saveSecret(SecureStorage.PRIVATE_KEY, KianKeys.bytesToHex(privKey))
                 
-                persistKeyPair(pubkeyHex, "Your wallet was restored securely.")
+                persistKeyPair(pubkeyHex, "Your account was restored securely.")
             } catch (e: Exception) {
                 _events.emit(OnboardingEvent.Error("Restore failed: ${e.message}"))
             }
@@ -135,7 +132,6 @@ class OnboardingViewModel(
                 val pubkeyBytes = KianKeys.getPubKey(privKey)
                 val pubkeyHex = KianKeys.bytesToHex(pubkeyBytes)
 
-                // Note: Restoring from private key means we don't have the mnemonic.
                 secureStorage.saveSecret(SecureStorage.PRIVATE_KEY, KianKeys.bytesToHex(privKey))
                 
                 persistKeyPair(pubkeyHex, "Logged in with private key.")
@@ -178,8 +174,7 @@ class OnboardingViewModel(
                 val pubkeyBytes = KianKeys.getPubKey(privKey)
                 val pubkeyHex = KianKeys.bytesToHex(pubkeyBytes)
                 
-                // Inject data immediately
-                DemoDataSeeder.forceSeed(pubkeyHex, index, userProfileDao, productDao, tokenDao, reviewDao)
+                DemoDataSeeder.forceSeed(pubkeyHex, index, userProfileDao, voucherDao, reviewDao)
                 
                 secureStorage.saveSecret(SecureStorage.PRIVATE_KEY, privKeyHex)
                 persistKeyPair(pubkeyHex, "Logged in as Demo Account ${index + 1}.")

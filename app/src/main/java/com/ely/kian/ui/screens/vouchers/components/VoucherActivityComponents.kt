@@ -1,4 +1,4 @@
-package com.ely.kian.ui.screens.wallet.components
+package com.ely.kian.ui.screens.vouchers.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape

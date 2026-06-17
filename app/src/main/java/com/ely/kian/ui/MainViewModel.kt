@@ -131,7 +131,7 @@ class MainViewModel(
                     if (key != null) {
                         nostrSyncManager.startSyncing(key.pubkey)
                         // Seed demo data if it's a test account (Optional check)
-                        DemoDataSeeder.seedIfTestAccount(key.pubkey, userProfileDao, database.productDao())
+                        DemoDataSeeder.seedIfTestAccount(key.pubkey, userProfileDao)
                     }
                 }
             } catch (e: Exception) {

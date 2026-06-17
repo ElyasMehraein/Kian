@@ -6,14 +6,11 @@ import androidx.lifecycle.viewModelScope
 import com.ely.kian.data.local.dao.UserProfileDao
 import com.ely.kian.data.local.dao.ReviewDao
 import com.ely.kian.data.local.entities.Profile
-import com.ely.kian.data.local.entities.Product
-import com.ely.kian.data.local.entities.ProductCategory
 import com.ely.kian.data.local.entities.UserFollow
 import com.ely.kian.data.local.entities.Review
 import com.ely.kian.data.remote.NostrSyncManager
 import com.ely.kian.data.remote.model.NostrEvent
-import com.ely.kian.data.repository.ProductRepository
-import com.ely.kian.data.repository.TokenRepository
+import com.ely.kian.data.repository.VoucherRepository
 import com.ely.kian.data.repository.BalanceItem
 import com.ely.kian.crypto.SecureStorage
 import com.ely.kian.crypto.KianKeys
@@ -31,8 +28,7 @@ class MerchantProfileViewModel(
     private val pubkey: String,
     private val ownPubkey: String?,
     private val userProfileDao: UserProfileDao,
-    private val productRepository: ProductRepository,
-    private val tokenRepository: TokenRepository,
+    private val voucherRepository: VoucherRepository,
     private val reviewDao: ReviewDao,
     private val nostrSyncManager: NostrSyncManager,
     private val secureStorage: SecureStorage
@@ -51,15 +47,8 @@ class MerchantProfileViewModel(
     val profile: StateFlow<Profile?> = userProfileDao.getProfileFlow(pubkey)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    val products: StateFlow<List<Product>> = productRepository.getProducts(pubkey)
+    val showcaseTokens: StateFlow<List<BalanceItem>> = voucherRepository.getBalancesForPubkey(pubkey)
         .map { list -> list.filter { it.isShowcase } }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    val showcaseTokens: StateFlow<List<BalanceItem>> = tokenRepository.getBalancesForPubkey(pubkey)
-        .map { list -> list.filter { it.isShowcase } }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    val categories: StateFlow<List<ProductCategory>> = productRepository.getCategories(pubkey)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val reviews: StateFlow<List<Review>> = reviewDao.getReviewsForTarget(pubkey)
@@ -85,7 +74,6 @@ class MerchantProfileViewModel(
                 val privKey = KianKeys.hexToBytes(privKeyHex)
                 val now = System.currentTimeMillis() / 1000
 
-                // Get current follows from DB snapshot
                 val currentFollows = userProfileDao.listFollows(followerPubkey).first()
 
                 val updatedFollows = if (currentlyFollowing) {
@@ -94,14 +82,12 @@ class MerchantProfileViewModel(
                     currentFollows + UserFollow(followerPubkey, pubkey, null, null, now)
                 }
 
-                // Update Local DB immediately for snappy UI
                 if (currentlyFollowing) {
                     userProfileDao.deleteFollow(followerPubkey, pubkey)
                 } else {
                     userProfileDao.upsertFollow(UserFollow(followerPubkey, pubkey, null, null, now))
                 }
 
-                // Create and Publish Kind 3 (NIP-02)
                 val tags = updatedFollows.map { listOf("p", it.followsPubkey) }
                 val id = KianKeys.computeEventId(followerPubkey, now, 3, tags, "")
                 val sig = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(id), privKey))
@@ -147,7 +133,6 @@ class MerchantProfileViewModel(
             )
             reviewDao.upsertReview(review)
 
-            // 1. Broadcast Individual Review (Standard NIP-32 Kind 1985)
             try {
                 val privKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: return@launch
                 val privKey = KianKeys.hexToBytes(privKeyHex)
@@ -172,7 +157,6 @@ class MerchantProfileViewModel(
                 )
                 nostrSyncManager.publishEvent(event1985)
 
-                // 2. Update Personal Rating File (Kind 31999)
                 val allMyReviews = reviewDao.getReviewsByAuthor(reviewerPubkey)
                 val tags31999 = allMyReviews.map { r ->
                     listOf("p", r.targetPubkey, r.rating.toString(), r.comment ?: "")
@@ -203,15 +187,14 @@ class MerchantProfileViewModel(
             pubkey: String, 
             ownPubkey: String?, 
             userProfileDao: UserProfileDao, 
-            productRepository: ProductRepository,
-            tokenRepository: TokenRepository,
+            voucherRepository: VoucherRepository,
             reviewDao: ReviewDao,
             nostrSyncManager: NostrSyncManager,
             secureStorage: SecureStorage
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return MerchantProfileViewModel(pubkey, ownPubkey, userProfileDao, productRepository, tokenRepository, reviewDao, nostrSyncManager, secureStorage) as T
+                return MerchantProfileViewModel(pubkey, ownPubkey, userProfileDao, voucherRepository, reviewDao, nostrSyncManager, secureStorage) as T
             }
         }
     }

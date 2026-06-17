@@ -1,12 +1,12 @@
-package com.ely.kian.ui.screens.wallet.components
+package com.ely.kian.ui.screens.vouchers.components
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,9 +22,10 @@ import com.ely.kian.ui.components.ScreenHeader as KianScreenHeader
 import com.ely.kian.ui.theme.KianColors
 
 @Composable
-fun WalletHeader(
+fun VoucherHeader(
     balancesCount: Int,
-    colors: KianColors
+    colors: KianColors,
+    onNavigateToCategories: () -> Unit
 ) {
     Column {
         Row(
@@ -38,14 +39,11 @@ fun WalletHeader(
                 modifier = Modifier.weight(1f)
             )
             
-            Surface(
-                shape = CircleShape,
-                color = colors.panel,
-                modifier = Modifier.padding(end = 20.dp).size(48.dp)
+            IconButton(
+                onClick = onNavigateToCategories,
+                modifier = Modifier.padding(end = 60.dp).size(48.dp)
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.QrCodeScanner, contentDescription = stringResource(R.string.scan), tint = colors.ink)
-                }
+                Icon(Icons.Default.Category, contentDescription = "Categories", tint = colors.accent)
             }
         }
 

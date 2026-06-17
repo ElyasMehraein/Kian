@@ -1,18 +1,18 @@
-package com.ely.kian.ui.screens.wallet
+package com.ely.kian.ui.screens.vouchers
 
 import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.ely.kian.data.local.entities.TokenUtxo
-import com.ely.kian.data.repository.TokenRepository
+import com.ely.kian.data.local.entities.VoucherUtxo
+import com.ely.kian.data.repository.VoucherRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-data class TokenCardItem(
-    val utxo: TokenUtxo,
+data class VoucherCardItem(
+    val utxo: VoucherUtxo,
     val name: String,
     val description: String?,
     val images: List<String>,
@@ -20,33 +20,31 @@ data class TokenCardItem(
     val unit: String
 )
 
-class SendTokenViewModel(
-    private val tokenRepository: TokenRepository
+class SendVoucherViewModel(
+    private val voucherRepository: VoucherRepository
 ) : ViewModel() {
 
     companion object {
         fun provideFactory(
-            tokenRepository: TokenRepository
+            voucherRepository: VoucherRepository
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return SendTokenViewModel(tokenRepository) as T
+                return SendVoucherViewModel(voucherRepository) as T
             }
         }
     }
 
     var recipient by mutableStateOf("")
-    val utxos: StateFlow<List<TokenUtxo>> = tokenRepository.getUtxos()
+    val utxos: StateFlow<List<VoucherUtxo>> = voucherRepository.getUtxos()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // In a real app, we'd map utxos to TokenCardItem with definitions
-    // For now, providing a simplified state
     val tokenItems = derivedStateOf {
         utxos.value.map { utxo ->
-            TokenCardItem(
+            VoucherCardItem(
                 utxo = utxo,
                 name = utxo.assetRef.split(":").lastOrNull() ?: utxo.utxoId.takeLast(8),
-                description = "Token entry ready to transfer.",
+                description = "Havaleh ready to transfer.",
                 images = emptyList(),
                 categories = emptyList(),
                 unit = "unit"
@@ -84,11 +82,11 @@ class SendTokenViewModel(
             isSending = true
             try {
                 for (entry in _quantities) {
-                    tokenRepository.sendTokenTransfer(entry.key, entry.value, recipient)
+                    voucherRepository.sendTokenTransfer(entry.key, entry.value, recipient)
                 }
                 onSuccess()
             } catch (e: Exception) {
-                onError(e.message ?: "Failed to send tokens")
+                onError(e.message ?: "Failed to send")
             } finally {
                 isSending = false
             }

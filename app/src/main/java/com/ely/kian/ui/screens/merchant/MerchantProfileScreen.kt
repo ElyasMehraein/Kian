@@ -5,18 +5,16 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AddShoppingCart
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
@@ -41,8 +39,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.viewinterop.AndroidView
 import com.ely.kian.KianApp
-import com.ely.kian.data.local.entities.Product
 import com.ely.kian.data.local.entities.Review
+import com.ely.kian.data.local.entities.VoucherCategory
 import com.ely.kian.ui.components.InitialAvatar
 import com.ely.kian.ui.components.KianButton
 import com.ely.kian.ui.screens.merchant.components.*
@@ -52,7 +50,6 @@ import com.ely.kian.util.NavigationUtils
 import androidx.compose.ui.res.stringResource
 import com.ely.kian.R
 import coil.compose.AsyncImage
-import kotlinx.serialization.json.Json
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
@@ -64,7 +61,6 @@ import kotlin.math.roundToInt
 fun MerchantProfileScreen(
     pubkey: String,
     onBack: () -> Unit,
-    onCart: () -> Unit,
     onEdit: () -> Unit = {},
     onMessage: (String) -> Unit = {},
     onFollowersClick: (String) -> Unit = {},
@@ -74,8 +70,7 @@ fun MerchantProfileScreen(
             pubkey,
             ownPubkey,
             (LocalContext.current.applicationContext as KianApp).container.userProfileDao,
-            (LocalContext.current.applicationContext as KianApp).container.productRepository,
-            (LocalContext.current.applicationContext as KianApp).container.tokenRepository,
+            (LocalContext.current.applicationContext as KianApp).container.voucherRepository,
             (LocalContext.current.applicationContext as KianApp).container.reviewDao,
             (LocalContext.current.applicationContext as KianApp).container.nostrSyncManager,
             (LocalContext.current.applicationContext as KianApp).container.secureStorage
@@ -84,9 +79,7 @@ fun MerchantProfileScreen(
 ) {
     val kianColors = KianTheme.colors
     val profile by viewModel.profile.collectAsState()
-    val products by viewModel.products.collectAsState()
     val showcaseTokens by viewModel.showcaseTokens.collectAsState()
-    val categories by viewModel.categories.collectAsState()
     val reviews by viewModel.reviews.collectAsState()
     val userReview by viewModel.userReview.collectAsState()
     val isFollowing by viewModel.isFollowing.collectAsState()
@@ -94,12 +87,9 @@ fun MerchantProfileScreen(
     val isOwnProfile = viewModel.isOwnProfile
     val uriHandler = LocalUriHandler.current
     
-    var cartIconPosition by remember { mutableStateOf(Offset.Zero) }
     var selectedTab by remember { mutableIntStateOf(0) }
     var showReviewDialog by remember { mutableStateOf(false) }
-    var selectedFilterPath by remember { mutableStateOf<List<com.ely.kian.data.local.entities.ProductCategory>>(emptyList()) }
     
-    // Animation states
     var flyingImage by remember { mutableStateOf<String?>(null) }
     var flyingStart by remember { mutableStateOf(Offset.Zero) }
     var isFlying by remember { mutableStateOf(false) }
@@ -120,31 +110,6 @@ fun MerchantProfileScreen(
         else "%.1f".format(reviews.map { it.rating }.average())
     }
 
-    val filteredProducts = remember(products, selectedFilterPath, categories) {
-        val selectedLeaf = selectedFilterPath.lastOrNull()
-        if (selectedLeaf == null) products
-        else {
-            val allowedIds = getBranchIds(categories, selectedLeaf.id)
-            products.filter { product ->
-                try {
-                    val pCats = Json.decodeFromString<List<String>>(product.categories)
-                    pCats.any { it in allowedIds }
-                } catch (e: Exception) { false }
-            }
-        }
-    }
-
-    val filteredTokens = remember(showcaseTokens, selectedFilterPath, categories) {
-        val selectedLeaf = selectedFilterPath.lastOrNull()
-        if (selectedLeaf == null) showcaseTokens
-        else {
-            val allowedIds = getBranchIds(categories, selectedLeaf.id)
-            showcaseTokens.filter { token ->
-                token.categories.any { it in allowedIds }
-            }
-        }
-    }
-
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             containerColor = kianColors.canvas,
@@ -163,17 +128,6 @@ fun MerchantProfileScreen(
                         IconButton(onClick = { /* Share */ }, modifier = Modifier.background(kianColors.canvas.copy(alpha = 0.6f), RoundedCornerShape(12.dp))) {
                             Icon(Icons.Default.Share, contentDescription = stringResource(R.string.share), tint = kianColors.ink)
                         }
-                        if (!isOwnProfile) {
-                            Spacer(modifier = Modifier.width(8.dp))
-                            IconButton(
-                                onClick = onCart,
-                                modifier = Modifier
-                                    .background(kianColors.canvas.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
-                                    .onGloballyPositioned { cartIconPosition = it.positionInWindow() }
-                            ) {
-                                Icon(Icons.Default.ShoppingCart, contentDescription = stringResource(R.string.cart), tint = kianColors.ink)
-                            }
-                        }
                         Spacer(modifier = Modifier.width(8.dp))
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -184,7 +138,6 @@ fun MerchantProfileScreen(
                 modifier = Modifier.fillMaxSize().padding(paddingValues)
             ) {
                 item {
-                    // Header / Cover area
                     Box(modifier = Modifier.fillMaxWidth().height(200.dp)) {
                         if (!profile?.banner.isNullOrBlank()) {
                             AsyncImage(
@@ -204,7 +157,6 @@ fun MerchantProfileScreen(
                                     )
                             )
                         }
-                        // Bottom overlay for transition
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -223,7 +175,6 @@ fun MerchantProfileScreen(
                             .padding(horizontal = 20.dp)
                             .offset(y = (-60).dp)
                     ) {
-                        val context = LocalContext.current
                         InitialAvatar(
                             name = profile?.displayName ?: profile?.name ?: stringResource(R.string.merchant), 
                             pictureUrl = profile?.picture, 
@@ -337,6 +288,7 @@ fun MerchantProfileScreen(
                             }
                             
                             if (coords != null) {
+                                val context = LocalContext.current
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -353,7 +305,7 @@ fun MerchantProfileScreen(
                                             factory = { ctx ->
                                                 MapView(ctx).apply {
                                                     setTileSource(TileSourceFactory.MAPNIK)
-                                                    setMultiTouchControls(false) // Read only basically
+                                                    setMultiTouchControls(false) 
                                                     zoomController.setVisibility(org.osmdroid.views.CustomZoomButtonsController.Visibility.NEVER)
                                                     controller.setZoom(15.0)
                                                     val point = GeoPoint(coords.first, coords.second)
@@ -367,7 +319,6 @@ fun MerchantProfileScreen(
                                             }
                                         )
                                         
-                                        // Overlay to prevent map interaction but allow card click
                                         Box(modifier = Modifier.fillMaxSize().background(Color.Transparent))
                                         
                                         Surface(
@@ -392,7 +343,7 @@ fun MerchantProfileScreen(
                             modifier = Modifier.padding(top = 24.dp).fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            ProfileStat(label = stringResource(R.string.products), value = products.size.toString())
+                            ProfileStat(label = stringResource(R.string.vouchers), value = showcaseTokens.size.toString(), icon = Icons.Default.ConfirmationNumber)
                             ProfileStat(
                                 label = stringResource(R.string.followers),
                                 value = followerCount.toString(),
@@ -401,7 +352,6 @@ fun MerchantProfileScreen(
                             ProfileStat(label = stringResource(R.string.rating), value = avgRating, icon = Icons.Default.Star)
                         }
 
-                        // Action Buttons
                         Row(modifier = Modifier.padding(top = 24.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             if (isOwnProfile) {
                                 KianButton(
@@ -426,7 +376,6 @@ fun MerchantProfileScreen(
                     }
                 }
 
-                // Sticky Tabs
                 item {
                     TabRow(
                         selectedTabIndex = selectedTab,
@@ -455,47 +404,17 @@ fun MerchantProfileScreen(
                 }
 
                 if (selectedTab == 0) {
-                    if (products.isEmpty() && showcaseTokens.isEmpty()) {
+                    if (showcaseTokens.isEmpty()) {
                         item {
                             Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
                                 Text(stringResource(R.string.no_showcase_items), color = kianColors.muted)
                             }
                         }
                     } else {
-                        item {
-                            CategoryFilterBar(
-                                categories = categories,
-                                selectedPath = selectedFilterPath,
-                                onPathChange = { selectedFilterPath = it }
-                            )
-                        }
-
-                        if (filteredProducts.isEmpty() && filteredTokens.isEmpty()) {
-                            item {
-                                Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
-                                    Text(stringResource(R.string.no_products_category), color = kianColors.muted)
-                                }
-                            }
-                        }
-
-                        items(filteredTokens) { token ->
+                        items(showcaseTokens) { token ->
                             Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
-                                ShowcaseTokenCard(token)
-                            }
-                        }
-
-                        items(filteredProducts) { product ->
-                            val productCats = remember(product, categories) {
-                                try {
-                                    val ids = Json.decodeFromString<List<String>>(product.categories)
-                                    categories.filter { it.id in ids }
-                                } catch (e: Exception) { emptyList() }
-                            }
-                            
-                            Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
-                                ProductCard(
-                                    product = product,
-                                    categories = productCats,
+                                ShowcaseTokenCard(
+                                    token = token,
                                     showAddToCart = !isOwnProfile,
                                     onAddToCart = { qty, pos, img ->
                                         flyingImage = img
@@ -539,10 +458,9 @@ fun MerchantProfileScreen(
             }
         }
 
-        // Flying animation overlay
         if (flyingImage != null) {
-            val offsetX = androidx.compose.ui.util.lerp(flyingStart.x, cartIconPosition.x, animProgress.value)
-            val offsetY = androidx.compose.ui.util.lerp(flyingStart.y, cartIconPosition.y, animProgress.value)
+            val offsetX = androidx.compose.ui.util.lerp(flyingStart.x, 0f, animProgress.value)
+            val offsetY = androidx.compose.ui.util.lerp(flyingStart.y, 0f, animProgress.value)
             val scale = androidx.compose.ui.util.lerp(1f, 0.1f, animProgress.value)
             val alpha = androidx.compose.ui.util.lerp(1f, 0f, animProgress.value)
 

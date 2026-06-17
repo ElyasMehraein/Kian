@@ -6,12 +6,10 @@ import androidx.lifecycle.viewModelScope
 import com.ely.kian.data.local.dao.UserProfileDao
 import com.ely.kian.data.local.entities.ChatMessage
 import com.ely.kian.data.local.entities.Conversation
-import com.ely.kian.data.local.entities.Product
 import com.ely.kian.data.local.entities.Profile
 import com.ely.kian.data.repository.BalanceItem
 import com.ely.kian.data.repository.ChatRepository
-import com.ely.kian.data.repository.ProductRepository
-import com.ely.kian.data.repository.TokenRepository
+import com.ely.kian.data.repository.VoucherRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.*
@@ -19,11 +17,10 @@ import kotlinx.serialization.json.*
 class ChatViewModel(
     private val repository: ChatRepository,
     private val userProfileDao: UserProfileDao,
-    private val productRepository: ProductRepository,
-    val tokenRepository: TokenRepository
+    val voucherRepository: VoucherRepository
 ) : ViewModel() {
 
-    fun getUtxos() = tokenRepository.getUtxos()
+    fun getUtxos() = voucherRepository.getUtxos()
 
     val conversations: StateFlow<List<Conversation>> = repository.getConversations()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -39,58 +36,23 @@ class ChatViewModel(
 
     suspend fun getMessageById(id: String) = repository.getMessageById(id)
 
-    fun getMyProducts(): Flow<List<Product>> {
-        return flow {
-            val key = repository.getOwnPubkey()
-            if (key != null) {
-                emitAll(productRepository.getProducts(key))
-            } else {
-                emit(emptyList())
-            }
-        }
-    }
-
-    fun sendProductAsToken(contactPubkey: String, productId: String, quantity: Long) {
-        viewModelScope.launch {
-            try {
-                val ownPubkey = repository.getOwnPubkey() ?: return@launch
-                val products = productRepository.getProducts(ownPubkey).first()
-                val product = products.find { it.id == productId } ?: return@launch
-                val productName = product.name
-
-                tokenRepository.mintProduct(contactPubkey, productId, quantity)
-
-                val metadata = buildJsonObject {
-                    put("type", "token_mint")
-                    put("product_id", productId)
-                    put("product_name", productName)
-                    put("amount", quantity)
-                }.toString()
-
-                repository.sendMessage(contactPubkey, "📦 $quantity x $productName", metadata)
-            } catch (e: Exception) {
-                android.util.Log.e("ChatViewModel", "Failed to mint product", e)
-            }
-        }
-    }
-
     fun sendToken(contactPubkey: String, utxoId: String, amount: Long) {
         viewModelScope.launch {
             try {
-                val allUtxos = tokenRepository.getUtxos().first()
+                val allUtxos = voucherRepository.getUtxos().first()
                 val utxo = allUtxos.find { it.utxoId == utxoId } ?: return@launch
                 
-                val balances = tokenRepository.getBalances().first()
+                val balances = voucherRepository.getBalances().first()
                 val balance = balances.find { it.assetRef == utxo.assetRef }
-                val assetName = balance?.name ?: "Tokens"
+                val assetName = balance?.name ?: "Voucher"
                 
-                tokenRepository.sendTokenTransfer(utxoId, amount, contactPubkey)
+                voucherRepository.sendTokenTransfer(utxoId, amount, contactPubkey)
                 
                 val isToProducer = contactPubkey == utxo.producer
                 
                 val metadata = buildJsonObject {
                     put("type", if (isToProducer) "token_redemption" else "token_transfer")
-                    put("utxo_id", utxoId) // Keep original UTXO ID for confirmation tracking
+                    put("utxo_id", utxoId) 
                     put("asset_name", assetName)
                     put("amount", amount)
                     put("producer", utxo.producer)
@@ -99,7 +61,7 @@ class ChatViewModel(
                 val summary = if (isToProducer) "🛒 $amount x $assetName" else "💸 $amount x $assetName"
                 repository.sendMessage(contactPubkey, summary, metadata)
             } catch (e: Exception) {
-                android.util.Log.e("ChatViewModel", "Failed to send token", e)
+                android.util.Log.e("ChatViewModel", "Failed to send", e)
             }
         }
     }
@@ -107,8 +69,7 @@ class ChatViewModel(
     fun confirmProductReceipt(messageId: String, contactPubkey: String, transferEventId: String) {
         viewModelScope.launch {
             try {
-                tokenRepository.confirmReceipt(transferEventId, contactPubkey)
-                // Update local message status
+                voucherRepository.confirmReceipt(transferEventId, contactPubkey)
                 repository.updateMessageStatus(messageId, "received")
             } catch (e: Exception) {
                 android.util.Log.e("ChatViewModel", "Failed to confirm receipt", e)
@@ -117,7 +78,7 @@ class ChatViewModel(
     }
 
     fun getBalances(): StateFlow<List<BalanceItem>> {
-        return tokenRepository.getBalances()
+        return voucherRepository.getBalances()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     }
 
@@ -125,7 +86,6 @@ class ChatViewModel(
     fun sendMessage(contactPubkey: String, content: String, replyToId: String? = null) {
         viewModelScope.launch {
             repository.sendMessage(contactPubkey, content, replyToId = replyToId)
-            // After sending a new message, try to push any stuck pending messages
             repository.retryPendingMessages()
         }
     }
@@ -168,12 +128,11 @@ class ChatViewModel(
         fun provideFactory(
             repository: ChatRepository,
             userProfileDao: UserProfileDao,
-            productRepository: ProductRepository,
-            tokenRepository: TokenRepository
+            voucherRepository: VoucherRepository
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return ChatViewModel(repository, userProfileDao, productRepository, tokenRepository) as T
+                return ChatViewModel(repository, userProfileDao, voucherRepository) as T
             }
         }
     }

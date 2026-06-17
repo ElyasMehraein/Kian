@@ -7,8 +7,7 @@ import com.ely.kian.data.local.KianDatabase
 import com.ely.kian.data.remote.EventProcessor
 import com.ely.kian.data.remote.NostrSyncManager
 import com.ely.kian.data.remote.RelayPoolManager
-import com.ely.kian.data.repository.ProductRepository
-import com.ely.kian.data.repository.TokenRepository
+import com.ely.kian.data.repository.VoucherRepository
 import com.ely.kian.data.repository.ChatRepository
 import com.ely.kian.services.GitHubUpdateManager
 import com.ely.kian.util.NotificationHelper
@@ -22,11 +21,9 @@ class KianContainer(private val context: Context) {
 
     private val app = context.applicationContext as KianApp
 
-    // Using a more robust way to handle DB creation in development
     val database: KianDatabase by lazy {
         try {
             val db = buildDatabase()
-            // Trigger a dummy query to force open and check integrity
             db.openHelper.writableDatabase
             db
         } catch (e: Exception) {
@@ -48,25 +45,15 @@ class KianContainer(private val context: Context) {
 
     val keyDao get() = database.keyDao()
     val userProfileDao get() = database.userProfileDao()
-    val productDao get() = database.productDao()
-    val tokenDao get() = database.tokenDao()
+    val voucherDao get() = database.voucherDao()
     val reviewDao get() = database.reviewDao()
     val offlineQueueDao get() = database.offlineQueueDao()
     val relayDao get() = database.relayDao()
 
-    val productRepository: ProductRepository by lazy {
-        ProductRepository(
-            productDao = productDao,
-            secureStorage = secureStorage,
-            syncManagerProvider = { nostrSyncManager }
-        )
-    }
-
-    val tokenRepository: TokenRepository by lazy {
-        TokenRepository(
+    val voucherRepository: VoucherRepository by lazy {
+        VoucherRepository(
             keyDao = keyDao,
-            tokenDao = tokenDao,
-            productDao = productDao,
+            voucherDao = voucherDao,
             relayDao = relayDao,
             offlineQueueDao = offlineQueueDao,
             secureStorage = secureStorage,
@@ -90,8 +77,7 @@ class KianContainer(private val context: Context) {
     val eventProcessor: EventProcessor by lazy {
         EventProcessor(
             secureStorage = secureStorage,
-            productRepository = productRepository,
-            tokenRepository = tokenRepository,
+            voucherRepository = voucherRepository,
             userProfileDao = userProfileDao,
             reviewDao = reviewDao,
             chatRepository = chatRepository

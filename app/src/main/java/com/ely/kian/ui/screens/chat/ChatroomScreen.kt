@@ -28,7 +28,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import com.ely.kian.R
 import com.ely.kian.data.local.entities.ChatMessage
-import com.ely.kian.data.local.entities.Product
 import com.ely.kian.ui.components.util.setText
 import com.ely.kian.crypto.KianKeys
 import com.ely.kian.ui.screens.chat.components.*
@@ -50,9 +49,7 @@ fun ChatroomScreen(
     
     var contactName by remember { mutableStateOf(contactPubkey.take(8) + "...") }
     
-    var showProductPicker by remember { mutableStateOf(false) }
-    var showTokenPicker by remember { mutableStateOf(false) }
-    val myProducts by viewModel.getMyProducts().collectAsState(initial = emptyList())
+    var showVoucherPicker by remember { mutableStateOf(false) }
     val myBalances by viewModel.getBalances().collectAsState()
     
     val kianColors = KianTheme.colors
@@ -116,44 +113,26 @@ fun ChatroomScreen(
                             replyingTo = null
                         }
                     },
-                    onProductClick = { showProductPicker = true },
-                    onTokenClick = { showTokenPicker = true },
+                    onActionClick = { showVoucherPicker = true },
                     colors = kianColors
                 )
             }
         },
         containerColor = kianColors.canvas
     ) { padding ->
-        if (showProductPicker) {
+        if (showVoucherPicker) {
             ModalBottomSheet(
-                onDismissRequest = { showProductPicker = false },
-                sheetState = sheetState,
-                containerColor = kianColors.canvas
-            ) {
-                ProductPickerContent(
-                    products = myProducts,
-                    colors = kianColors,
-                    onProductSelected = { product, quantity ->
-                        viewModel.sendProductAsToken(contactPubkey, product.id, quantity)
-                        showProductPicker = false
-                    }
-                )
-            }
-        }
-
-        if (showTokenPicker) {
-            ModalBottomSheet(
-                onDismissRequest = { showTokenPicker = false },
+                onDismissRequest = { showVoucherPicker = false },
                 sheetState = sheetState,
                 containerColor = kianColors.canvas
             ) {
                 TokenPickerContent(
                     balances = myBalances,
-                    utxos = viewModel.tokenRepository.getUtxos().collectAsState(initial = emptyList()).value,
+                    utxos = viewModel.voucherRepository.getUtxos().collectAsState(initial = emptyList()).value,
                     colors = kianColors,
                     onTokenSelected = { utxoId, amount ->
                         viewModel.sendToken(contactPubkey, utxoId, amount)
-                        showTokenPicker = false
+                        showVoucherPicker = false
                     }
                 )
             }
@@ -187,7 +166,6 @@ fun ChatroomScreen(
                         viewModel = viewModel,
                         colors = kianColors,
                         onActionClick = { 
-                            // Handle custom actions like "Confirm Receipt"
                         }
                     )
                     

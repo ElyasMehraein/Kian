@@ -25,27 +25,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.ely.kian.R
-import com.ely.kian.data.local.entities.Product
-import com.ely.kian.data.local.entities.ProductCategory
 import com.ely.kian.data.repository.BalanceItem
 import com.ely.kian.ui.theme.KianTheme
-import kotlinx.serialization.json.Json
 
 @Composable
-fun ProductCard(
-    product: Product,
-    categories: List<ProductCategory>,
+fun ShowcaseTokenCard(
+    token: BalanceItem,
     showAddToCart: Boolean = true,
-    onAddToCart: (Int, Offset, String?) -> Unit
+    onAddToCart: (Long, Offset, String?) -> Unit = { _, _, _ -> }
 ) {
     val kianColors = KianTheme.colors
-    var quantity by remember { mutableIntStateOf(1) }
+    var quantity by remember { mutableLongStateOf(1L) }
     var itemPosition by remember { mutableStateOf(Offset.Zero) }
 
-    val imageUrls = remember(product.images) {
-        try { Json.decodeFromString<List<String>>(product.images) } catch (e: Exception) { emptyList<String>() }
-    }
-    
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -53,140 +45,6 @@ fun ProductCard(
             .border(1.dp, kianColors.line, RoundedCornerShape(24.dp))
             .padding(16.dp)
             .onGloballyPositioned { itemPosition = it.positionInWindow() }
-    ) {
-        if (categories.isNotEmpty()) {
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.padding(bottom = 12.dp)
-            ) {
-                items(categories) { cat ->
-                    Surface(
-                        color = kianColors.accent.copy(alpha = 0.1f),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text(
-                            text = cat.name,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = kianColors.accent,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
-                }
-            }
-        }
-
-        if (imageUrls.size == 1) {
-            AsyncImage(
-                model = imageUrls.first(),
-                contentDescription = product.name,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(220.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(kianColors.line),
-                contentScale = ContentScale.Crop
-            )
-        } else if (imageUrls.size > 1) {
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                items(imageUrls) { url ->
-                    AsyncImage(
-                        model = url,
-                        contentDescription = product.name,
-                        modifier = Modifier
-                            .width(300.dp)
-                            .height(220.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(kianColors.line),
-                        contentScale = ContentScale.Crop
-                    )
-                }
-            }
-        } else {
-            Box(modifier = Modifier.fillMaxWidth().height(220.dp).clip(RoundedCornerShape(16.dp)).background(kianColors.line))
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        Text(text = product.name, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = kianColors.ink)
-        Text(
-            text = product.description ?: "", 
-            fontSize = 15.sp, 
-            color = kianColors.ink.copy(alpha = 0.6f), 
-            modifier = Modifier.padding(top = 4.dp),
-            maxLines = 3,
-            lineHeight = 22.sp,
-            overflow = TextOverflow.Ellipsis
-        )
-        
-        if (showAddToCart) {
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .background(kianColors.line.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
-                        .padding(4.dp)
-                ) {
-                    IconButton(
-                        onClick = { if (quantity > 1) quantity-- },
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Text("-", fontWeight = FontWeight.Bold, color = kianColors.ink)
-                    }
-                    Text(
-                        text = quantity.toString(),
-                        modifier = Modifier.padding(horizontal = 12.dp),
-                        fontWeight = FontWeight.Bold,
-                        color = kianColors.ink
-                    )
-                    IconButton(
-                        onClick = { quantity++ },
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Text("+", fontWeight = FontWeight.Bold, color = kianColors.ink)
-                    }
-                }
-
-                Button(
-                    onClick = { onAddToCart(quantity, itemPosition, imageUrls.firstOrNull()) },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = kianColors.ink,
-                        contentColor = kianColors.canvas
-                    ),
-                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(Icons.Default.AddShoppingCart, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Text(text = stringResource(R.string.add_to_cart), fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ShowcaseTokenCard(token: BalanceItem) {
-    val kianColors = KianTheme.colors
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(kianColors.panel, RoundedCornerShape(24.dp))
-            .border(1.dp, kianColors.line, RoundedCornerShape(24.dp))
-            .padding(16.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -226,11 +84,65 @@ fun ShowcaseTokenCard(token: BalanceItem) {
                 contentDescription = token.name,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(150.dp)
+                    .height(200.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(kianColors.line),
                 contentScale = ContentScale.Crop
             )
+        }
+
+        if (showAddToCart) {
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .background(kianColors.line.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                        .padding(4.dp)
+                ) {
+                    IconButton(
+                        onClick = { if (quantity > 1) quantity-- },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Text("-", fontWeight = FontWeight.Bold, color = kianColors.ink)
+                    }
+                    Text(
+                        text = quantity.toString(),
+                        modifier = Modifier.padding(horizontal = 12.dp),
+                        fontWeight = FontWeight.Bold,
+                        color = kianColors.ink
+                    )
+                    IconButton(
+                        onClick = { if (quantity < token.amount) quantity++ },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Text("+", fontWeight = FontWeight.Bold, color = kianColors.ink)
+                    }
+                }
+
+                Button(
+                    onClick = { onAddToCart(quantity, itemPosition, token.images.firstOrNull()) },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = kianColors.ink,
+                        contentColor = kianColors.canvas
+                    ),
+                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.AddShoppingCart, contentDescription = null, modifier = Modifier.size(20.dp))
+                        Text(text = stringResource(R.string.add_to_cart), fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
         }
     }
 }

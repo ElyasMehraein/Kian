@@ -7,7 +7,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -26,8 +25,7 @@ fun ChatInput(
     text: String,
     onTextChange: (String) -> Unit,
     onSend: () -> Unit,
-    onProductClick: () -> Unit,
-    onTokenClick: () -> Unit,
+    onActionClick: () -> Unit,
     colors: KianColors
 ) {
     Surface(
@@ -42,12 +40,8 @@ fun ChatInput(
                 .imePadding(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onProductClick) {
-                Icon(Icons.Default.Inventory2, contentDescription = "Send Product", tint = colors.accent)
-            }
-            
-            IconButton(onClick = onTokenClick) {
-                Icon(Icons.Default.ConfirmationNumber, contentDescription = "Send Token", tint = colors.accent)
+            IconButton(onClick = onActionClick) {
+                Icon(Icons.Default.ConfirmationNumber, contentDescription = "Send Voucher", tint = colors.accent)
             }
 
             TextField(

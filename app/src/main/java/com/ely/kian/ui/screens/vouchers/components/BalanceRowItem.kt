@@ -1,4 +1,4 @@
-package com.ely.kian.ui.screens.wallet.components
+package com.ely.kian.ui.screens.vouchers.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -7,7 +7,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Token
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,14 +23,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ely.kian.KianApp
 import com.ely.kian.R
-import com.ely.kian.data.local.entities.ProductCategory
+import com.ely.kian.data.local.entities.VoucherCategory
 import com.ely.kian.data.repository.BalanceItem
 import com.ely.kian.ui.theme.KianColors
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun BalanceRow(
     item: BalanceItem,
-    myCategories: List<ProductCategory>,
+    myCategories: List<VoucherCategory>,
     onProducerClick: (String) -> Unit,
     formatAssetRef: (String) -> String,
     onToggleShowcase: (String, Boolean) -> Unit,
@@ -56,87 +57,102 @@ fun BalanceRow(
         border = androidx.compose.foundation.BorderStroke(1.dp, colors.line.copy(alpha = 0.5f))
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            Column(modifier = Modifier.clickable { onEdit(item) }) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = item.name, 
+                        fontSize = 20.sp, 
+                        fontWeight = FontWeight.ExtraBold, 
+                        color = colors.ink
+                    )
+                    if (item.description.isNotEmpty()) {
                         Text(
-                            text = item.name, 
-                            fontSize = 20.sp, 
-                            fontWeight = FontWeight.ExtraBold, 
-                            color = colors.ink
+                            text = item.description,
+                            fontSize = 14.sp,
+                            color = colors.muted,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(top = 4.dp)
                         )
-                        if (item.description.isNotEmpty()) {
-                            Text(
-                                text = item.description,
-                                fontSize = 14.sp,
-                                color = colors.muted,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.padding(top = 4.dp)
-                            )
-                        }
-                    }
-                    
-                    Surface(
-                        color = colors.accent,
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier.padding(start = 16.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = item.amount.toString(), 
-                                fontSize = 24.sp, 
-                                fontWeight = FontWeight.Black, 
-                                color = Color.White
-                            )
-                            Text(
-                                text = item.unit.lowercase(), 
-                                fontSize = 11.sp, 
-                                fontWeight = FontWeight.Bold, 
-                                color = Color.White.copy(alpha = 0.8f)
-                            )
-                        }
                     }
                 }
                 
-                if (item.categories.isNotEmpty()) {
-                    FlowRow(
-                        modifier = Modifier.padding(top = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                Surface(
+                    color = colors.accent,
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.padding(start = 16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        item.categories.forEach { categoryId ->
-                            val categoryName = myCategories.find { it.id == categoryId }?.name ?: categoryId
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = colors.accent.copy(alpha = 0.1f)
-                            ) {
-                                Text(
-                                    text = "#$categoryName",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.accent,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                                )
-                            }
+                        Text(
+                            text = item.amount.toString(), 
+                            fontSize = 24.sp, 
+                            fontWeight = FontWeight.Black, 
+                            color = Color.White
+                        )
+                        Text(
+                            text = item.unit.lowercase(), 
+                            fontSize = 11.sp, 
+                            fontWeight = FontWeight.Bold, 
+                            color = Color.White.copy(alpha = 0.8f)
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(R.string.category),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.ink.copy(alpha = 0.6f)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                IconButton(
+                    onClick = { onEdit(item) },
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(Icons.Default.Edit, contentDescription = "Edit Categories", tint = colors.accent, modifier = Modifier.size(16.dp))
+                }
+            }
+
+            if (item.categories.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.uncategorized),
+                    fontSize = 13.sp,
+                    color = colors.muted,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            } else {
+                FlowRow(
+                    modifier = Modifier.padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    item.categories.forEach { categoryId ->
+                        val categoryName = myCategories.find { it.id == categoryId }?.name ?: categoryId
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = colors.accent.copy(alpha = 0.1f)
+                        ) {
+                            Text(
+                                text = "#$categoryName",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.accent,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                            )
                         }
                     }
                 }
-
-                Text(
-                    text = stringResource(R.string.tap_to_edit),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = colors.accent,
-                    modifier = Modifier.padding(top = 12.dp)
-                )
             }
             
             HorizontalDivider(
