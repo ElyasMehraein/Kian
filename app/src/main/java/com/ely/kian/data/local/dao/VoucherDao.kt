@@ -85,6 +85,9 @@ interface VoucherDao {
     @Query("SELECT * FROM voucher_asset_settings WHERE pubkey = :pubkey")
     fun getAssetSettingsByPubkey(pubkey: String): Flow<List<VoucherAssetSettings>>
 
+    @Query("DELETE FROM voucher_asset_settings WHERE pubkey = :pubkey")
+    suspend fun deleteAssetSettingsByPubkey(pubkey: String)
+
     @Query("DELETE FROM voucher_category_mappings WHERE pubkey = :pubkey")
     suspend fun deleteMappingsByPubkey(pubkey: String)
 

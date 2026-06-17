@@ -75,7 +75,8 @@ class VoucherRepository(
                 val myCategoryIds = mappingsMap[assetRef] ?: emptyList()
                 
                 val parsed = KianKeys.parseAssetRef(assetRef)
-                val isShowcase = settingsMap[assetRef]?.isShowcase ?: true
+                // Default to false for new items to respect Privacy-first
+                val isShowcase = settingsMap[assetRef]?.isShowcase ?: false
 
                 BalanceItem(
                     assetRef = assetRef,
@@ -234,10 +235,35 @@ class VoucherRepository(
                 tags.add(listOf("c", cat.id, cat.name, cat.parentId ?: ""))
             }
             
+            val definitions = voucherDao.getAllDefinitionsFlow().first()
+
+            val utxosList = voucherDao.getUnspentUtxosByOwner(pubkey).first()
+            
             // Format: ["a", assetRef, relay, categoryId, isShowcase]
             mappings.forEach { m ->
-                val isShowcase = settings.find { it.assetRef == m.assetRef }?.isShowcase ?: true
-                tags.add(listOf("a", m.assetRef, "", m.categoryId, isShowcase.toString()))
+                val isShowcase = settings.find { it.assetRef == m.assetRef }?.isShowcase ?: false
+                if (isShowcase) {
+                    tags.add(listOf("a", m.assetRef, "", m.categoryId, "true"))
+                    
+                    // Ensure Kind 35001 is public for showcased items
+                    val parsed = KianKeys.parseAssetRef(m.assetRef)
+                    if (parsed?.producer == pubkey) {
+                        val def = definitions.find { it.assetId == parsed.assetId && it.pubkey == pubkey }
+                        if (def != null) {
+                            val defTags = mutableListOf<List<String>>()
+                            defTags.add(listOf("d", def.assetId))
+                            defTags.add(listOf("name", def.name))
+                            if (!def.description.isNullOrEmpty()) defTags.add(listOf("description", def.description))
+                            def.images.forEach { defTags.add(listOf("image", it)) }
+                            defTags.add(listOf("amount", amountForDef(m.assetRef, utxosList).toString()))
+                            
+                            val defId = KianKeys.computeEventId(pubkey, def.createdAt, 35001, defTags, "")
+                            val defSig = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(defId), privKey))
+                            val defEvent = NostrEvent(defId, pubkey, def.createdAt, 35001, defTags, "", defSig)
+                            syncManager.publishEvent(defEvent)
+                        }
+                    }
+                }
             }
 
             val id = KianKeys.computeEventId(pubkey, now, 30017, tags, content)
@@ -248,6 +274,10 @@ class VoucherRepository(
         } catch (e: Exception) {
             android.util.Log.e(TAG, "Failed to publish showcase", e)
         }
+    }
+
+    private fun amountForDef(assetRef: String, utxos: List<VoucherUtxo>): Long {
+        return utxos.filter { it.assetRef == assetRef && !it.spent }.sumOf { it.amount }
     }
 
     fun formatAssetRef(assetRef: String): String {
@@ -325,9 +355,9 @@ class VoucherRepository(
             )
             voucherDao.insertUtxo(utxo)
 
-            // 2. Publish
-            syncManager.publishEvent(event)
-            _notifications.emit("Voucher minted successfully")
+            // 2. Local Save only (Private by default)
+            syncManager.publishEvent(event) // Still publish to local relay if connected, but we'll control global visibility via Showcase
+            _notifications.emit("Voucher minted locally (Private)")
         } catch (e: Exception) {
             android.util.Log.e(TAG, "Failed to mint token", e)
             _notifications.emit("Error minting voucher")

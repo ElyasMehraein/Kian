@@ -41,6 +41,8 @@ class VoucherNostrHandler(
         if (dTag != "kian_showcase" && event.kind != 30017) return
         
         val author = KianKeys.normalizePubkey(event.pubkey)
+        val myPubkey = keyDao.getKey()?.pubkey?.let { KianKeys.normalizePubkey(it) }
+        val isOwnEvent = author == myPubkey
 
         try {
             // Standard Tags: ["c", id, name, parentId]
@@ -66,18 +68,23 @@ class VoucherNostrHandler(
                 } else null
             }
 
-            if (categories.isNotEmpty()) {
-                categories.forEach { voucherDao.upsertCategory(it) }
+            // For observers, the incoming event is the absolute Source of Truth
+            if (!isOwnEvent) {
+                voucherDao.deleteCategoriesByPubkey(author)
+                voucherDao.deleteMappingsByPubkey(author)
+                voucherDao.deleteAssetSettingsByPubkey(author)
             }
 
-            if (mappings.isNotEmpty()) {
-                voucherDao.deleteMappingsByPubkey(author)
-                mappings.forEach { (assetRef, catId, isShowcase) ->
-                    voucherDao.upsertMapping(com.ely.kian.data.local.entities.VoucherCategoryMapping(author, assetRef, catId))
-                    voucherDao.upsertAssetSettings(com.ely.kian.data.local.entities.VoucherAssetSettings(author, assetRef, isShowcase))
-                }
+            // Apply categories
+            categories.forEach { voucherDao.upsertCategory(it) }
+
+            // Apply mappings and settings
+            mappings.forEach { (assetRef, catId, isShowcase) ->
+                voucherDao.upsertMapping(com.ely.kian.data.local.entities.VoucherCategoryMapping(author, assetRef, catId))
+                voucherDao.upsertAssetSettings(com.ely.kian.data.local.entities.VoucherAssetSettings(author, assetRef, isShowcase))
             }
-            Log.d(TAG, "Synced showcase for $author via tags")
+            
+            Log.d(TAG, "Synced showcase for $author (Categories: ${categories.size}, Mappings: ${mappings.size})")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to handle showcase sync", e)
         }
