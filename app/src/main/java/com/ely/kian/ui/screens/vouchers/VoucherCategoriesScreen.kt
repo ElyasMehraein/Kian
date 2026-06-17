@@ -1,19 +1,20 @@
 package com.ely.kian.ui.screens.vouchers
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -21,10 +22,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ely.kian.R
 import com.ely.kian.data.local.entities.VoucherCategory
-import com.ely.kian.ui.components.KianButton
 import com.ely.kian.ui.theme.KianTheme
 
-@OptIn(ExperimentalMaterial3Api::class)
+private const val MAX_LEVEL = 5
+
 @Composable
 fun VoucherCategoriesScreen(
     viewModel: VoucherViewModel,
@@ -32,130 +33,219 @@ fun VoucherCategoriesScreen(
 ) {
     val kianColors = KianTheme.colors
     val categories by viewModel.myCategories.collectAsState()
-    var selectedPath by remember { mutableStateOf<List<VoucherCategory>>(emptyList()) }
-    var showAddDialog by remember { mutableStateOf(false) }
-    var newCategoryName by remember { mutableStateOf("") }
+    var rootName by remember { mutableStateOf("") }
+    var draftParent by remember { mutableStateOf<VoucherCategory?>(null) }
+    var childName by remember { mutableStateOf("") }
+    var alertDialogInfo by remember { mutableStateOf<Pair<String, String>?>(null) }
 
-    val currentParent = selectedPath.lastOrNull()
-    val displayCategories = remember(categories, selectedPath) {
-        categories.filter { it.parentId == currentParent?.id }.sortedBy { it.name }
+    LaunchedEffect(Unit) {
+        viewModel.uiEvent.collect { event ->
+            if (event is VoucherViewModel.UiEvent.Alert) {
+                alertDialogInfo = event.title to event.message
+            }
+        }
+    }
+
+    val roots = remember(categories) {
+        categories.filter { it.parentId == null }.sortedBy { it.name }
     }
 
     Scaffold(
-        containerColor = kianColors.canvas,
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.category_mgmt), fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        if (selectedPath.isNotEmpty()) {
-                            selectedPath = selectedPath.dropLast(1)
-                        } else {
-                            onNavigateBack()
-                        }
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = kianColors.ink)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = kianColors.canvas)
-            )
-        }
+        containerColor = kianColors.canvas
     ) { padding ->
-        Column(modifier = Modifier.padding(padding).fillMaxSize()) {
-            if (selectedPath.isNotEmpty()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 8.dp)
-                        .background(kianColors.panel, RoundedCornerShape(12.dp))
-                        .padding(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 24.dp)
+        ) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = stringResource(R.string.all),
-                        modifier = Modifier.clickable { selectedPath = emptyList() },
-                        color = kianColors.accent,
-                        fontSize = 13.sp
+                        text = stringResource(R.string.category_management),
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = kianColors.ink
                     )
-                    selectedPath.forEach { cat ->
-                        Text(" > ", color = kianColors.muted, fontSize = 13.sp)
-                        Text(
-                            text = cat.name,
-                            modifier = Modifier.clickable { 
-                                val index = selectedPath.indexOf(cat)
-                                selectedPath = selectedPath.take(index + 1)
+                    Text(
+                        text = stringResource(R.string.category_mgmt_desc),
+                        fontSize = 14.sp,
+                        color = kianColors.muted,
+                        lineHeight = 20.sp,
+                        modifier = Modifier.padding(top = 6.dp)
+                    )
+                }
+                Surface(
+                    onClick = onNavigateBack,
+                    shape = CircleShape,
+                    color = kianColors.panel,
+                    modifier = Modifier.size(44.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(22.dp), tint = kianColors.ink)
+                    }
+                }
+            }
+
+            // Add Root Section
+            Card(
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = kianColors.panel),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = stringResource(R.string.add_root_category),
+                        fontWeight = FontWeight.SemiBold,
+                        color = kianColors.ink,
+                        fontSize = 16.sp
+                    )
+                    Row(
+                        modifier = Modifier.padding(top = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = rootName,
+                            onValueChange = { rootName = it },
+                            placeholder = { Text(stringResource(R.string.new_root_cat_placeholder), color = kianColors.muted) },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = kianColors.accent,
+                                unfocusedBorderColor = kianColors.line,
+                                focusedContainerColor = kianColors.canvas,
+                                unfocusedContainerColor = kianColors.canvas
+                            ),
+                            singleLine = true
+                        )
+                        Button(
+                            onClick = {
+                                if (rootName.isNotBlank()) {
+                                    viewModel.saveCategory(rootName, null)
+                                    rootName = ""
+                                }
                             },
-                            color = kianColors.accent,
-                            fontSize = 13.sp
+                            modifier = Modifier.height(52.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = kianColors.ink,
+                                contentColor = kianColors.canvas
+                            )
+                        ) {
+                            Text(stringResource(R.string.add), fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
+            }
+
+            // Draft Subcategory Section
+            draftParent?.let { parent ->
+                Card(
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = kianColors.infoSoft),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = stringResource(R.string.add_subcat_under, parent.name),
+                            fontWeight = FontWeight.SemiBold,
+                            color = kianColors.info,
+                            fontSize = 14.sp
+                        )
+                        Row(
+                            modifier = Modifier.padding(top = 12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = childName,
+                                onValueChange = { childName = it },
+                                placeholder = { Text(stringResource(R.string.subcat_name_placeholder), color = kianColors.muted) },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = kianColors.info,
+                                    unfocusedBorderColor = kianColors.line,
+                                    focusedContainerColor = kianColors.canvas,
+                                    unfocusedContainerColor = kianColors.canvas
+                                ),
+                                singleLine = true
+                            )
+                            Button(
+                                onClick = {
+                                    if (childName.isNotBlank()) {
+                                        viewModel.saveCategory(childName, parent)
+                                        childName = ""
+                                        draftParent = null
+                                    }
+                                },
+                                modifier = Modifier.height(52.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = kianColors.ink,
+                                    contentColor = kianColors.canvas
+                                )
+                            ) {
+                                Text(stringResource(R.string.save), fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Categories Tree
+            if (roots.isEmpty()) {
+                Card(
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = kianColors.panel),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp)) {
+                        Text(
+                            text = stringResource(R.string.no_categories_yet),
+                            fontWeight = FontWeight.SemiBold,
+                            color = kianColors.ink,
+                            fontSize = 16.sp
+                        )
+                        Text(
+                            text = stringResource(R.string.no_categories_desc),
+                            fontSize = 14.sp,
+                            color = kianColors.muted,
+                            lineHeight = 24.sp,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
+                }
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    roots.forEach { item ->
+                        CategoryNode(
+                            categories = categories,
+                            item = item,
+                            onAddChild = { draftParent = it },
+                            onDelete = { viewModel.deleteCategory(it) },
+                            colors = kianColors
                         )
                     }
                 }
             }
-
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                if (displayCategories.isEmpty()) {
-                    item {
-                        Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
-                            Text(stringResource(R.string.no_categories_yet), color = kianColors.muted)
-                        }
-                    }
-                }
-
-                items(displayCategories) { category ->
-                    VoucherCategoryItem(
-                        category = category,
-                        childCount = categories.count { it.parentId == category.id },
-                        onSelect = { selectedPath = selectedPath + it },
-                        onDelete = { viewModel.deleteCategory(it) },
-                        colors = kianColors
-                    )
-                }
-            }
-
-            KianButton(
-                text = if (currentParent == null) stringResource(R.string.add_root_category) 
-                       else stringResource(R.string.add),
-                onClick = { showAddDialog = true },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp)
-            )
         }
     }
 
-    if (showAddDialog) {
+    alertDialogInfo?.let { (title, message) ->
         AlertDialog(
-            onDismissRequest = { showAddDialog = false },
+            onDismissRequest = { alertDialogInfo = null },
+            title = { Text(title, color = kianColors.ink) },
+            text = { Text(message, color = kianColors.ink) },
             containerColor = kianColors.panel,
-            title = { Text(stringResource(R.string.add_root_category)) },
-            text = {
-                OutlinedTextField(
-                    value = newCategoryName,
-                    onValueChange = { newCategoryName = it },
-                    placeholder = { Text(stringResource(R.string.new_root_cat_placeholder)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        if (newCategoryName.isNotBlank()) {
-                            viewModel.saveCategory(newCategoryName, currentParent)
-                            newCategoryName = ""
-                            showAddDialog = false
-                        }
-                    }
-                ) {
-                    Text(stringResource(R.string.save), color = kianColors.accent)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showAddDialog = false }) {
-                    Text(stringResource(R.string.cancel), color = kianColors.muted)
+                TextButton(onClick = { alertDialogInfo = null }) {
+                    Text(stringResource(R.string.confirm), color = kianColors.accent)
                 }
             }
         )
@@ -163,37 +253,122 @@ fun VoucherCategoriesScreen(
 }
 
 @Composable
-fun VoucherCategoryItem(
-    category: VoucherCategory,
-    childCount: Int,
-    onSelect: (VoucherCategory) -> Unit,
+fun CategoryNode(
+    categories: List<VoucherCategory>,
+    item: VoucherCategory,
+    onAddChild: (VoucherCategory) -> Unit,
     onDelete: (VoucherCategory) -> Unit,
     colors: com.ely.kian.ui.theme.KianColors
 ) {
-    Surface(
-        onClick = { onSelect(category) },
-        color = colors.panel,
-        shape = RoundedCornerShape(16.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, colors.line)
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+    val children = remember(categories, item.id) {
+        categories.filter { it.parentId == item.id }.sortedBy { it.name }
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Node Header
+        Surface(
+            color = colors.panel,
+            shape = RoundedCornerShape(24.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, colors.line),
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(category.name, fontWeight = FontWeight.Bold, color = colors.ink, fontSize = 16.sp)
-                Text(
-                    stringResource(R.string.subcategories_count, childCount),
-                    fontSize = 12.sp,
-                    color = colors.muted
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(colors.infoSoft),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = item.level.toString(),
+                        fontWeight = FontWeight.Bold,
+                        color = colors.info,
+                        fontSize = 14.sp
+                    )
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = item.name,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.ink
+                    )
+                    Text(
+                        text = if (children.isNotEmpty()) stringResource(R.string.subcategories_count, children.size)
+                               else stringResource(R.string.no_subcategories),
+                        fontSize = 12.sp,
+                        color = colors.muted
+                    )
+                }
+
+                if (item.level < MAX_LEVEL) {
+                    Surface(
+                        onClick = { onAddChild(item) },
+                        shape = CircleShape,
+                        color = colors.accentSoft,
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Default.Add, 
+                                contentDescription = null, 
+                                modifier = Modifier.size(20.dp), 
+                                tint = colors.accent
+                            )
+                        }
+                    }
+                }
+
+                Surface(
+                    onClick = { onDelete(item) },
+                    shape = CircleShape,
+                    color = colors.danger.copy(alpha = 0.1f),
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(Icons.Outlined.Delete, contentDescription = null, modifier = Modifier.size(20.dp), tint = colors.danger)
+                    }
+                }
+            }
+        }
+
+        // Children
+        if (children.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .padding(start = 20.dp)
+                    .height(IntrinsicSize.Min),
+                verticalAlignment = Alignment.Top
+            ) {
+                // Vertical Line
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .fillMaxHeight()
+                        .background(colors.line)
                 )
+                
+                Column(
+                    modifier = Modifier.padding(start = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    children.forEach { child ->
+                        CategoryNode(
+                            categories = categories,
+                            item = child,
+                            onAddChild = onAddChild,
+                            onDelete = onDelete,
+                            colors = colors
+                        )
+                    }
+                }
             }
-            
-            IconButton(onClick = { onDelete(category) }) {
-                Icon(Icons.Default.Delete, contentDescription = null, tint = Color.Red.copy(alpha = 0.6f))
-            }
-            
-            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = colors.muted)
         }
     }
 }

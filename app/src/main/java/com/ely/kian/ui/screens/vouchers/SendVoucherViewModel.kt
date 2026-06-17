@@ -16,8 +16,7 @@ data class VoucherCardItem(
     val name: String,
     val description: String?,
     val images: List<String>,
-    val categories: List<String>,
-    val unit: String
+    val categories: List<String>
 )
 
 class SendVoucherViewModel(
@@ -46,8 +45,7 @@ class SendVoucherViewModel(
                 name = utxo.assetRef.split(":").lastOrNull() ?: utxo.utxoId.takeLast(8),
                 description = "Havaleh ready to transfer.",
                 images = emptyList(),
-                categories = emptyList(),
-                unit = "unit"
+                categories = emptyList()
             )
         }
     }

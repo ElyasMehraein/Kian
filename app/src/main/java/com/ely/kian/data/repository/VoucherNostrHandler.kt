@@ -190,8 +190,6 @@ class VoucherNostrHandler(
                 name = contentObj["name"]?.jsonPrimitive?.content ?: dTag,
                 description = contentObj["description"]?.jsonPrimitive?.contentOrNull,
                 images = contentObj["images"]?.toString() ?: "[]",
-                categories = contentObj["categories"]?.toString() ?: "[]",
-                unit = contentObj["unit"]?.jsonPrimitive?.content ?: "unit",
                 eventId = event.id,
                 createdAt = event.createdAt
             )
@@ -213,7 +211,7 @@ class VoucherNostrHandler(
                 spent = false
             )
             voucherDao.insertUtxo(utxo)
-            notifications.emit("New voucher received: ${definition.name} ($amount ${definition.unit})")
+            notifications.emit("New voucher received: ${definition.name} ($amount)")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to handle genesis", e)
         }

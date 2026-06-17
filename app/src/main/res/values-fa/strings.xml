@@ -170,6 +170,7 @@
     <string name="rejected_detail">رد شده به دلیل تایید انتقال دیگر</string>
     <string name="pending_row_detail">%1$d واحد • %2$s</string>
     <string name="description">توضیحات</string>
+    <string name="details">جزئیات</string>
     <string name="category">دسته بندی</string>
     <string name="location">موقعیت مکانی</string>
     <string name="edit_profile_desc">اطلاعات پروفایل نوستر خود را بروزرسانی کنید.</string>

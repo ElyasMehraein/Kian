@@ -8,7 +8,6 @@ data class BalanceItem(
     val name: String,
     val producer: String,
     val categories: List<String>,
-    val unit: String,
     val isShowcase: Boolean = false
 )
 

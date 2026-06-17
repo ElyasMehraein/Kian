@@ -91,7 +91,7 @@ fun HomeScreen(
                 Text(
                     text = stringResource(R.string.nearest_no_location),
                     fontSize = 12.sp,
-                    color = Color.Red,
+                    color = kianColors.muted,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                 )
             } else {

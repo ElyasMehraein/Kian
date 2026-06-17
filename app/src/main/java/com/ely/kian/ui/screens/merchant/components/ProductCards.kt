@@ -68,7 +68,7 @@ fun ShowcaseTokenCard(
                 modifier = Modifier.padding(start = 12.dp)
             ) {
                 Text(
-                    text = "${token.amount} ${token.unit}",
+                    text = token.amount.toString(),
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                     color = Color.White,
                     fontWeight = FontWeight.Bold,

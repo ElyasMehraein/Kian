@@ -52,23 +52,46 @@ class VoucherViewModel(
     var activityFilter by mutableStateOf("all")
         private set
 
+    var searchQuery by mutableStateOf("")
+        private set
+
+    var selectedCategoryId by mutableStateOf<String?>(null)
+        private set
+
+    private val _uiEvent = MutableSharedFlow<UiEvent>()
+    val uiEvent = _uiEvent.asSharedFlow()
+
+    sealed class UiEvent {
+        data class Alert(val title: String, val message: String) : UiEvent()
+    }
+
+    fun setSearch(query: String) {
+        searchQuery = query
+    }
+
+    fun selectCategory(categoryId: String?) {
+        selectedCategoryId = categoryId
+    }
+
     fun setFilter(filter: String) {
         activityFilter = filter
     }
 
-    fun toggleShowcase(assetRef: String, isShowcase: Boolean) {
+    fun toggleCategoryShowcase(categoryId: String, isShowcase: Boolean) {
         viewModelScope.launch {
-            try {
-                voucherRepository.updateShowcase(assetRef, isShowcase)
-            } catch (e: Exception) {
-                // Show error
-            }
+            voucherRepository.updateCategoryShowcase(categoryId, isShowcase)
         }
     }
 
-    fun updateTokenDetails(assetRef: String, name: String, description: String, categories: List<String>) {
+    fun toggleAssetShowcase(assetRef: String, isShowcase: Boolean) {
         viewModelScope.launch {
-            voucherRepository.updateTokenDetails(assetRef, name, description, categories)
+            voucherRepository.updateAssetShowcase(assetRef, isShowcase)
+        }
+    }
+
+    fun updateVoucherCategories(assetRef: String, categoryIds: List<String>) {
+        viewModelScope.launch {
+            voucherRepository.updateVoucherCategories(assetRef, categoryIds)
         }
     }
 
@@ -77,17 +100,22 @@ class VoucherViewModel(
         return "${assetRef.take(10)}...${assetRef.takeLast(6)}"
     }
 
-    fun mintToken(name: String, description: String, imageUrls: String, quantity: Long, unit: String) {
+    fun mintToken(name: String, description: String, imageUrls: String, quantity: Long) {
         viewModelScope.launch {
             val images = imageUrls.split("\n").map { it.trim() }.filter { it.isNotEmpty() }
-            voucherRepository.mintToken(name, description, images, quantity, unit)
+            voucherRepository.mintToken(name, description, images, quantity)
         }
     }
 
     fun saveCategory(name: String, parent: VoucherCategory?) {
         viewModelScope.launch {
             val pubkey = keyDao.getKey()?.pubkey ?: return@launch
-            voucherRepository.saveCategory(name, parent?.id, (parent?.level ?: 0) + 1, pubkey)
+            val level = (parent?.level ?: 0) + 1
+            if (level > 5) {
+                _uiEvent.emit(UiEvent.Alert("Maximum depth reached", "Categories can only go 5 levels deep."))
+                return@launch
+            }
+            voucherRepository.saveCategory(name, parent?.id, level, pubkey)
         }
     }
 
@@ -95,6 +123,12 @@ class VoucherViewModel(
         viewModelScope.launch {
             val pubkey = keyDao.getKey()?.pubkey ?: return@launch
             val allIds = getBranchIds(category.id)
+            
+            if (voucherRepository.isCategoryInUse(allIds, pubkey)) {
+                _uiEvent.emit(UiEvent.Alert("Category in use", "Remove this category from your products before deleting this branch."))
+                return@launch
+            }
+
             voucherRepository.deleteCategoryBranch(allIds, pubkey)
         }
     }

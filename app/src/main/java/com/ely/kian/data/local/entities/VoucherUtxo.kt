@@ -11,10 +11,7 @@ data class VoucherDefinition(
     val name: String,
     val description: String?,
     val images: String, // JSON array
-    val categories: String, // JSON array
-    val unit: String = "unit",
     val eventId: String,
-    val isShowcase: Boolean = false,
     val createdAt: Long
 )
 

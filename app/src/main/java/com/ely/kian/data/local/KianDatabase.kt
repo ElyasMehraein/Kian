@@ -13,6 +13,8 @@ import com.ely.kian.data.local.entities.*
         com.ely.kian.data.local.entities.VoucherDefinition::class,
         com.ely.kian.data.local.entities.VoucherUtxo::class,
         com.ely.kian.data.local.entities.VoucherCategory::class,
+        com.ely.kian.data.local.entities.VoucherCategoryMapping::class,
+        com.ely.kian.data.local.entities.VoucherAssetSettings::class,
         com.ely.kian.data.local.entities.Review::class,
         com.ely.kian.data.local.entities.OfflineQueue::class,
         com.ely.kian.data.local.entities.Relay::class,

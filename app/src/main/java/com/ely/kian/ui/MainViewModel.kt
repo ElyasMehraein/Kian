@@ -14,7 +14,6 @@ import com.ely.kian.data.remote.model.NostrEvent
 import com.ely.kian.crypto.KianKeys
 import com.ely.kian.crypto.SecureStorage
 import com.ely.kian.services.GitHubUpdateManager
-import com.ely.kian.data.local.DemoDataSeeder
 import android.util.Log
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -130,8 +129,6 @@ class MainViewModel(
                     ownPubkey = key?.pubkey
                     if (key != null) {
                         nostrSyncManager.startSyncing(key.pubkey)
-                        // Seed demo data if it's a test account (Optional check)
-                        DemoDataSeeder.seedIfTestAccount(key.pubkey, userProfileDao)
                     }
                 }
             } catch (e: Exception) {

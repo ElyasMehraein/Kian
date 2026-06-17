@@ -1,6 +1,5 @@
 package com.ely.kian.data.repository
 
-import android.util.Log
 import com.ely.kian.crypto.KianKeys
 import com.ely.kian.crypto.Nip59
 import com.ely.kian.crypto.SecureStorage
@@ -8,6 +7,7 @@ import com.ely.kian.data.local.dao.*
 import com.ely.kian.data.local.entities.VoucherDefinition
 import com.ely.kian.data.local.entities.VoucherUtxo
 import com.ely.kian.data.local.entities.VoucherCategory
+import com.ely.kian.data.local.entities.VoucherCategoryMapping
 import com.ely.kian.data.remote.NostrSyncManager
 import com.ely.kian.data.remote.model.NostrEvent
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -45,7 +45,11 @@ class VoucherRepository(
     }
 
     fun getBalancesForPubkey(pubkey: String): Flow<List<BalanceItem>> {
-        return voucherDao.getUnspentUtxosByOwner(pubkey).map { utxos ->
+        return combine(
+            voucherDao.getUnspentUtxosByOwner(pubkey),
+            voucherDao.getAssetSettingsByPubkey(pubkey)
+        ) { utxos, settings ->
+            val settingsMap = settings.associateBy { it.assetRef }
             val balanceMap = utxos.groupBy { it.assetRef }
                 .mapValues { entry -> entry.value.sumOf { it.amount } }
 
@@ -53,6 +57,8 @@ class VoucherRepository(
             for ((assetRef, amount) in balanceMap) {
                 val parsed = parseAssetRef(assetRef)
                 val definition = parsed?.let { voucherDao.getDefinition(it.assetId, it.producer) }
+                val myCategoryIds = voucherDao.getCategoryIdsForAsset(pubkey, assetRef)
+                val isShowcase = settingsMap[assetRef]?.isShowcase ?: false
 
                 if (definition != null) {
                     items.add(BalanceItem(
@@ -62,9 +68,8 @@ class VoucherRepository(
                         images = parseJsonList(definition.images),
                         name = definition.name,
                         producer = definition.pubkey,
-                        categories = parseJsonList(definition.categories),
-                        unit = definition.unit,
-                        isShowcase = definition.isShowcase
+                        categories = myCategoryIds,
+                        isShowcase = isShowcase
                     ))
                 } else {
                     items.add(BalanceItem(
@@ -74,8 +79,8 @@ class VoucherRepository(
                         images = emptyList(),
                         name = formatAssetRef(assetRef),
                         producer = parsed?.producer ?: "",
-                        categories = emptyList(),
-                        unit = "unit"
+                        categories = myCategoryIds,
+                        isShowcase = isShowcase
                     ))
                 }
             }
@@ -140,21 +145,19 @@ class VoucherRepository(
         }
     }
 
-    suspend fun updateShowcase(assetRef: String, isShowcase: Boolean) {
-        val parsed = parseAssetRef(assetRef) ?: return
-        
-        if (isShowcase) {
-            val definition = voucherDao.getDefinition(parsed.assetId, parsed.producer)
-            val cats = definition?.categories?.let { 
-                try { json.decodeFromString<List<String>>(it) } catch (e: Exception) { emptyList<String>() }
-            } ?: emptyList()
-            
-            if (cats.isEmpty()) {
-                throw Exception("Asset must be categorized before adding to showcase")
-            }
+    suspend fun updateCategoryShowcase(categoryId: String, isShowcase: Boolean) {
+        val pubkey = keyDao.getKey()?.pubkey ?: return
+        voucherDao.updateCategoryShowcase(categoryId, pubkey, isShowcase)
+    }
+
+    suspend fun updateAssetShowcase(assetRef: String, isShowcase: Boolean) {
+        val pubkey = keyDao.getKey()?.pubkey ?: return
+        val current = voucherDao.isAssetShowcased(pubkey, assetRef)
+        if (current == null) {
+            voucherDao.upsertAssetSettings(com.ely.kian.data.local.entities.VoucherAssetSettings(pubkey, assetRef, isShowcase))
+        } else {
+            voucherDao.updateAssetShowcase(pubkey, assetRef, isShowcase)
         }
-        
-        voucherDao.updateShowcase(parsed.assetId, parsed.producer, isShowcase)
     }
 
     fun getCategories(pubkey: String) = voucherDao.listCategoriesByPubkey(pubkey)
@@ -176,34 +179,15 @@ class VoucherRepository(
         voucherDao.deleteCategories(pubkey, ids)
     }
 
-    suspend fun updateTokenDetails(
-        assetRef: String,
-        name: String,
-        description: String,
-        categories: List<String>
-    ) {
-        val parsed = parseAssetRef(assetRef) ?: return
-        val existing = voucherDao.getDefinition(parsed.assetId, parsed.producer)
-        if (existing != null) {
-            val updated = existing.copy(
-                name = name,
-                description = description,
-                categories = json.encodeToString(categories)
-            )
-            voucherDao.upsertDefinition(updated)
-        } else {
-            val definition = VoucherDefinition(
-                assetId = parsed.assetId,
-                pubkey = parsed.producer,
-                name = name,
-                description = description,
-                images = "[]",
-                categories = json.encodeToString(categories),
-                eventId = "",
-                isShowcase = false,
-                createdAt = System.currentTimeMillis() / 1000
-            )
-            voucherDao.upsertDefinition(definition)
+    suspend fun isCategoryInUse(ids: List<String>, pubkey: String): Boolean {
+        return voucherDao.countMappingsForCategories(pubkey, ids) > 0
+    }
+
+    suspend fun updateVoucherCategories(assetRef: String, categoryIds: List<String>) {
+        val pubkey = keyDao.getKey()?.pubkey ?: return
+        voucherDao.deleteMappingsForAsset(pubkey, assetRef)
+        categoryIds.forEach { catId ->
+            voucherDao.upsertMapping(VoucherCategoryMapping(pubkey, assetRef, catId))
         }
     }
 
@@ -338,8 +322,7 @@ class VoucherRepository(
         name: String,
         description: String,
         images: List<String>,
-        quantity: Long,
-        unit: String
+        quantity: Long
     ) {
         val privKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: throw Exception("No key found")
         val privKey = KianKeys.hexToBytes(privKeyHex)
@@ -351,7 +334,6 @@ class VoucherRepository(
         
         val content = buildJsonObject {
             put("amount", quantity)
-            put("unit", unit)
             put("name", name)
             put("description", description)
             putJsonArray("images") { images.forEach { add(JsonPrimitive(it)) } }
@@ -377,7 +359,6 @@ class VoucherRepository(
             sig = sig
         )
 
-        // Save local UTXO
         val utxo = VoucherUtxo(
             utxoId = id,
             assetRef = assetRef,
@@ -390,22 +371,17 @@ class VoucherRepository(
         )
         voucherDao.insertUtxo(utxo)
 
-        // Save Definition
         val definition = VoucherDefinition(
             assetId = dTag,
             pubkey = pubkey,
             name = name,
             description = description,
             images = json.encodeToString(images),
-            categories = "[]",
-            unit = unit,
             eventId = id,
-            isShowcase = false,
             createdAt = createdAt
         )
         voucherDao.upsertDefinition(definition)
 
-        // Publish
         val rumorJson = json.encodeToString(NostrEvent.serializer(), event)
         val giftWrapToSelf = Nip59.giftWrap(
             innerEventJson = rumorJson,

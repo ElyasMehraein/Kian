@@ -171,6 +171,7 @@
     <string name="rejected_detail">rejected because another transfer was approved</string>
     <string name="pending_row_detail">%1$d units • %2$s</string>
     <string name="description">Description</string>
+    <string name="details">Details</string>
     <string name="category">Category</string>
     <string name="location">Location</string>
     <string name="edit_profile_desc">Update your Nostr profile metadata.</string>

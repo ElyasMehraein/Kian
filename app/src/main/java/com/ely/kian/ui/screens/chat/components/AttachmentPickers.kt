@@ -75,7 +75,7 @@ fun TokenPickerContent(
                                 Spacer(modifier = Modifier.width(16.dp))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(balance.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = colors.ink)
-                                    Text(stringResource(R.string.available, "${balance.amount} ${balance.unit}"), fontSize = 13.sp, color = colors.muted)
+                                    Text(stringResource(R.string.available, balance.amount.toString()), fontSize = 13.sp, color = colors.muted)
                                 }
                                 Icon(Icons.Default.ChevronRight, contentDescription = null, tint = colors.muted)
                             }

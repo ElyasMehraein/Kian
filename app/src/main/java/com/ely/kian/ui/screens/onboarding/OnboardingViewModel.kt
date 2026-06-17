@@ -12,7 +12,6 @@ import com.ely.kian.data.local.dao.KeyDao
 import com.ely.kian.data.local.dao.UserProfileDao
 import com.ely.kian.data.local.dao.VoucherDao
 import com.ely.kian.data.local.dao.ReviewDao
-import com.ely.kian.data.local.DemoDataSeeder
 import com.ely.kian.data.local.entities.Key
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -156,31 +155,6 @@ class OnboardingViewModel(
             secureStorage.saveSecret(SecureStorage.MNEMONIC, keys.mnemonic)
             secureStorage.saveSecret(SecureStorage.PRIVATE_KEY, KianKeys.bytesToHex(keys.privKey))
             persistKeyPair(keys.pubkey, "Your keys were stored securely.")
-        }
-    }
-
-    fun handleDemoLogin(index: Int) {
-        if (isSaving) return
-        val demoKeys = listOf(
-            "990429f579124430f8810901e18d667c48f860162590240d8927e8a93946a48f",
-            "1b3c95e1e0d37e69f82d2f7035f2d65604921665a382e887e8346e279313936a",
-            "6e8e89f77349141019a16f9f9586737402636250796f7572206f776e20746573"
-        )
-        val privKeyHex = demoKeys.getOrNull(index) ?: return
-        
-        viewModelScope.launch {
-            try {
-                val privKey = KianKeys.hexToBytes(privKeyHex)
-                val pubkeyBytes = KianKeys.getPubKey(privKey)
-                val pubkeyHex = KianKeys.bytesToHex(pubkeyBytes)
-                
-                DemoDataSeeder.forceSeed(pubkeyHex, index, userProfileDao, voucherDao, reviewDao)
-                
-                secureStorage.saveSecret(SecureStorage.PRIVATE_KEY, privKeyHex)
-                persistKeyPair(pubkeyHex, "Logged in as Demo Account ${index + 1}.")
-            } catch (e: Exception) {
-                _events.emit(OnboardingEvent.Error("Demo login failed: ${e.message}"))
-            }
         }
     }
 

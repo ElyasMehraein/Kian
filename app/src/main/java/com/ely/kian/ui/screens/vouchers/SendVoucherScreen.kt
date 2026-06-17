@@ -244,7 +244,7 @@ fun VoucherSendCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = stringResource(R.string.available_balance, item.utxo.amount, item.unit),
+                        text = stringResource(R.string.available_balance, item.utxo.amount, ""),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = kianColors.muted

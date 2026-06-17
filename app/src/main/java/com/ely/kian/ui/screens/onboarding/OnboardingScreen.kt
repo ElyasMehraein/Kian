@@ -205,31 +205,6 @@ fun OnboardingScreen(
             enabled = viewModel.generatedKeys != null && !viewModel.isSaving
         )
 
-        // Development Demo Section
-        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = kianColors.line)
-        
-        Text(
-            text = "Developer Demo",
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            color = kianColors.accent
-        )
-        
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            listOf("Bakery", "Tech", "Plants").forEachIndexed { index, label ->
-                KianButton(
-                    text = label,
-                    onClick = { viewModel.handleDemoLogin(index) },
-                    modifier = Modifier.weight(1f),
-                    type = ButtonType.Soft,
-                    enabled = !viewModel.isSaving
-                )
-            }
-        }
-        
         Spacer(modifier = Modifier.height(24.dp))
     }
 }
