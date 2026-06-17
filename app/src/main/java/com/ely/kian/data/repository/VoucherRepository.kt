@@ -70,7 +70,7 @@ class VoucherRepository(
             val allRelevantRefs = (balanceMap.keys + producedAssetRefs + mappedAssetRefs).distinct()
 
             allRelevantRefs.map { assetRef ->
-                val amount = balanceMap[assetRef] ?: 0L
+                val amountFromUtxos = balanceMap[assetRef] ?: 0L
                 val definition = defsMap[assetRef]
                 val myCategoryIds = mappingsMap[assetRef] ?: emptyList()
                 
@@ -78,9 +78,12 @@ class VoucherRepository(
                 // Default to false for new items to respect Privacy-first
                 val isShowcase = settingsMap[assetRef]?.isShowcase ?: false
 
+                // Real balance if we own it, otherwise the advertised amount from definition
+                val finalAmount = if (amountFromUtxos > 0) amountFromUtxos else (definition?.amount ?: 0L)
+
                 BalanceItem(
                     assetRef = assetRef,
-                    amount = amount,
+                    amount = finalAmount,
                     description = definition?.description ?: "",
                     images = definition?.images ?: emptyList(),
                     name = definition?.name ?: formatAssetRef(assetRef),
@@ -337,6 +340,7 @@ class VoucherRepository(
                 name = name,
                 description = description,
                 images = images,
+                amount = amount,
                 eventId = id,
                 createdAt = now
             )

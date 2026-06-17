@@ -61,20 +61,6 @@ fun ShowcaseTokenCard(
                     overflow = TextOverflow.Ellipsis
                 )
             }
-            
-            Surface(
-                color = kianColors.accent,
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.padding(start = 12.dp)
-            ) {
-                Text(
-                    text = token.amount.toString(),
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
-                )
-            }
         }
         
         if (token.images.isNotEmpty()) {

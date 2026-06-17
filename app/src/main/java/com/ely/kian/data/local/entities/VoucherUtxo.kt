@@ -11,6 +11,7 @@ data class VoucherDefinition(
     val name: String,
     val description: String?,
     val images: List<String>,
+    val amount: Long,
     val eventId: String,
     val createdAt: Long
 )

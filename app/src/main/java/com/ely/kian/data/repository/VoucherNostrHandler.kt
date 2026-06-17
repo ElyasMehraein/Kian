@@ -243,6 +243,7 @@ class VoucherNostrHandler(
                 name = name,
                 description = description,
                 images = images,
+                amount = amount,
                 eventId = event.id,
                 createdAt = event.createdAt
             )
