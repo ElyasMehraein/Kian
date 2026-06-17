@@ -70,7 +70,11 @@ class VoucherViewModel(
     }
 
     fun selectCategory(categoryId: String?) {
-        selectedCategoryId = categoryId
+        if (categoryId == null) {
+            selectedCategoryId = null
+        } else {
+            selectedCategoryId = if (selectedCategoryId == categoryId) null else categoryId
+        }
     }
 
     fun setFilter(filter: String) {

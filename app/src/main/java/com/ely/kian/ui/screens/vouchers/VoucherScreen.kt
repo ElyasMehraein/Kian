@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -64,6 +65,20 @@ fun VoucherScreen(
             val matchesCat = selectedCat == null || item.categories.contains(selectedCat)
             matchesQuery && matchesCat
         }
+    }
+
+    val breadcrumbPath = remember(selectedCat, myCategories) {
+        val path = mutableListOf<com.ely.kian.data.local.entities.VoucherCategory>()
+        var current = myCategories.find { it.id == selectedCat }
+        while (current != null) {
+            path.add(0, current)
+            current = myCategories.find { it.id == current.parentId }
+        }
+        path
+    }
+
+    val currentOptions = remember(selectedCat, myCategories) {
+        myCategories.filter { it.parentId == selectedCat }.sortedBy { it.name }
     }
 
     val kianColors = KianTheme.colors
@@ -130,46 +145,65 @@ fun VoucherScreen(
                     }
                 }
 
-                // Quick Categories
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                // Breadcrumb & Categories
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    item {
-                        Surface(
-                            onClick = onNavigateToCategories,
-                            shape = CircleShape,
-                            color = kianColors.panel,
-                            border = androidx.compose.foundation.BorderStroke(1.dp, kianColors.line)
-                        ) {
-                            Icon(
-                                Icons.Default.Category,
-                                contentDescription = null,
-                                tint = kianColors.muted,
-                                modifier = Modifier
-                                    .padding(horizontal = 12.dp, vertical = 8.dp)
-                                    .size(20.dp)
-                            )
+                    // Level Path (Breadcrumb)
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        item {
+                            TextButton(
+                                onClick = { viewModel.selectCategory(null) },
+                                contentPadding = PaddingValues(horizontal = 8.dp),
+                                colors = ButtonDefaults.textButtonColors(
+                                    contentColor = if (selectedCat == null) kianColors.accent else kianColors.muted
+                                )
+                            ) {
+                                Text(stringResource(R.string.all), fontWeight = if (selectedCat == null) FontWeight.Bold else FontWeight.Normal)
+                            }
+                        }
+
+                        items(breadcrumbPath) { cat ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    contentDescription = null,
+                                    tint = kianColors.line,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                TextButton(
+                                    onClick = { viewModel.selectCategory(cat.id) },
+                                    contentPadding = PaddingValues(horizontal = 8.dp),
+                                    colors = ButtonDefaults.textButtonColors(
+                                        contentColor = if (selectedCat == cat.id) kianColors.accent else kianColors.muted
+                                    )
+                                ) {
+                                    Text(cat.name, fontWeight = if (selectedCat == cat.id) FontWeight.Bold else FontWeight.Normal)
+                                }
+                            }
                         }
                     }
 
-                    item {
-                        FilterChip(
-                            label = stringResource(R.string.all),
-                            selected = selectedCat == null,
-                            onClick = { viewModel.selectCategory(null) },
-                            colors = kianColors
-                        )
-                    }
-
-                    items(myCategories.filter { it.parentId == null }) { cat ->
-                        FilterChip(
-                            label = cat.name,
-                            selected = selectedCat == cat.id,
-                            onClick = { viewModel.selectCategory(cat.id) },
-                            colors = kianColors
-                        )
+                    // Children Options (The Next Level)
+                    if (currentOptions.isNotEmpty()) {
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 20.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(currentOptions) { cat ->
+                                FilterChip(
+                                    label = cat.name,
+                                    selected = false,
+                                    onClick = { viewModel.selectCategory(cat.id) },
+                                    colors = kianColors
+                                )
+                            }
+                        }
                     }
                 }
             }

@@ -47,17 +47,22 @@ class VoucherRepository(
     fun getBalancesForPubkey(pubkey: String): Flow<List<BalanceItem>> {
         return combine(
             voucherDao.getUnspentUtxosByOwner(pubkey),
-            voucherDao.getAssetSettingsByPubkey(pubkey)
-        ) { utxos, settings ->
+            voucherDao.getAssetSettingsByPubkey(pubkey),
+            voucherDao.getAllMappingsByPubkey(pubkey),
+            voucherDao.getAllDefinitionsFlow()
+        ) { utxos, settings, mappings, definitions ->
             val settingsMap = settings.associateBy { it.assetRef }
+            val mappingsMap = mappings.groupBy { it.assetRef }
+                .mapValues { it.value.map { m -> m.categoryId } }
+            val defsMap = definitions.associateBy { "35001:${it.pubkey}:${it.assetId}" }
+
             val balanceMap = utxos.groupBy { it.assetRef }
                 .mapValues { entry -> entry.value.sumOf { it.amount } }
 
             val items = mutableListOf<BalanceItem>()
             for ((assetRef, amount) in balanceMap) {
-                val parsed = parseAssetRef(assetRef)
-                val definition = parsed?.let { voucherDao.getDefinition(it.assetId, it.producer) }
-                val myCategoryIds = voucherDao.getCategoryIdsForAsset(pubkey, assetRef)
+                val definition = defsMap[assetRef]
+                val myCategoryIds = mappingsMap[assetRef] ?: emptyList()
                 val isShowcase = settingsMap[assetRef]?.isShowcase ?: false
 
                 if (definition != null) {
@@ -72,6 +77,7 @@ class VoucherRepository(
                         isShowcase = isShowcase
                     ))
                 } else {
+                    val parsed = parseAssetRef(assetRef)
                     items.add(BalanceItem(
                         assetRef = assetRef,
                         amount = amount,

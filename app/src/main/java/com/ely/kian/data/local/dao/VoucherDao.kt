@@ -12,6 +12,9 @@ interface VoucherDao {
     @Query("SELECT * FROM voucher_definitions WHERE assetId = :assetId AND pubkey = :pubkey LIMIT 1")
     suspend fun getDefinition(assetId: String, pubkey: String): VoucherDefinition?
 
+    @Query("SELECT * FROM voucher_definitions")
+    fun getAllDefinitionsFlow(): Flow<List<VoucherDefinition>>
+
     @Query("SELECT * FROM voucher_definitions WHERE pubkey = :pubkey ORDER BY createdAt DESC")
     fun getDefinitionsByProducer(pubkey: String): Flow<List<VoucherDefinition>>
 
@@ -56,6 +59,9 @@ interface VoucherDao {
 
     @Query("SELECT categoryId FROM voucher_category_mappings WHERE pubkey = :pubkey AND assetRef = :assetRef")
     suspend fun getCategoryIdsForAsset(pubkey: String, assetRef: String): List<String>
+
+    @Query("SELECT * FROM voucher_category_mappings WHERE pubkey = :pubkey")
+    fun getAllMappingsByPubkey(pubkey: String): Flow<List<VoucherCategoryMapping>>
 
     @Query("SELECT assetRef FROM voucher_category_mappings WHERE pubkey = :pubkey AND categoryId = :categoryId")
     suspend fun getAssetRefsForCategory(pubkey: String, categoryId: String): List<String>
