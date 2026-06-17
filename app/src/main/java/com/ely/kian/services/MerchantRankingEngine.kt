@@ -11,7 +11,8 @@ data class MerchantInfo(
     val title: String,
     val mutualFollows: Int,
     val distanceKm: Float?,
-    val socialRating: Float
+    val socialRating: Float,
+    val isOnline: Boolean = false
 )
 
 object MerchantRankingEngine {
@@ -24,6 +25,9 @@ object MerchantRankingEngine {
         mutualFollowsMap: Map<String, Int>,
         socialRatingsMap: Map<String, Float>
     ): List<MerchantInfo> {
+        val now = System.currentTimeMillis() / 1000
+        val onlineThreshold = 2 * 3600 // 2 hours
+        
         return merchants.map { merchant ->
             val mutualFollows = mutualFollowsMap[merchant.pubkey] ?: 0
             val socialRating = socialRatingsMap[merchant.pubkey] ?: 0f
@@ -41,7 +45,8 @@ object MerchantRankingEngine {
                 title = getTitle(score),
                 mutualFollows = mutualFollows,
                 distanceKm = distanceKm,
-                socialRating = socialRating
+                socialRating = socialRating,
+                isOnline = (now - merchant.updatedAt) < onlineThreshold
             )
         }.sortedByDescending { it.score }
     }

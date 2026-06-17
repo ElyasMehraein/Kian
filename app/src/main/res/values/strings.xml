@@ -43,6 +43,7 @@
     <string name="nearest">Nearest</string>
     <string name="top_rated">Top Rated</string>
     <string name="verified">Verified</string>
+    <string name="online_merchants">Online</string>
     <string name="messages">Messages</string>
     <string name="no_messages">No messages yet</string>
     <string name="send">Send</string>
@@ -225,6 +226,7 @@
     <string name="no_subcategories">No subcategories yet</string>
     <string name="sort_top_rated_desc">Based on ratings by you and people you follow</string>
     <string name="sort_verified_desc">Based on follows by you and people you follow</string>
+    <string name="sort_online_desc">Merchants who have been active recently</string>
     <string name="nearest_no_location">To see merchants near a location, you must register your location on the map</string>
     <string name="nearest_desc">Sorted by distance from your registered location</string>
     <string name="no_merchants_yet">No merchants discovered yet.</string>

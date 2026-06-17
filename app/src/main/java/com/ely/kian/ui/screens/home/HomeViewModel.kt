@@ -95,6 +95,7 @@ class HomeViewModel(
                             "Verified" -> ranked.sortedByDescending { it.mutualFollows }
                             "Top Rated" -> ranked.sortedByDescending { it.socialRating }
                             "Nearest" -> ranked.sortedBy { it.distanceKm ?: Float.MAX_VALUE }
+                            "Online" -> ranked.sortedWith(compareByDescending<MerchantInfo> { it.isOnline }.thenByDescending { it.profile.updatedAt })
                             else -> ranked
                         }
 

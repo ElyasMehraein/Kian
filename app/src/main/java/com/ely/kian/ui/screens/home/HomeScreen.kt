@@ -43,6 +43,7 @@ fun HomeScreen(
     
     val sortOptions = listOf(
         "Nearest" to R.string.nearest,
+        "Online" to R.string.online_merchants,
         "Top Rated" to R.string.top_rated,
         "Verified" to R.string.verified
     )
@@ -80,6 +81,15 @@ fun HomeScreen(
         if (selectedSort == "Verified") {
             Text(
                 text = stringResource(R.string.sort_verified_desc),
+                fontSize = 12.sp,
+                color = kianColors.ink.copy(alpha = 0.6f),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+            )
+        }
+
+        if (selectedSort == "Online") {
+            Text(
+                text = stringResource(R.string.sort_online_desc),
                 fontSize = 12.sp,
                 color = kianColors.ink.copy(alpha = 0.6f),
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
@@ -134,6 +144,7 @@ fun HomeScreen(
                             else "${"%.1f".format(merchant.distanceKm)} km"
                         } else stringResource(R.string.distance_unknown),
                         pictureUrl = merchant.profile.picture,
+                        isOnline = merchant.isOnline,
                         onClick = { onMerchantClick(merchant.pubkey) }
                     )
                 }

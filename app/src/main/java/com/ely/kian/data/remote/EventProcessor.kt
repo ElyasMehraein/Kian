@@ -23,6 +23,9 @@ class EventProcessor(
     suspend fun process(event: NostrEvent) {
         Log.d(TAG, "Processing event: kind=${event.kind} id=${event.id.take(8)} author=${event.pubkey.take(8)}")
         
+        // Update last active time for the author
+        userProfileDao.updateLastActive(event.pubkey, System.currentTimeMillis() / 1000)
+        
         try {
             when (event.kind) {
                 0 -> handleMetadata(event)

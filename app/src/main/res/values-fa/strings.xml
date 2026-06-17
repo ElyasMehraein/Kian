@@ -42,6 +42,7 @@
     <string name="nearest">نزدیک‌ترین</string>
     <string name="top_rated">برترین رتبه‌ها</string>
     <string name="verified">تایید شده</string>
+    <string name="online_merchants">تاجران آنلاین</string>
     <string name="messages">پیام‌ها</string>
     <string name="no_messages">هنوز پیامی ندارید</string>
     <string name="send">ارسال</string>
@@ -224,6 +225,7 @@
     <string name="no_subcategories">هنوز زیردسته‌ای وجود ندارد</string>
     <string name="sort_top_rated_desc">بر اساس امتیازات شما و افرادی که دنبال می‌کنید</string>
     <string name="sort_verified_desc">بر اساس دنبال‌شدن توسط شما و افرادی که دنبال می‌کنید</string>
+    <string name="sort_online_desc">تاجرهایی که به تازگی فعالیت داشته‌اند</string>
     <string name="nearest_no_location">برای مشاهده فروشندگان نزدیک، باید موقعیت خود را روی نقشه ثبت کنید</string>
     <string name="nearest_desc">مرتب شده بر اساس فاصله از موقعیت ثبت شده شما</string>
     <string name="no_merchants_yet">هنوز فروشنده‌ای یافت نشده است.</string>

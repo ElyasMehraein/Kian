@@ -23,6 +23,7 @@ fun MerchantCard(
     rating: String,
     distance: String,
     pictureUrl: String? = null,
+    isOnline: Boolean = false,
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {}
 ) {
@@ -44,7 +45,19 @@ fun MerchantCard(
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            InitialAvatar(name = name, pictureUrl = pictureUrl, size = 48.dp)
+            Box {
+                InitialAvatar(name = name, pictureUrl = pictureUrl, size = 48.dp)
+                if (isOnline) {
+                    androidx.compose.foundation.Canvas(
+                        modifier = Modifier
+                            .size(12.dp)
+                            .align(Alignment.BottomEnd)
+                            .border(2.dp, kianColors.canvas, androidx.compose.foundation.shape.CircleShape)
+                    ) {
+                        drawCircle(color = kianColors.success)
+                    }
+                }
+            }
             
             Spacer(modifier = Modifier.width(12.dp))
             
