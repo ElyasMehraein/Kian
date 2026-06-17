@@ -126,7 +126,7 @@ class VoucherViewModel(
             val pubkey = keyDao.getKey()?.pubkey ?: return@launch
             val level = (parent?.level ?: 0) + 1
             if (level > 5) {
-                _uiEvent.emit(UiEvent.Alert("Maximum depth reached", "Categories can only go 5 levels deep."))
+                _uiEvent.emit(UiEvent.Alert("محدودیت عمق", "دسته‌بندی‌ها حداکثر می‌توانند ۵ لایه داشته باشند."))
                 return@launch
             }
             voucherRepository.saveCategory(name, parent?.id, level, pubkey)

@@ -245,4 +245,7 @@
     <string name="download_update">دانلود بروزرسانی</string>
     <string name="update_failed">خطا در بررسی بروزرسانی.</string>
     <string name="github_project">پروژه در گیت‌هاب</string>
+
+    <string name="depth_limit_reached">به حداکثر عمق رسیدید</string>
+    <string name="depth_limit_desc">دسته‌بندی‌ها حداکثر می‌توانند ۵ لایه داشته باشند.</string>
 </resources>

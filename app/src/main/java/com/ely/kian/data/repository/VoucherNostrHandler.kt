@@ -46,13 +46,33 @@ class VoucherNostrHandler(
 
         try {
             // Standard Tags: ["c", id, name, parentId]
-            val categories = event.tags.filter { it.size >= 3 && it[0] == "c" }.map { t ->
+            val categoryTags = event.tags.filter { it.size >= 3 && it[0] == "c" }
+            val idToParent = categoryTags.associate { it[1] to (if (it.size >= 4 && it[3].isNotEmpty()) it[3] else null) }
+            
+            // Calculate levels properly
+            val levelMap = mutableMapOf<String, Int>()
+            fun getLevel(id: String, visited: Set<String>): Int {
+                if (id in levelMap) return levelMap[id]!!
+                if (id in visited) return 1 // Cycle detected, treat as root
+                
+                val parentId = idToParent[id]
+                val level = if (parentId == null || !idToParent.containsKey(parentId)) {
+                    1
+                } else {
+                    getLevel(parentId, visited + id) + 1
+                }
+                levelMap[id] = level
+                return level
+            }
+
+            val categories = categoryTags.map { t ->
+                val id = t[1]
                 com.ely.kian.data.local.entities.VoucherCategory(
-                    id = t[1],
+                    id = id,
                     pubkey = author,
                     name = t[2],
-                    parentId = if (t.size >= 4 && t[3].isNotEmpty()) t[3] else null,
-                    level = 0, // Simplified for sync
+                    parentId = idToParent[id],
+                    level = getLevel(id, emptySet()),
                     isShowcase = false,
                     createdAt = event.createdAt
                 )
