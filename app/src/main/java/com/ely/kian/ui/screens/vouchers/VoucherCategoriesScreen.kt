@@ -14,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
@@ -32,6 +33,7 @@ fun VoucherCategoriesScreen(
     viewModel: VoucherViewModel,
     onNavigateBack: () -> Unit
 ) {
+    val context = LocalContext.current
     val kianColors = KianTheme.colors
     val categories by viewModel.myCategories.collectAsState()
     var rootName by remember { mutableStateOf("") }
@@ -41,8 +43,13 @@ fun VoucherCategoriesScreen(
 
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
-            if (event is VoucherViewModel.UiEvent.Alert) {
-                alertDialogInfo = event.title to event.message
+            when (event) {
+                is VoucherViewModel.UiEvent.Alert -> {
+                    alertDialogInfo = event.title to event.message
+                }
+                is VoucherViewModel.UiEvent.AlertRes -> {
+                    alertDialogInfo = context.getString(event.title) to context.getString(event.message)
+                }
             }
         }
     }

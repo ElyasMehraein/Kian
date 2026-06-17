@@ -61,8 +61,13 @@ fun VoucherScreen(
 
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
-            if (event is VoucherViewModel.UiEvent.Alert) {
-                alertDialogInfo = event.title to event.message
+            when (event) {
+                is VoucherViewModel.UiEvent.Alert -> {
+                    alertDialogInfo = event.title to event.message
+                }
+                is VoucherViewModel.UiEvent.AlertRes -> {
+                    alertDialogInfo = context.getString(event.title) to context.getString(event.message)
+                }
             }
         }
     }

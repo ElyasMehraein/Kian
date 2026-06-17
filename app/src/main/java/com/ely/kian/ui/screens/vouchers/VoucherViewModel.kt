@@ -1,6 +1,8 @@
 package com.ely.kian.ui.screens.vouchers
 
+import androidx.annotation.StringRes
 import androidx.compose.runtime.getValue
+import com.ely.kian.R
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
@@ -63,6 +65,7 @@ class VoucherViewModel(
 
     sealed class UiEvent {
         data class Alert(val title: String, val message: String) : UiEvent()
+        data class AlertRes(@StringRes val title: Int, @StringRes val message: Int) : UiEvent()
     }
 
     fun setSearch(query: String) {
@@ -92,9 +95,9 @@ class VoucherViewModel(
             if (isShowcase) {
                 val currentBalance = balances.value.find { it.assetRef == assetRef }
                 if (currentBalance == null || currentBalance.categories.isEmpty()) {
-                    _uiEvent.emit(UiEvent.Alert(
-                        "خطای ویترین", 
-                        "برای نمایش این محصول در ویترین، ابتدا باید حداقل یک دسته‌بندی برای آن انتخاب کنید."
+                    _uiEvent.emit(UiEvent.AlertRes(
+                        R.string.showcase_error, 
+                        R.string.showcase_no_category_desc
                     ))
                     return@launch
                 }
@@ -126,7 +129,7 @@ class VoucherViewModel(
             val pubkey = keyDao.getKey()?.pubkey ?: return@launch
             val level = (parent?.level ?: 0) + 1
             if (level > 5) {
-                _uiEvent.emit(UiEvent.Alert("محدودیت عمق", "دسته‌بندی‌ها حداکثر می‌توانند ۵ لایه داشته باشند."))
+                _uiEvent.emit(UiEvent.AlertRes(R.string.depth_limit_reached, R.string.depth_limit_desc))
                 return@launch
             }
             voucherRepository.saveCategory(name, parent?.id, level, pubkey)
@@ -139,7 +142,7 @@ class VoucherViewModel(
             val allIds = getBranchIds(category.id)
             
             if (voucherRepository.isCategoryInUse(allIds, pubkey)) {
-                _uiEvent.emit(UiEvent.Alert("Category in use", "Remove this category from your products before deleting this branch."))
+                _uiEvent.emit(UiEvent.AlertRes(R.string.category_in_use, R.string.category_in_use_desc))
                 return@launch
             }
 

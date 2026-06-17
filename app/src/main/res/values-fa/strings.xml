@@ -248,4 +248,8 @@
 
     <string name="depth_limit_reached">به حداکثر عمق رسیدید</string>
     <string name="depth_limit_desc">دسته‌بندی‌ها حداکثر می‌توانند ۵ لایه داشته باشند.</string>
+    <string name="showcase_error">خطای ویترین</string>
+    <string name="showcase_no_category_desc">برای نمایش این محصول در ویترین، ابتدا باید حداقل یک دسته‌بندی برای آن انتخاب کنید.</string>
+    <string name="category_in_use">دسته بندی در حال استفاده است</string>
+    <string name="category_in_use_desc">قبل از حذف این شاخه، این دسته بندی را از محصولات خود جدا کنید.</string>
 </resources>
