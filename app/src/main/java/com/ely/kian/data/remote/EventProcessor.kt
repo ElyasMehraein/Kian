@@ -43,6 +43,10 @@ class EventProcessor(
                 }
                 20001, 20002 -> chatRepository.handleReceipt(event)
                 31999 -> handleSocialRating(event)
+                30017 -> {
+                    Log.i(TAG, "Processing Showcase Sync (Kind 30017)")
+                    voucherRepository.handleTokenEvent(event)
+                }
                 1059 -> {
                     Log.i(TAG, "Processing GiftWrap (Kind 1059)")
                     handleGiftWrap(event)

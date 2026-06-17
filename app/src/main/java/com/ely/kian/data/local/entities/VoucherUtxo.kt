@@ -10,7 +10,7 @@ data class VoucherDefinition(
     val pubkey: String,
     val name: String,
     val description: String?,
-    val images: String, // JSON array
+    val images: List<String>,
     val eventId: String,
     val createdAt: Long
 )

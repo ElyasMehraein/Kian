@@ -17,6 +17,7 @@ import com.ely.kian.crypto.SecureStorage
 import com.ely.kian.crypto.KianKeys
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -27,19 +28,20 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class MerchantProfileViewModel(
-    private val pubkey: String,
-    private val ownPubkey: String?,
+    pubkey: String,
+    ownPubkey: String?,
     private val userProfileDao: UserProfileDao,
     private val voucherRepository: VoucherRepository,
     private val reviewDao: ReviewDao,
     private val nostrSyncManager: NostrSyncManager,
     private val secureStorage: SecureStorage
 ) : ViewModel() {
-    private val json = Json { ignoreUnknownKeys = true }
-    val isOwnProfile: Boolean = pubkey == ownPubkey
+    private val pubkey = KianKeys.normalizePubkey(pubkey)
+    private val ownPubkey = ownPubkey?.let { KianKeys.normalizePubkey(it) }
+    val isOwnProfile: Boolean = this.pubkey == this.ownPubkey
 
     init {
-        nostrSyncManager.requestMerchantData(pubkey)
+        nostrSyncManager.requestMerchantData(this.pubkey)
         if (isOwnProfile) {
             viewModelScope.launch {
                 try {
@@ -49,6 +51,35 @@ class MerchantProfileViewModel(
                 }
             }
         }
+    }
+
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing
+
+    private val _syncError = MutableStateFlow<String?>(null)
+    val syncError: StateFlow<String?> = _syncError
+
+    fun refresh() {
+        viewModelScope.launch {
+            _syncError.value = null
+            _isRefreshing.value = true
+            
+            // Check for relay connectivity
+            val connectedRelays = nostrSyncManager.getConnectedRelayCount()
+            if (connectedRelays == 0) {
+                _syncError.value = "عدم اتصال به شبکه. لطفا اینترنت خود را بررسی کنید."
+                _isRefreshing.value = false
+                return@launch
+            }
+
+            nostrSyncManager.requestMerchantData(pubkey)
+            delay(3000) // Increased delay for better sync
+            _isRefreshing.value = false
+        }
+    }
+
+    fun clearSyncError() {
+        _syncError.value = null
     }
 
     override fun onCleared() {
@@ -65,40 +96,20 @@ class MerchantProfileViewModel(
     private val _selectedCategoryId = MutableStateFlow<String?>(null)
     val selectedCategoryId: StateFlow<String?> = _selectedCategoryId
 
-    val showcaseTokens: StateFlow<List<BalanceItem>> = if (isOwnProfile) {
-        combine(
-            voucherRepository.getBalancesForPubkey(pubkey),
-            _selectedCategoryId
-        ) { list, selectedId ->
+    val showcaseTokens: StateFlow<List<BalanceItem>> = combine(
+        voucherRepository.getBalancesForPubkey(pubkey),
+        _selectedCategoryId
+    ) { list, selectedId ->
+        if (isOwnProfile) {
+            // For me: everything in the showcase
             list.filter { it.isShowcase && (selectedId == null || it.categories.contains(selectedId)) }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    } else {
-        // For customers: Show all products minted by this merchant
-        combine(
-            voucherRepository.getDefinitionsByProducer(pubkey),
-            voucherRepository.getCategories(pubkey),
-            voucherRepository.getBalancesForPubkey(pubkey), // We need this to check local mappings if available
-            _selectedCategoryId
-        ) { defs, cats, balances, selectedId ->
-            defs.map { def ->
-                val assetRef = "35001:${def.pubkey}:${def.assetId}"
-                val localBalance = balances.find { it.assetRef == assetRef }
-                BalanceItem(
-                    assetRef = assetRef,
-                    amount = 0,
-                    description = def.description ?: "",
-                    images = try { json.decodeFromString<List<String>>(def.images) } catch(e: Exception) { emptyList() },
-                    name = def.name,
-                    producer = def.pubkey,
-                    categories = localBalance?.categories ?: emptyList(),
-                    isShowcase = true
-                )
-            }.filter { 
-                // Only show if it has at least one category (Showcase Rule)
-                it.categories.isNotEmpty() && (selectedId == null || it.categories.contains(selectedId))
+        } else {
+            // For customers: only what is marked for public showcase AND has a category
+            list.filter { 
+                it.isShowcase && it.categories.isNotEmpty() && (selectedId == null || it.categories.contains(selectedId))
             }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun selectCategory(categoryId: String?) {
         if (categoryId == null) {

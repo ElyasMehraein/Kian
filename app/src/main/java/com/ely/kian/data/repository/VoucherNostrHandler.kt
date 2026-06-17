@@ -30,8 +30,56 @@ class VoucherNostrHandler(
         when (event.kind) {
             35001 -> handleGenesis(event)
             35002 -> handleRemint(event)
+            30017 -> handleShowcaseSync(event)
             1050 -> handleTransferRequest(event)
             1051 -> handleReceiptConfirmation(event)
+        }
+    }
+
+    private suspend fun handleShowcaseSync(event: NostrEvent) {
+        val dTag = event.tags.find { it.size >= 2 && it[0] == "d" }?.get(1)
+        if (dTag != "kian_showcase" && event.kind != 30017) return
+        
+        val author = KianKeys.normalizePubkey(event.pubkey)
+
+        try {
+            // Standard Tags: ["c", id, name, parentId]
+            val categories = event.tags.filter { it.size >= 3 && it[0] == "c" }.map { t ->
+                com.ely.kian.data.local.entities.VoucherCategory(
+                    id = t[1],
+                    pubkey = author,
+                    name = t[2],
+                    parentId = if (t.size >= 4 && t[3].isNotEmpty()) t[3] else null,
+                    level = 0, // Simplified for sync
+                    isShowcase = false,
+                    createdAt = event.createdAt
+                )
+            }
+
+            // Standard Tags: ["a", assetRef, relay, categoryId, isShowcase]
+            val mappings = event.tags.mapNotNull { t ->
+                if (t.size >= 4 && t[0] == "a") {
+                    val assetRef = t[1]
+                    val catId = t[3]
+                    val isShowcase = if (t.size >= 5) t[4].toBoolean() else true
+                    Triple(assetRef, catId, isShowcase)
+                } else null
+            }
+
+            if (categories.isNotEmpty()) {
+                categories.forEach { voucherDao.upsertCategory(it) }
+            }
+
+            if (mappings.isNotEmpty()) {
+                voucherDao.deleteMappingsByPubkey(author)
+                mappings.forEach { (assetRef, catId, isShowcase) ->
+                    voucherDao.upsertMapping(com.ely.kian.data.local.entities.VoucherCategoryMapping(author, assetRef, catId))
+                    voucherDao.upsertAssetSettings(com.ely.kian.data.local.entities.VoucherAssetSettings(author, assetRef, isShowcase))
+                }
+            }
+            Log.d(TAG, "Synced showcase for $author via tags")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to handle showcase sync", e)
         }
     }
 
@@ -53,33 +101,24 @@ class VoucherNostrHandler(
 
             val existingUtxo = voucherDao.getUtxo(utxoId)
             if (existingUtxo == null || existingUtxo.producer != myPubkey) {
-                Log.w(TAG, "Received transfer request for unknown or invalid UTXO: $utxoId")
                 return
             }
             
-            if (existingUtxo.spent) {
-                Log.i(TAG, "Transfer request for $utxoId ignored as it is already spent.")
-                return
-            }
+            if (existingUtxo.spent) return
 
             voucherDao.markSpent(utxoId)
 
             if (isRedemption) {
-                Log.i(TAG, "Voucher redemption request received from ${event.pubkey}")
                 notifications.emit("🎁 Voucher redemption request from ${event.pubkey}")
             } else {
                 issueRemint(recipient, assetRef, amount, utxoId, myPrivKey)
-                
                 if (event.pubkey != recipient) {
                     notifySenderOfApproval(event.pubkey, recipient, assetRef, amount, utxoId, myPrivKey)
                 }
-
                 val change = existingUtxo.amount - amount
                 if (change > 0) {
                     issueRemint(event.pubkey, assetRef, change, utxoId, myPrivKey)
                 }
-                
-                Log.i(TAG, "Approved voucher transfer: $amount from ${event.pubkey} to $recipient")
                 notifications.emit("✅ Approved voucher transfer ($amount units) to $recipient")
             }
         } catch (e: Exception) {
@@ -104,30 +143,19 @@ class VoucherNostrHandler(
             put("status", "approved")
         }.toString()
 
-        val tags = listOf(
-            listOf("a", assetRef),
-            listOf("p", recipientPubkey)
-        )
-
+        val tags = listOf(listOf("a", assetRef), listOf("p", recipientPubkey))
         val id = KianKeys.computeEventId(myPubkey, createdAt, 35002, tags, content)
         val sig = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(id), myPrivKey))
 
-        val remintEvent = NostrEvent(id, myPubkey, createdAt, 35002, tags, content, sig)
-        val rumorJson = json.encodeToString(remintEvent)
-        
-        val giftWrap = Nip59.giftWrap(rumorJson, myPrivKey, KianKeys.hexToBytes(senderPubkey), myPubkey)
-        val senderInbox = relayDao.getDmInboxRelayUrls(senderPubkey)
-        syncManager.publishEvent(giftWrap, senderInbox)
+        val event = NostrEvent(id, myPubkey, createdAt, 35002, tags, content, sig)
+        val rumor = json.encodeToString(event)
+        syncManager.publishEvent(Nip59.giftWrap(rumor, myPrivKey, KianKeys.hexToBytes(senderPubkey), myPubkey), relayDao.getDmInboxRelayUrls(senderPubkey))
     }
 
     private suspend fun handleReceiptConfirmation(event: NostrEvent) {
         val myPubkey = keyDao.getKey()?.pubkey ?: return
         val pTag = event.tags.find { it.size >= 2 && it[0] == "p" }?.get(1)
         if (pTag != myPubkey) return
-        
-        val transferEventId = event.tags.find { it.size >= 2 && it[0] == "e" }?.get(1) ?: return
-        
-        Log.i(TAG, "Voucher receipt confirmed by ${event.pubkey} for transfer $transferEventId")
         notifications.emit("Voucher receipt confirmed by ${event.pubkey}")
     }
 
@@ -140,78 +168,63 @@ class VoucherNostrHandler(
     ) {
         val myPubkey = KianKeys.bytesToHex(KianKeys.getPubKey(myPrivKey))
         val createdAt = System.currentTimeMillis() / 1000
-        
         val content = buildJsonObject {
             put("amount", amount)
             put("previous_utxo", prevUtxoId)
         }.toString()
 
-        val tags = listOf(
-            listOf("a", assetRef),
-            listOf("p", recipientPubkey)
-        )
-
+        val tags = listOf(listOf("a", assetRef), listOf("p", recipientPubkey))
         val id = KianKeys.computeEventId(myPubkey, createdAt, 35002, tags, content)
         val sig = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(id), myPrivKey))
 
-        val remintEvent = NostrEvent(id, myPubkey, createdAt, 35002, tags, content, sig)
-        val rumorJson = json.encodeToString(remintEvent)
+        val event = NostrEvent(id, myPubkey, createdAt, 35002, tags, content, sig)
+        val rumor = json.encodeToString(event)
+        syncManager.publishEvent(Nip59.giftWrap(rumor, myPrivKey, KianKeys.hexToBytes(recipientPubkey), myPubkey), relayDao.getDmInboxRelayUrls(recipientPubkey))
         
-        val giftWrap = Nip59.giftWrap(rumorJson, myPrivKey, KianKeys.hexToBytes(recipientPubkey), myPubkey)
-        val recipientInbox = relayDao.getDmInboxRelayUrls(recipientPubkey)
-        syncManager.publishEvent(giftWrap, recipientInbox)
-        
-        val utxo = VoucherUtxo(
-            utxoId = id,
-            assetRef = assetRef,
-            producer = myPubkey,
-            owner = recipientPubkey,
-            amount = amount,
-            prevUtxoId = prevUtxoId,
-            createdAt = createdAt,
-            spent = false
-        )
-        voucherDao.insertUtxo(utxo)
+        voucherDao.insertUtxo(VoucherUtxo(id, assetRef, myPubkey, recipientPubkey, amount, prevUtxoId, createdAt, false))
     }
 
     private suspend fun handleGenesis(event: NostrEvent) {
         val dTag = event.tags.find { it.size >= 2 && it[0] == "d" }?.get(1) ?: return
-        val assetRef = "35001:${event.pubkey}:$dTag"
+        val author = KianKeys.normalizePubkey(event.pubkey)
+        val assetRef = "35001:$author:$dTag"
         
         try {
-            val myPubkey = keyDao.getKey()?.pubkey
-            val recipient = event.tags.find { it.size >= 2 && it[0] == "p" }?.get(1) ?: event.pubkey
+            val myPubkey = keyDao.getKey()?.pubkey?.let { KianKeys.normalizePubkey(it) }
+            val recipient = event.tags.find { it.size >= 2 && it[0] == "p" }?.get(1)?.let { KianKeys.normalizePubkey(it) } ?: author
             
-            val contentObj = json.parseToJsonElement(event.content).jsonObject
-            
+            // Try tags first (Standard Nostr way), then content (Legacy/Structured)
+            val name = event.tags.find { it[0] == "name" }?.get(1)
+                ?: json.parseToJsonElement(event.content).jsonObject["name"]?.jsonPrimitive?.content ?: dTag
+                
+            val description = event.tags.find { it[0] == "description" }?.get(1)
+                ?: json.parseToJsonElement(event.content).jsonObject["description"]?.jsonPrimitive?.contentOrNull
+                
+            val images = event.tags.filter { it[0] == "image" }.map { it[1] }.ifEmpty {
+                try {
+                    val contentObj = json.parseToJsonElement(event.content).jsonObject
+                    json.decodeFromJsonElement<List<String>>(contentObj["images"] ?: JsonArray(emptyList()))
+                } catch (e: Exception) { emptyList() }
+            }
+
+            val amount = event.tags.find { it[0] == "amount" }?.get(1)?.toLongOrNull()
+                ?: json.parseToJsonElement(event.content).jsonObject["amount"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
+
             val definition = VoucherDefinition(
                 assetId = dTag,
-                pubkey = event.pubkey,
-                name = contentObj["name"]?.jsonPrimitive?.content ?: dTag,
-                description = contentObj["description"]?.jsonPrimitive?.contentOrNull,
-                images = contentObj["images"]?.toString() ?: "[]",
+                pubkey = author,
+                name = name,
+                description = description,
+                images = images,
                 eventId = event.id,
                 createdAt = event.createdAt
             )
             voucherDao.upsertDefinition(definition)
 
-            if (voucherDao.getUtxo(event.id) != null) return
-            if (recipient != myPubkey) return
-
-            val amount = contentObj["amount"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
-            
-            val utxo = VoucherUtxo(
-                utxoId = event.id,
-                assetRef = assetRef,
-                producer = event.pubkey,
-                owner = recipient,
-                amount = amount,
-                prevUtxoId = null,
-                createdAt = event.createdAt,
-                spent = false
-            )
-            voucherDao.insertUtxo(utxo)
-            notifications.emit("New voucher received: ${definition.name} ($amount)")
+            if (recipient == myPubkey && voucherDao.getUtxo(event.id) == null) {
+                voucherDao.insertUtxo(VoucherUtxo(event.id, assetRef, author, recipient, amount, null, event.createdAt, false))
+                notifications.emit("New voucher received: ${definition.name} ($amount)")
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to handle genesis", e)
         }
@@ -223,43 +236,21 @@ class VoucherNostrHandler(
         
         try {
             val myPubkey = keyDao.getKey()?.pubkey
-            
-            if (voucherDao.getUtxo(event.id) != null) return
-            if (pTag != myPubkey) return
+            if (pTag != myPubkey || voucherDao.getUtxo(event.id) != null) return
 
             val contentObj = json.parseToJsonElement(event.content).jsonObject
             val prevUtxoId = contentObj["previous_utxo"]?.jsonPrimitive?.content
             val amount = contentObj["amount"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
             
-            if (prevUtxoId != null) {
-                voucherDao.markSpent(prevUtxoId)
-            }
+            prevUtxoId?.let { voucherDao.markSpent(it) }
             
-            val utxo = VoucherUtxo(
-                utxoId = event.id,
-                assetRef = aTag,
-                producer = event.pubkey,
-                owner = pTag,
-                amount = amount,
-                prevUtxoId = prevUtxoId,
-                createdAt = event.createdAt,
-                spent = false
-            )
-            voucherDao.insertUtxo(utxo)
+            voucherDao.insertUtxo(VoucherUtxo(event.id, aTag, event.pubkey, pTag, amount, prevUtxoId, event.createdAt, false))
             
-            val parsed = parseAssetRef(aTag)
+            val parsed = KianKeys.parseAssetRef(aTag)
             val name = parsed?.let { voucherDao.getDefinition(it.assetId, it.producer)?.name } ?: "Asset"
             notifications.emit("Voucher transfer completed: $name ($amount units)")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to handle remint", e)
         }
     }
-
-    private fun parseAssetRef(assetRef: String): ParsedAsset? {
-        val parts = assetRef.split(":")
-        if (parts.size < 3) return null
-        return ParsedAsset(parts[1], parts[2])
-    }
-
-    private data class ParsedAsset(val producer: String, val assetId: String)
 }

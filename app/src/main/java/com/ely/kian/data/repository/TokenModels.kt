@@ -18,6 +18,7 @@ data class PendingItem(
     val assetName: String,
     val amount: Long,
     val recipient: String,
-    val status: String, // 'waiting_mint' | 'fulfilled' | 'rejected' | 'offline'
+    val status: String, // 'pending' | 'completed' | 'failed'
+    val type: String,   // 'send' | 'receive' | 'redemption'
     val createdAt: Long
 )

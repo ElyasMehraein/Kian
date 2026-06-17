@@ -105,8 +105,10 @@ class OnboardingViewModel(
                 val pubkeyHex = KianKeys.bytesToHex(pubkeyBytes)
                 
                 // Clear everything before saving new account data
-                secureStorage.clearAll()
-                database.clearAllTables()
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    secureStorage.clearAll()
+                    database.clearAllTables()
+                }
                 
                 secureStorage.saveSecret(SecureStorage.MNEMONIC, trimmed)
                 secureStorage.saveSecret(SecureStorage.PRIVATE_KEY, KianKeys.bytesToHex(privKey))
@@ -138,8 +140,10 @@ class OnboardingViewModel(
                 val pubkeyHex = KianKeys.bytesToHex(pubkeyBytes)
 
                 // Clear everything before saving new account data
-                secureStorage.clearAll()
-                database.clearAllTables()
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    secureStorage.clearAll()
+                    database.clearAllTables()
+                }
 
                 secureStorage.saveSecret(SecureStorage.PRIVATE_KEY, KianKeys.bytesToHex(privKey))
                 
@@ -162,8 +166,10 @@ class OnboardingViewModel(
     fun saveGeneratedKeys() {
         val keys = generatedKeys ?: return
         viewModelScope.launch {
-            secureStorage.clearAll()
-            database.clearAllTables()
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                secureStorage.clearAll()
+                database.clearAllTables()
+            }
 
             secureStorage.saveSecret(SecureStorage.MNEMONIC, keys.mnemonic)
             secureStorage.saveSecret(SecureStorage.PRIVATE_KEY, KianKeys.bytesToHex(keys.privKey))

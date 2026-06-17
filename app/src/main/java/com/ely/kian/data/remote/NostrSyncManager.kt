@@ -26,7 +26,8 @@ class NostrSyncManager(
         "wss://relay.damus.io",
         "wss://nos.lol",
         "wss://relay.snort.social",
-        "wss://nostr.mom"
+        "wss://nostr.mom",
+        "ws://192.168.1.14:8080"
     )
 
     fun startSyncing(myPubkey: String? = null) {
@@ -49,6 +50,9 @@ class NostrSyncManager(
             
             // 1. Fetch from Relay DAO (Global list)
             try {
+                // Ensure local relay is always in the database
+                relayDao?.insertRelay(com.ely.kian.data.local.entities.Relay("ws://192.168.1.14:8080", true, true, true))
+
                 val savedRelays = relayDao?.getAllRelays()?.first() ?: emptyList()
                 if (savedRelays.isEmpty()) {
                     // Seed with local relay if empty
@@ -135,9 +139,12 @@ class NostrSyncManager(
 
     fun isSyncing(): Boolean = currentSyncPubkey != null
 
+    fun getConnectedRelayCount(): Int = relayPool.getAllConnectedUrls().size
+
     fun requestMerchantData(pubkey: String) {
         syncScope.launch {
             // Include 35001 (Genesis) and 35002 (Activity) for product catalog
+            // Also 30017 for Showcase/Categories
             val filter = """{"kinds": [35001, 35002, 30017, 30018, 10002, 0], "authors": ["$pubkey"]}"""
             // Also subscribe to people following this merchant
             val followerFilter = """{"kinds": [3], "#p": ["$pubkey"]}"""
@@ -154,6 +161,20 @@ class NostrSyncManager(
             relayPool.getAllConnectedUrls().forEach { url ->
                 relayPool.unsubscribe(url, "merchant_data_$pubkey")
                 relayPool.unsubscribe(url, "merchant_followers_$pubkey")
+            }
+        }
+    }
+
+    fun requestProfiles(pubkeys: List<String>) {
+        if (pubkeys.isEmpty()) return
+        syncScope.launch {
+            val filter = """{"kinds": [0], "authors": ${json.encodeToJsonElement(pubkeys)}}"""
+            relayPool.getAllConnectedUrls().forEach { url ->
+                relayPool.subscribe(url, "profiles_fetch_${pubkeys.hashCode()}", filter)
+            }
+            delay(10000)
+            relayPool.getAllConnectedUrls().forEach { url ->
+                relayPool.unsubscribe(url, "profiles_fetch_${pubkeys.hashCode()}")
             }
         }
     }

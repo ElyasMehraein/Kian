@@ -2,6 +2,7 @@ package com.ely.kian.data.local
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 import com.ely.kian.data.local.dao.*
 import com.ely.kian.data.local.entities.*
 
@@ -25,6 +26,7 @@ import com.ely.kian.data.local.entities.*
     version = 1,
     exportSchema = false
 )
+@TypeConverters(Converters::class)
 abstract class KianDatabase : RoomDatabase() {
     abstract fun keyDao(): KeyDao
     abstract fun userProfileDao(): UserProfileDao

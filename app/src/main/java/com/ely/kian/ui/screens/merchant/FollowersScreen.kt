@@ -58,14 +58,14 @@ fun FollowersScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             InitialAvatar(
-                                name = profile.displayName ?: profile.name ?: "",
+                                name = profile.displayName ?: profile.name ?: "User",
                                 pictureUrl = profile.picture,
                                 size = 48.dp
                             )
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
-                                    text = profile.displayName ?: profile.name ?: stringResource(R.string.unknown),
+                                    text = profile.displayName ?: profile.name ?: ("@" + profile.pubkey.take(8) + "..."),
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = kianColors.ink
@@ -77,7 +77,11 @@ fun FollowersScreen(
                                         color = kianColors.muted,
                                         maxLines = 1
                                     )
-                                }
+                                } ?: Text(
+                                    text = stringResource(R.string.authenticating),
+                                    fontSize = 12.sp,
+                                    color = kianColors.muted.copy(alpha = 0.5f)
+                                )
                             }
                         }
                         HorizontalDivider(

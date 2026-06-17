@@ -3,7 +3,9 @@ package com.ely.kian.data.local.entities
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import kotlinx.serialization.Serializable
 
+@Serializable
 @Entity(tableName = "voucher_categories")
 data class VoucherCategory(
     @PrimaryKey val id: String,
@@ -15,6 +17,7 @@ data class VoucherCategory(
     val createdAt: Long
 )
 
+@Serializable
 @Entity(
     tableName = "voucher_category_mappings",
     primaryKeys = ["pubkey", "assetRef", "categoryId"],

@@ -63,8 +63,13 @@ interface UserProfileDao {
     suspend fun getFollowingPubkeys(pubkey: String): List<String>
 
     @Query("""
-        SELECT p.* FROM profiles p
-        JOIN user_follows f ON p.pubkey = f.pubkey
+        SELECT f.pubkey, p.name, p.displayName, p.about, p.picture, p.banner, p.website, p.nip05, p.location, p.geohash, 
+               COALESCE(p.rawJson, '{}') as rawJson, 
+               COALESCE(p.isTrader, 0) as isTrader, 
+               COALESCE(p.createdAt, 0) as createdAt, 
+               COALESCE(p.updatedAt, 0) as updatedAt
+        FROM user_follows f
+        LEFT JOIN profiles p ON f.pubkey = p.pubkey
         WHERE f.followsPubkey = :pubkey
     """)
     fun getFollowers(pubkey: String): Flow<List<Profile>>

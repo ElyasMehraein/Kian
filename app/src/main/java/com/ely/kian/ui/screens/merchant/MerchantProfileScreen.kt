@@ -19,6 +19,9 @@ import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -104,8 +107,18 @@ fun MerchantProfileScreen(
     val userReview by viewModel.userReview.collectAsState()
     val isFollowing by viewModel.isFollowing.collectAsState()
     val followerCount by viewModel.followerCount.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val syncError by viewModel.syncError.collectAsState()
     val isOwnProfile = viewModel.isOwnProfile
     val uriHandler = LocalUriHandler.current
+    val context = LocalContext.current
+
+    LaunchedEffect(syncError) {
+        syncError?.let {
+            android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_SHORT).show()
+            viewModel.clearSyncError()
+        }
+    }
     
     var selectedTab by remember { mutableIntStateOf(0) }
     var showReviewDialog by remember { mutableStateOf(false) }
@@ -131,418 +144,435 @@ fun MerchantProfileScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Scaffold(
-            containerColor = kianColors.canvas,
-            contentWindowInsets = WindowInsets(0.dp),
-            topBar = {
-                TopAppBar(
-                    title = { },
-                    navigationIcon = {
-                        if (!isOwnProfile) {
-                            IconButton(onClick = onBack, modifier = Modifier.background(kianColors.canvas.copy(alpha = 0.6f), RoundedCornerShape(12.dp))) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back), tint = kianColors.ink)
-                            }
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = { /* Share */ }, modifier = Modifier.background(kianColors.canvas.copy(alpha = 0.6f), RoundedCornerShape(12.dp))) {
-                            Icon(Icons.Default.Share, contentDescription = stringResource(R.string.share), tint = kianColors.ink)
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+        val pullToRefreshState = rememberPullToRefreshState()
+        
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { viewModel.refresh() },
+            state = pullToRefreshState,
+            indicator = {
+                PullToRefreshDefaults.Indicator(
+                    state = pullToRefreshState,
+                    isRefreshing = isRefreshing,
+                    modifier = Modifier.align(Alignment.TopCenter),
+                    color = kianColors.accent,
+                    containerColor = kianColors.panel
                 )
             }
-        ) { paddingValues ->
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(paddingValues)
-            ) {
-                item {
-                    Box(modifier = Modifier.fillMaxWidth().height(200.dp)) {
-                        if (!profile?.banner.isNullOrBlank()) {
-                            AsyncImage(
-                                model = profile?.banner,
-                                contentDescription = "Banner",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        } else {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(
-                                        Brush.verticalGradient(
-                                            colors = listOf(kianColors.accent, kianColors.accentSoft)
-                                        )
-                                    )
-                            )
-                        }
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(40.dp)
-                                .align(Alignment.BottomCenter)
-                                .background(
-                                    Brush.verticalGradient(
-                                        colors = listOf(Color.Transparent, kianColors.canvas)
-                                    )
-                                )
-                        )
-                    }
-                    
-                    Column(
-                        modifier = Modifier
-                            .padding(horizontal = 20.dp)
-                            .offset(y = (-60).dp)
-                    ) {
-                        InitialAvatar(
-                            name = profile?.displayName ?: profile?.name ?: stringResource(R.string.merchant), 
-                            pictureUrl = profile?.picture, 
-                            size = 110.dp,
-                            modifier = Modifier.border(4.dp, kianColors.canvas, RoundedCornerShape(55.dp))
-                        )
-                        
-                        Spacer(modifier = Modifier.height(12.dp))
-                        
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = profile?.displayName ?: profile?.name ?: stringResource(R.string.merchant), 
-                                fontSize = 28.sp, 
-                                fontWeight = FontWeight.Bold, 
-                                color = kianColors.ink
-                            )
-                            if (!profile?.nip05.isNullOrBlank()) {
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Icon(
-                                    imageVector = Icons.Default.Verified, 
-                                    contentDescription = stringResource(R.string.verified), 
-                                    tint = Color(0xFF3B82F6),
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
-                        }
-                        
-                        Text(
-                            text = if (!profile?.name.isNullOrBlank()) "@${profile?.name}" else "@" + pubkey.take(12) + "...", 
-                            fontSize = 14.sp, 
-                            color = kianColors.muted,
-                            fontWeight = FontWeight.Medium
-                        )
-                        
-                        if (!profile?.website.isNullOrBlank()) {
-                            Row(
-                                modifier = Modifier.padding(top = 10.dp).clickable { uriHandler.openUri(profile?.website!!) },
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(Icons.Default.Language, contentDescription = null, tint = kianColors.accent, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = profile?.website!!.removePrefix("https://").removePrefix("http://").removeSuffix("/"),
-                                    fontSize = 14.sp,
-                                    color = kianColors.accent,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                        }
-
-                        if (!profile?.location.isNullOrBlank() || !profile?.geohash.isNullOrBlank()) {
-                            val context = LocalContext.current
-                            Row(
-                                modifier = Modifier
-                                    .padding(top = 8.dp)
-                                    .clickable(enabled = !profile?.geohash.isNullOrBlank()) {
-                                        profile?.geohash?.let { hash ->
-                                            try {
-                                                val (lat, lon) = Geohash.decode(hash)
-                                                NavigationUtils.openInMaps(
-                                                    context,
-                                                    lat,
-                                                    lon,
-                                                    profile?.displayName ?: profile?.name ?: "Merchant"
-                                                )
-                                            } catch (e: Exception) { /* Ignore */ }
-                                        }
-                                    },
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.LocationOn,
-                                    contentDescription = null,
-                                    tint = if (!profile?.geohash.isNullOrBlank()) kianColors.accent else kianColors.muted,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = profile?.location ?: stringResource(R.string.open_navigation),
-                                    fontSize = 14.sp,
-                                    color = if (!profile?.geohash.isNullOrBlank()) kianColors.accent else kianColors.muted,
-                                    fontWeight = FontWeight.Medium,
-                                    textDecoration = if (!profile?.geohash.isNullOrBlank()) androidx.compose.ui.text.style.TextDecoration.Underline else null
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
-                        if (!profile?.about.isNullOrBlank()) {
-                            Text(
-                                text = profile?.about ?: "",
-                                fontSize = 15.sp,
-                                lineHeight = 22.sp,
-                                color = kianColors.ink.copy(alpha = 0.8f)
-                            )
-                        }
-
-                        if (!profile?.geohash.isNullOrBlank()) {
-                            Spacer(modifier = Modifier.height(20.dp))
-                            Text(
-                                text = stringResource(R.string.location),
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = kianColors.ink
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            
-                            val coords = remember(profile?.geohash) {
-                                try { Geohash.decode(profile?.geohash!!) } catch (e: Exception) { null }
-                            }
-                            
-                            if (coords != null) {
-                                val context = LocalContext.current
-                                Card(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(180.dp)
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .border(1.dp, kianColors.line, RoundedCornerShape(16.dp)),
-                                    onClick = {
-                                        NavigationUtils.openInMaps(context, coords.first, coords.second, profile?.displayName ?: profile?.name ?: "Merchant")
-                                    }
-                                ) {
-                                    Box(modifier = Modifier.fillMaxSize()) {
-                                        AndroidView(
-                                            modifier = Modifier.fillMaxSize(),
-                                            factory = { ctx ->
-                                                MapView(ctx).apply {
-                                                    setTileSource(TileSourceFactory.MAPNIK)
-                                                    setMultiTouchControls(false) 
-                                                    zoomController.setVisibility(org.osmdroid.views.CustomZoomButtonsController.Visibility.NEVER)
-                                                    controller.setZoom(15.0)
-                                                    val point = GeoPoint(coords.first, coords.second)
-                                                    controller.setCenter(point)
-                                                    
-                                                    val marker = Marker(this)
-                                                    marker.position = point
-                                                    marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                                                    overlays.add(marker)
-                                                }
-                                            }
-                                        )
-                                        
-                                        Box(modifier = Modifier.fillMaxSize().background(Color.Transparent))
-                                        
-                                        Surface(
-                                            modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp),
-                                            color = kianColors.ink.copy(alpha = 0.8f),
-                                            shape = RoundedCornerShape(8.dp)
-                                        ) {
-                                            Text(
-                                                text = stringResource(R.string.open_navigation),
-                                                color = kianColors.canvas,
-                                                fontSize = 12.sp,
-                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-                                    }
+        ) {
+            Scaffold(
+                containerColor = kianColors.canvas,
+                contentWindowInsets = WindowInsets(0.dp),
+                topBar = {
+                    TopAppBar(
+                        title = { },
+                        navigationIcon = {
+                            if (!isOwnProfile) {
+                                IconButton(onClick = onBack, modifier = Modifier.background(kianColors.canvas.copy(alpha = 0.6f), RoundedCornerShape(12.dp))) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back), tint = kianColors.ink)
                                 }
                             }
-                        }
-                        
-                        Row(
-                            modifier = Modifier.padding(top = 24.dp).fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            ProfileStat(label = stringResource(R.string.vouchers), value = showcaseTokens.size.toString(), icon = Icons.Default.ConfirmationNumber)
-                            ProfileStat(
-                                label = stringResource(R.string.followers),
-                                value = followerCount.toString(),
-                                onClick = { onFollowersClick(pubkey) }
-                            )
-                            ProfileStat(label = stringResource(R.string.rating), value = avgRating, icon = Icons.Default.Star)
-                        }
-
-                        Row(modifier = Modifier.padding(top = 24.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            if (isOwnProfile) {
-                                KianButton(
-                                    text = stringResource(R.string.edit_profile),
-                                    onClick = onEdit,
-                                    modifier = Modifier.weight(1f)
+                        },
+                        actions = {
+                            IconButton(onClick = { /* Share */ }, modifier = Modifier.background(kianColors.canvas.copy(alpha = 0.6f), RoundedCornerShape(12.dp))) {
+                                Icon(Icons.Default.Share, contentDescription = stringResource(R.string.share), tint = kianColors.ink)
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                    )
+                }
+            ) { paddingValues ->
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().padding(paddingValues)
+                ) {
+                    item {
+                        Box(modifier = Modifier.fillMaxWidth().height(200.dp)) {
+                            if (!profile?.banner.isNullOrBlank()) {
+                                AsyncImage(
+                                    model = profile?.banner,
+                                    contentDescription = "Banner",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
                                 )
                             } else {
-                                KianButton(
-                                    text = stringResource(R.string.message),
-                                    onClick = { onMessage(pubkey) },
-                                    modifier = Modifier.weight(1f)
-                                )
-                                KianButton(
-                                    text = if (isFollowing) stringResource(R.string.unfollow) else stringResource(R.string.follow),
-                                    onClick = { viewModel.toggleFollow() },
-                                    type = if (isFollowing) com.ely.kian.ui.components.ButtonType.Secondary else com.ely.kian.ui.components.ButtonType.Primary,
-                                    modifier = Modifier.weight(1f)
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(
+                                            Brush.verticalGradient(
+                                                colors = listOf(kianColors.accent, kianColors.accentSoft)
+                                            )
+                                        )
                                 )
                             }
-                        }
-                    }
-                }
-
-                item {
-                    TabRow(
-                        selectedTabIndex = selectedTab,
-                        containerColor = kianColors.canvas,
-                        contentColor = kianColors.accent,
-                        divider = { HorizontalDivider(color = kianColors.line) },
-                        indicator = { tabPositions ->
-                            TabRowDefaults.SecondaryIndicator(
-                                Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                                color = kianColors.accent
-                            )
-                        },
-                        modifier = Modifier.offset(y = (-30).dp)
-                    ) {
-                        Tab(
-                            selected = selectedTab == 0,
-                            onClick = { selectedTab = 0 },
-                            text = { Text(stringResource(R.string.showcase_tab), fontWeight = FontWeight.Bold) }
-                        )
-                        Tab(
-                            selected = selectedTab == 1,
-                            onClick = { selectedTab = 1 },
-                            text = { Text(stringResource(R.string.reviews_tab), fontWeight = FontWeight.Bold) }
-                        )
-                    }
-                }
-
-                if (selectedTab == 0) {
-                    if (merchantCategories.isNotEmpty()) {
-                        item {
-                            Column(
+                            Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 8.dp)
-                                    .offset(y = (-20).dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                // Level Path (Breadcrumb)
-                                LazyRow(
-                                    contentPadding = PaddingValues(horizontal = 20.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    .height(40.dp)
+                                    .align(Alignment.BottomCenter)
+                                    .background(
+                                        Brush.verticalGradient(
+                                            colors = listOf(Color.Transparent, kianColors.canvas)
+                                        )
+                                    )
+                            )
+                        }
+                        
+                        Column(
+                            modifier = Modifier
+                                .padding(horizontal = 20.dp)
+                                .offset(y = (-60).dp)
+                        ) {
+                            InitialAvatar(
+                                name = profile?.displayName ?: profile?.name ?: stringResource(R.string.merchant), 
+                                pictureUrl = profile?.picture, 
+                                size = 110.dp,
+                                modifier = Modifier.border(4.dp, kianColors.canvas, RoundedCornerShape(55.dp))
+                            )
+                            
+                            Spacer(modifier = Modifier.height(12.dp))
+                            
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = profile?.displayName ?: profile?.name ?: stringResource(R.string.merchant), 
+                                    fontSize = 28.sp, 
+                                    fontWeight = FontWeight.Bold, 
+                                    color = kianColors.ink
+                                )
+                                if (!profile?.nip05.isNullOrBlank()) {
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Icon(
+                                        imageVector = Icons.Default.Verified, 
+                                        contentDescription = stringResource(R.string.verified), 
+                                        tint = Color(0xFF3B82F6),
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                            }
+                            
+                            Text(
+                                text = if (!profile?.name.isNullOrBlank()) "@${profile?.name}" else "@" + pubkey.take(12) + "...", 
+                                fontSize = 14.sp, 
+                                color = kianColors.muted,
+                                fontWeight = FontWeight.Medium
+                            )
+                            
+                            if (!profile?.website.isNullOrBlank()) {
+                                Row(
+                                    modifier = Modifier.padding(top = 10.dp).clickable { uriHandler.openUri(profile?.website!!) },
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    item {
-                                        TextButton(
-                                            onClick = { viewModel.selectCategory(null) },
-                                            contentPadding = PaddingValues(horizontal = 8.dp),
-                                            colors = ButtonDefaults.textButtonColors(
-                                                contentColor = if (selectedCat == null) kianColors.accent else kianColors.muted
-                                            )
-                                        ) {
-                                            Text(stringResource(R.string.all), fontWeight = if (selectedCat == null) FontWeight.Bold else FontWeight.Normal)
-                                        }
-                                    }
+                                    Icon(Icons.Default.Language, contentDescription = null, tint = kianColors.accent, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = profile?.website!!.removePrefix("https://").removePrefix("http://").removeSuffix("/"),
+                                        fontSize = 14.sp,
+                                        color = kianColors.accent,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            }
 
-                                    items(breadcrumbPath) { cat ->
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(
-                                                Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                                contentDescription = null,
-                                                tint = kianColors.line,
-                                                modifier = Modifier.size(16.dp)
+                            if (!profile?.location.isNullOrBlank() || !profile?.geohash.isNullOrBlank()) {
+                                val context = LocalContext.current
+                                Row(
+                                    modifier = Modifier
+                                        .padding(top = 8.dp)
+                                        .clickable(enabled = !profile?.geohash.isNullOrBlank()) {
+                                            profile?.geohash?.let { hash ->
+                                                try {
+                                                    val (lat, lon) = Geohash.decode(hash)
+                                                    NavigationUtils.openInMaps(
+                                                        context,
+                                                        lat,
+                                                        lon,
+                                                        profile?.displayName ?: profile?.name ?: "Merchant"
+                                                    )
+                                                } catch (e: Exception) { /* Ignore */ }
+                                            }
+                                        },
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.LocationOn,
+                                        contentDescription = null,
+                                        tint = if (!profile?.geohash.isNullOrBlank()) kianColors.accent else kianColors.muted,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = profile?.location ?: stringResource(R.string.open_navigation),
+                                        fontSize = 14.sp,
+                                        color = if (!profile?.geohash.isNullOrBlank()) kianColors.accent else kianColors.muted,
+                                        fontWeight = FontWeight.Medium,
+                                        textDecoration = if (!profile?.geohash.isNullOrBlank()) androidx.compose.ui.text.style.TextDecoration.Underline else null
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            if (!profile?.about.isNullOrBlank()) {
+                                Text(
+                                    text = profile?.about ?: "",
+                                    fontSize = 15.sp,
+                                    lineHeight = 22.sp,
+                                    color = kianColors.ink.copy(alpha = 0.8f)
+                                )
+                            }
+
+                            if (!profile?.geohash.isNullOrBlank()) {
+                                Spacer(modifier = Modifier.height(20.dp))
+                                Text(
+                                    text = stringResource(R.string.location),
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = kianColors.ink
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                val coords = remember(profile?.geohash) {
+                                    try { Geohash.decode(profile?.geohash!!) } catch (e: Exception) { null }
+                                }
+                                
+                                if (coords != null) {
+                                    val context = LocalContext.current
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(180.dp)
+                                            .clip(RoundedCornerShape(16.dp))
+                                            .border(1.dp, kianColors.line, RoundedCornerShape(16.dp)),
+                                        onClick = {
+                                            NavigationUtils.openInMaps(context, coords.first, coords.second, profile?.displayName ?: profile?.name ?: "Merchant")
+                                        }
+                                    ) {
+                                        Box(modifier = Modifier.fillMaxSize()) {
+                                            AndroidView(
+                                                modifier = Modifier.fillMaxSize(),
+                                                factory = { ctx ->
+                                                    MapView(ctx).apply {
+                                                        setTileSource(TileSourceFactory.MAPNIK)
+                                                        setMultiTouchControls(false) 
+                                                        zoomController.setVisibility(org.osmdroid.views.CustomZoomButtonsController.Visibility.NEVER)
+                                                        controller.setZoom(15.0)
+                                                        val point = GeoPoint(coords.first, coords.second)
+                                                        controller.setCenter(point)
+                                                        
+                                                        val marker = Marker(this)
+                                                        marker.position = point
+                                                        marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                                                        overlays.add(marker)
+                                                    }
+                                                }
                                             )
-                                            TextButton(
-                                                onClick = { viewModel.selectCategory(cat.id) },
-                                                contentPadding = PaddingValues(horizontal = 8.dp),
-                                                colors = ButtonDefaults.textButtonColors(
-                                                    contentColor = if (selectedCat == cat.id) kianColors.accent else kianColors.muted
-                                                )
+                                            
+                                            Box(modifier = Modifier.fillMaxSize().background(Color.Transparent))
+                                            
+                                            Surface(
+                                                modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp),
+                                                color = kianColors.ink.copy(alpha = 0.8f),
+                                                shape = RoundedCornerShape(8.dp)
                                             ) {
-                                                Text(cat.name, fontWeight = if (selectedCat == cat.id) FontWeight.Bold else FontWeight.Normal)
+                                                Text(
+                                                    text = stringResource(R.string.open_navigation),
+                                                    color = kianColors.canvas,
+                                                    fontSize = 12.sp,
+                                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                                    fontWeight = FontWeight.Bold
+                                                )
                                             }
                                         }
                                     }
                                 }
+                            }
+                            
+                            Row(
+                                modifier = Modifier.padding(top = 24.dp).fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                ProfileStat(label = stringResource(R.string.vouchers), value = showcaseTokens.size.toString(), icon = Icons.Default.ConfirmationNumber)
+                                ProfileStat(
+                                    label = stringResource(R.string.followers),
+                                    value = followerCount.toString(),
+                                    onClick = { onFollowersClick(pubkey) }
+                                )
+                                ProfileStat(label = stringResource(R.string.rating), value = avgRating, icon = Icons.Default.Star)
+                            }
 
-                                // Children Options
-                                if (currentOptions.isNotEmpty()) {
-                                    LazyRow(
-                                        contentPadding = PaddingValues(horizontal = 20.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        items(currentOptions) { cat ->
-                                            FilterChip(
-                                                label = cat.name,
-                                                selected = false,
-                                                onClick = { viewModel.selectCategory(cat.id) },
-                                                colors = kianColors
-                                            )
-                                        }
-                                    }
+                            Row(modifier = Modifier.padding(top = 24.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                if (isOwnProfile) {
+                                    KianButton(
+                                        text = stringResource(R.string.edit_profile),
+                                        onClick = onEdit,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                } else {
+                                    KianButton(
+                                        text = stringResource(R.string.message),
+                                        onClick = { onMessage(pubkey) },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    KianButton(
+                                        text = if (isFollowing) stringResource(R.string.unfollow) else stringResource(R.string.follow),
+                                        onClick = { viewModel.toggleFollow() },
+                                        type = if (isFollowing) com.ely.kian.ui.components.ButtonType.Secondary else com.ely.kian.ui.components.ButtonType.Primary,
+                                        modifier = Modifier.weight(1f)
+                                    )
                                 }
                             }
                         }
                     }
 
-                    if (showcaseTokens.isEmpty()) {
-                        item {
-                            Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
-                                Text(stringResource(R.string.no_showcase_items), color = kianColors.muted)
+                    item {
+                        TabRow(
+                            selectedTabIndex = selectedTab,
+                            containerColor = kianColors.canvas,
+                            contentColor = kianColors.accent,
+                            divider = { HorizontalDivider(color = kianColors.line) },
+                            indicator = { tabPositions ->
+                                TabRowDefaults.SecondaryIndicator(
+                                    Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                                    color = kianColors.accent
+                                )
+                            },
+                            modifier = Modifier.offset(y = (-30).dp)
+                        ) {
+                            Tab(
+                                selected = selectedTab == 0,
+                                onClick = { selectedTab = 0 },
+                                text = { Text(stringResource(R.string.showcase_tab), fontWeight = FontWeight.Bold) }
+                            )
+                            Tab(
+                                selected = selectedTab == 1,
+                                onClick = { selectedTab = 1 },
+                                text = { Text(stringResource(R.string.reviews_tab), fontWeight = FontWeight.Bold) }
+                            )
+                        }
+                    }
+
+                    if (selectedTab == 0) {
+                        if (merchantCategories.isNotEmpty()) {
+                            item {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 8.dp)
+                                        .offset(y = (-20).dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    // Level Path (Breadcrumb)
+                                    LazyRow(
+                                        contentPadding = PaddingValues(horizontal = 20.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        item {
+                                            TextButton(
+                                                onClick = { viewModel.selectCategory(null) },
+                                                contentPadding = PaddingValues(horizontal = 8.dp),
+                                                colors = ButtonDefaults.textButtonColors(
+                                                    contentColor = if (selectedCat == null) kianColors.accent else kianColors.muted
+                                                )
+                                            ) {
+                                                Text(stringResource(R.string.all), fontWeight = if (selectedCat == null) FontWeight.Bold else FontWeight.Normal)
+                                            }
+                                        }
+
+                                        items(breadcrumbPath) { cat ->
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(
+                                                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                                    contentDescription = null,
+                                                    tint = kianColors.line,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                                TextButton(
+                                                    onClick = { viewModel.selectCategory(cat.id) },
+                                                    contentPadding = PaddingValues(horizontal = 8.dp),
+                                                    colors = ButtonDefaults.textButtonColors(
+                                                        contentColor = if (selectedCat == cat.id) kianColors.accent else kianColors.muted
+                                                    )
+                                                ) {
+                                                    Text(cat.name, fontWeight = if (selectedCat == cat.id) FontWeight.Bold else FontWeight.Normal)
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // Children Options
+                                    if (currentOptions.isNotEmpty()) {
+                                        LazyRow(
+                                            contentPadding = PaddingValues(horizontal = 20.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            items(currentOptions) { cat ->
+                                                FilterChip(
+                                                    label = cat.name,
+                                                    selected = false,
+                                                    onClick = { viewModel.selectCategory(cat.id) },
+                                                    colors = kianColors
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (showcaseTokens.isEmpty()) {
+                            item {
+                                Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
+                                    Text(stringResource(R.string.no_showcase_items), color = kianColors.muted)
+                                }
+                            }
+                        } else {
+                            items(showcaseTokens) { token ->
+                                Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
+                                    ShowcaseTokenCard(
+                                        token = token,
+                                        showAddToCart = !isOwnProfile,
+                                        onAddToCart = { qty, pos, img ->
+                                            flyingImage = img
+                                            flyingStart = pos
+                                            isFlying = true
+                                        }
+                                    )
+                                }
                             }
                         }
                     } else {
-                        items(showcaseTokens) { token ->
-                            Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
-                                ShowcaseTokenCard(
-                                    token = token,
-                                    showAddToCart = !isOwnProfile,
-                                    onAddToCart = { qty, pos, img ->
-                                        flyingImage = img
-                                        flyingStart = pos
-                                        isFlying = true
-                                    }
-                                )
+                        if (!isOwnProfile) {
+                            item {
+                                Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
+                                    KianButton(
+                                        text = if (userReview != null) stringResource(R.string.edit_your_review) else stringResource(R.string.write_review),
+                                        onClick = { showReviewDialog = true },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        type = com.ely.kian.ui.components.ButtonType.Secondary
+                                    )
+                                }
                             }
                         }
-                    }
-                } else {
-                    if (!isOwnProfile) {
-                        item {
-                            Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
-                                KianButton(
-                                    text = if (userReview != null) stringResource(R.string.edit_your_review) else stringResource(R.string.write_review),
-                                    onClick = { showReviewDialog = true },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    type = com.ely.kian.ui.components.ButtonType.Secondary
-                                )
+                        
+                        if (reviews.isEmpty()) {
+                            item {
+                                Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
+                                    Text(stringResource(R.string.no_reviews_yet), color = kianColors.muted)
+                                }
+                            }
+                        } else {
+                            items(reviews) { review ->
+                                Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
+                                    ReviewCard(review)
+                                }
                             }
                         }
                     }
                     
-                    if (reviews.isEmpty()) {
-                        item {
-                            Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
-                                Text(stringResource(R.string.no_reviews_yet), color = kianColors.muted)
-                            }
-                        }
-                    } else {
-                        items(reviews) { review ->
-                            Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
-                                ReviewCard(review)
-                            }
-                        }
-                    }
+                    item { Spacer(modifier = Modifier.height(100.dp)) }
                 }
-                
-                item { Spacer(modifier = Modifier.height(100.dp)) }
             }
         }
 

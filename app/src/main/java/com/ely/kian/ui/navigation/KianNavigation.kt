@@ -337,6 +337,7 @@ fun KianScaffold(initialChatRoomId: String? = null) {
                     val followersViewModel: FollowersViewModel = viewModel(
                         factory = FollowersViewModel.provideFactory(
                             app.container.userProfileDao,
+                            app.container.nostrSyncManager,
                             pubkey
                         )
                     )

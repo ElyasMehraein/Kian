@@ -50,6 +50,18 @@ object KianKeys {
         return Bech32.encode("npub", pubKey)
     }
 
+    fun normalizePubkey(pubkey: String): String {
+        return if (pubkey.startsWith("npub")) {
+            try {
+                bytesToHex(Bech32.decode(pubkey).second)
+            } catch (e: Exception) {
+                pubkey
+            }
+        } else {
+            pubkey.lowercase()
+        }
+    }
+
     fun nsecToPrivKey(nsec: String): ByteArray {
         val (hrp, data) = Bech32.decode(nsec)
         if (hrp != "nsec") throw Exception("Invalid nsec")
@@ -111,4 +123,12 @@ object KianKeys {
         val serialized = jsonMinified.encodeToString(JsonArray.serializer(), eventJson)
         return bytesToHex(sha256(serialized.toByteArray()))
     }
+
+    fun parseAssetRef(assetRef: String): ParsedAsset? {
+        val parts = assetRef.split(":")
+        if (parts.size < 3) return null
+        return ParsedAsset(parts[1], parts[2])
+    }
+
+    data class ParsedAsset(val producer: String, val assetId: String)
 }
