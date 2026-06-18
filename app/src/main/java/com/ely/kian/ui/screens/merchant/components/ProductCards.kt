@@ -32,7 +32,7 @@ import com.ely.kian.ui.theme.KianTheme
 fun ShowcaseTokenCard(
     token: BalanceItem,
     showAddToCart: Boolean = true,
-    onSendRequest: (Long, Offset, String?) -> Unit = { _, _, _ -> }
+    onSendRequest: (Long, Offset, String?, String, String) -> Unit = { _, _, _, _, _ -> }
 ) {
     val kianColors = KianTheme.colors
     var quantity by remember { mutableLongStateOf(1L) }
@@ -111,8 +111,11 @@ fun ShowcaseTokenCard(
                     }
                 }
 
+                val spendingSummary = stringResource(R.string.spending_msg, quantity.toInt(), token.name)
+                val buySummary = stringResource(R.string.request_buy_msg, quantity.toInt(), token.name)
+
                 Button(
-                    onClick = { onSendRequest(quantity, itemPosition, token.images.firstOrNull()) },
+                    onClick = { onSendRequest(quantity, itemPosition, token.images.firstOrNull(), spendingSummary, buySummary) },
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = kianColors.ink,

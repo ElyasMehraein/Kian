@@ -16,18 +16,13 @@ import com.ely.kian.data.repository.BalanceItem
 import com.ely.kian.crypto.SecureStorage
 import com.ely.kian.crypto.KianKeys
 import com.ely.kian.data.repository.ChatRepository
+import com.ely.kian.R
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class MerchantProfileViewModel(
@@ -60,30 +55,80 @@ class MerchantProfileViewModel(
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing
 
-    private val _syncError = MutableStateFlow<String?>(null)
-    val syncError: StateFlow<String?> = _syncError
+    private val _syncErrorResId = MutableStateFlow<Int?>(null)
+    val syncErrorResId: StateFlow<Int?> = _syncErrorResId
+
+    private val _syncErrorArgs = MutableStateFlow<Array<out Any>>(emptyArray())
+    val syncErrorArgs: StateFlow<Array<out Any>> = _syncErrorArgs
+
+    val profile: Flow<Profile?> = userProfileDao.getProfileFlow(this.pubkey)
+
+    private val _selectedCategoryId = MutableStateFlow<String?>(null)
+    val selectedCategoryId: StateFlow<String?> = _selectedCategoryId
+
+    fun selectCategory(categoryId: String?) {
+        _selectedCategoryId.value = categoryId
+    }
+
+    val categories: Flow<List<VoucherCategory>> = voucherRepository.getCategories(this.pubkey)
+
+    val showcaseTokens: Flow<List<BalanceItem>> = combine(
+        voucherRepository.getBalancesForPubkey(this.pubkey),
+        selectedCategoryId
+    ) { balances, selectedId ->
+        balances.filter { it.isShowcase && (selectedId == null || it.categories.contains(selectedId)) }
+    }
+
+    val reviews: Flow<List<Review>> = reviewDao.getReviewsForTarget(this.pubkey)
+
+    val userReview: Flow<Review?> = if (ownPubkey != null) {
+        reviewDao.getReviewFlow(ownPubkey, pubkey)
+    } else {
+        flowOf(null)
+    }
+
+    val isFollowing: Flow<Boolean> = if (ownPubkey != null) {
+        userProfileDao.listFollows(ownPubkey).map { follows ->
+            follows.any { it.followsPubkey == this.pubkey }
+        }
+    } else {
+        flowOf(false)
+    }
+
+    val followerCount: Flow<Int> = userProfileDao.countFollowers(this.pubkey)
+
+    fun toggleFollow() {
+        val follower = ownPubkey ?: return
+        viewModelScope.launch {
+            if (userProfileDao.isFollowing(follower, pubkey)) {
+                userProfileDao.deleteFollow(follower, pubkey)
+            } else {
+                userProfileDao.upsertFollow(UserFollow(follower, pubkey, null, null, System.currentTimeMillis() / 1000))
+            }
+        }
+    }
 
     fun refresh() {
         viewModelScope.launch {
-            _syncError.value = null
+            _syncErrorResId.value = null
             _isRefreshing.value = true
             
             // Check for relay connectivity
             val connectedRelays = nostrSyncManager.getConnectedRelayCount()
             if (connectedRelays == 0) {
-                _syncError.value = "عدم اتصال به شبکه. لطفا اینترنت خود را بررسی کنید."
+                _syncErrorResId.value = R.string.failed // Or a more specific connection error if available
                 _isRefreshing.value = false
                 return@launch
             }
 
             nostrSyncManager.requestMerchantData(pubkey)
-            delay(3000) // Increased delay for better sync
+            delay(3000)
             _isRefreshing.value = false
         }
     }
 
     fun clearSyncError() {
-        _syncError.value = null
+        _syncErrorResId.value = null
     }
 
     override fun onCleared() {
@@ -91,133 +136,52 @@ class MerchantProfileViewModel(
         nostrSyncManager.stopRequestingMerchantData(pubkey)
     }
 
-    val profile: StateFlow<Profile?> = userProfileDao.getProfileFlow(pubkey)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
-
-    val categories: StateFlow<List<VoucherCategory>> = voucherRepository.getCategories(pubkey)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    private val _selectedCategoryId = MutableStateFlow<String?>(null)
-    val selectedCategoryId: StateFlow<String?> = _selectedCategoryId
-
-    val showcaseTokens: StateFlow<List<BalanceItem>> = combine(
-        voucherRepository.getBalancesForPubkey(pubkey),
-        _selectedCategoryId
-    ) { list, selectedId ->
-        if (isOwnProfile) {
-            // For me: everything in the showcase
-            list.filter { it.isShowcase && (selectedId == null || it.categories.contains(selectedId)) }
-        } else {
-            // For customers: only what is marked for public showcase AND has a category
-            list.filter { 
-                it.isShowcase && it.categories.isNotEmpty() && (selectedId == null || it.categories.contains(selectedId))
-            }
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    fun selectCategory(categoryId: String?) {
-        if (categoryId == null) {
-            _selectedCategoryId.value = null
-        } else {
-            _selectedCategoryId.value = if (_selectedCategoryId.value == categoryId) null else categoryId
-        }
-    }
-
-    val reviews: StateFlow<List<Review>> = reviewDao.getReviewsForTarget(pubkey)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    val isFollowing: StateFlow<Boolean> = if (ownPubkey != null) {
-        userProfileDao.listFollows(ownPubkey)
-            .map { list -> list.any { it.followsPubkey == pubkey } }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
-    } else {
-        MutableStateFlow(false)
-    }
-
-    val followerCount: StateFlow<Int> = userProfileDao.countFollowers(pubkey)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
-
-    fun toggleFollow() {
-        val followerPubkey = ownPubkey ?: return
+    fun sendPurchaseRequest(token: BalanceItem, quantity: Long, spendingSummary: String, buySummary: String) {
         viewModelScope.launch {
             try {
-                val currentlyFollowing = userProfileDao.isFollowing(followerPubkey, pubkey)
-                val privKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: return@launch
-                val privKey = KianKeys.hexToBytes(privKeyHex)
-                val now = System.currentTimeMillis() / 1000
-
-                val currentFollows = userProfileDao.listFollows(followerPubkey).first()
-
-                val updatedFollows = if (currentlyFollowing) {
-                    currentFollows.filter { it.followsPubkey != pubkey }
-                } else {
-                    currentFollows + UserFollow(followerPubkey, pubkey, null, null, now)
-                }
-
-                if (currentlyFollowing) {
-                    userProfileDao.deleteFollow(followerPubkey, pubkey)
-                } else {
-                    userProfileDao.upsertFollow(UserFollow(followerPubkey, pubkey, null, null, now))
-                }
-
-                val tags = updatedFollows.map { listOf("p", it.followsPubkey) }
-                val id = KianKeys.computeEventId(followerPubkey, now, 3, tags, "")
-                val sig = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(id), privKey))
-                
-                val event = NostrEvent(
-                    id = id,
-                    pubkey = followerPubkey,
-                    createdAt = now,
-                    kind = 3,
-                    tags = tags,
-                    content = "",
-                    sig = sig
-                )
-                nostrSyncManager.publishEvent(event)
-            } catch (e: Exception) {
-                android.util.Log.e("MerchantProfileVM", "Failed to toggle follow", e)
-            }
-        }
-    }
-
-    val userReview: StateFlow<Review?> = if (ownPubkey != null) {
-        reviewDao.getReviewsForTarget(pubkey)
-            .map { list -> list.find { it.pubkey == ownPubkey } }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
-    } else {
-        MutableStateFlow(null)
-    }
-
-    fun sendPurchaseRequest(token: BalanceItem, quantity: Long) {
-        viewModelScope.launch {
-            try {
-                // 1. Protocol Level Lock: Find suitable UTXO and publish Kind 1050
                 val utxos = voucherRepository.getUtxos().first()
-                val suitableUtxo = utxos.find { it.assetRef == token.assetRef && !it.spent && it.amount >= quantity }
-                
-                if (suitableUtxo == null) {
-                    _syncError.value = "موجودی کافی برای رزرو این حواله یافت نشد."
-                    return@launch
+                val availableUtxos = utxos.filter { it.assetRef == token.assetRef && !it.spent }
+                val totalAvailable = availableUtxos.sumOf { it.amount }
+
+                if (totalAvailable > 0) {
+                    if (totalAvailable < quantity) {
+                        _syncErrorResId.value = R.string.insufficient_balance_total
+                        _syncErrorArgs.value = arrayOf(totalAvailable)
+                        return@launch
+                    }
+
+                    val suitableUtxo = availableUtxos.find { it.amount >= quantity }
+                    if (suitableUtxo == null) {
+                        _syncErrorResId.value = R.string.balance_fragmented
+                        return@launch
+                    }
+
+                    val transferRequestId = voucherRepository.lockTokenForPurchase(suitableUtxo.utxoId, quantity, pubkey)
+
+                    val metadata = buildJsonObject {
+                        put("type", "purchase_request")
+                        put("asset_name", token.name)
+                        put("amount", quantity)
+                        put("token_id", token.assetRef)
+                        put("utxo_id", suitableUtxo.utxoId)
+                        put("transfer_request_id", transferRequestId)
+                        put("producer", token.producer)
+                        token.images.firstOrNull()?.let { put("image", it) }
+                    }.toString()
+
+                    chatRepository.sendMessage(pubkey, spendingSummary, metadata)
+                } else {
+                    val metadata = buildJsonObject {
+                        put("type", "purchase_request")
+                        put("asset_name", token.name)
+                        put("amount", quantity)
+                        put("token_id", token.assetRef)
+                        put("producer", token.producer)
+                        token.images.firstOrNull()?.let { put("image", it) }
+                    }.toString()
+
+                    chatRepository.sendMessage(pubkey, buySummary, metadata)
                 }
-
-                // This publishes a signed Kind 1050 (Transfer Request) to the Producer/Relays
-                // making it a protocol-level commitment that cannot be easily double-spent.
-                val transferRequestId = voucherRepository.lockTokenForPurchase(suitableUtxo.utxoId, quantity, pubkey)
-
-                // 2. Chat UI Notification
-                val metadata = buildJsonObject {
-                    put("type", "purchase_request")
-                    put("asset_name", token.name)
-                    put("amount", quantity)
-                    put("token_id", token.assetRef)
-                    put("utxo_id", suitableUtxo.utxoId)
-                    put("transfer_request_id", transferRequestId)
-                    put("producer", token.producer)
-                    token.images.firstOrNull()?.let { put("image", it) }
-                }.toString()
-
-                val summary = "🛍️ $quantity x ${token.name}"
-                chatRepository.sendMessage(pubkey, summary, metadata)
             } catch (e: Exception) {
                 android.util.Log.e("MerchantProfileVM", "Failed to send purchase request", e)
             }

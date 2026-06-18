@@ -19,6 +19,7 @@ class ChatViewModel(
     private val userProfileDao: UserProfileDao,
     val voucherRepository: VoucherRepository
 ) : ViewModel() {
+    private val json = Json { ignoreUnknownKeys = true }
 
     fun getUtxos() = voucherRepository.getUtxos()
 
@@ -54,8 +55,11 @@ class ChatViewModel(
                     put("type", if (isToProducer) "token_redemption" else "token_transfer")
                     put("utxo_id", utxoId) 
                     put("asset_name", assetName)
+                    put("asset_description", balance?.description ?: "")
+                    put("asset_images", json.encodeToJsonElement(balance?.images ?: emptyList()))
                     put("amount", amount)
                     put("producer", utxo.producer)
+                    put("asset_ref", utxo.assetRef)
                 }.toString()
 
                 val summary = if (isToProducer) "🛒 $amount x $assetName" else "💸 $amount x $assetName"

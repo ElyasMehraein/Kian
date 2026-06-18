@@ -172,6 +172,10 @@
     <string name="reject">Reject</string>
     <string name="accept">Accept</string>
     <string name="insufficient_balance">Insufficient balance</string>
+    <string name="insufficient_balance_total">Insufficient balance (Total: %1$d)</string>
+    <string name="balance_fragmented">Your balance is fragmented. Please merge your vouchers first.</string>
+    <string name="spending_msg">🛍️ Spending %1$d x %2$s</string>
+    <string name="request_buy_msg">🛒 Request to buy %1$d x %2$s</string>
     <string name="purchase_accepted">Purchase Accepted</string>
     <string name="purchase_request_accepted">✅ Purchase request accepted</string>
     <string name="open_navigation">Open in Navigation</string>

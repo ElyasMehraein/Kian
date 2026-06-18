@@ -171,6 +171,10 @@
     <string name="reject">رد کردن</string>
     <string name="accept">تایید</string>
     <string name="insufficient_balance">موجودی کافی نیست</string>
+    <string name="insufficient_balance_total">موجودی کافی نیست (کل موجودی: %1$d)</string>
+    <string name="balance_fragmented">موجودی شما تکه‌تکه است. لطفا ابتدا حواله‌ها را ادغام کنید.</string>
+    <string name="spending_msg">🛍️ در حال خرج %1$d عدد %2$s</string>
+    <string name="request_buy_msg">🛒 درخواست خرید %1$d عدد %2$s</string>
     <string name="purchase_accepted">درخواست تایید شد</string>
     <string name="purchase_request_accepted">✅ درخواست خرید تایید شد</string>
     <string name="open_navigation">باز کردن در نقشه</string>

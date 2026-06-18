@@ -11,18 +11,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Verified
-import androidx.compose.material.icons.filled.ConfirmationNumber
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -31,8 +27,6 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
@@ -46,6 +40,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.ely.kian.KianApp
 import com.ely.kian.data.local.entities.Review
 import com.ely.kian.data.local.entities.VoucherCategory
+import com.ely.kian.data.local.entities.Profile
+import com.ely.kian.data.repository.BalanceItem
 import com.ely.kian.ui.components.InitialAvatar
 import com.ely.kian.ui.components.KianButton
 import com.ely.kian.ui.screens.merchant.components.*
@@ -85,10 +81,10 @@ fun MerchantProfileScreen(
     )
 ) {
     val kianColors = KianTheme.colors
-    val profile by viewModel.profile.collectAsState()
-    val showcaseTokens by viewModel.showcaseTokens.collectAsState()
-    val merchantCategories by viewModel.categories.collectAsState()
-    val selectedCat by viewModel.selectedCategoryId.collectAsState()
+    val profile by viewModel.profile.collectAsState(null)
+    val showcaseTokens by viewModel.showcaseTokens.collectAsState(emptyList<BalanceItem>())
+    val merchantCategories by viewModel.categories.collectAsState(emptyList<VoucherCategory>())
+    val selectedCat by viewModel.selectedCategoryId.collectAsState(null)
 
     val breadcrumbPath = remember(selectedCat, merchantCategories) {
         val path = mutableListOf<VoucherCategory>()
@@ -104,19 +100,21 @@ fun MerchantProfileScreen(
         merchantCategories.filter { it.parentId == selectedCat }.sortedBy { it.name }
     }
 
-    val reviews by viewModel.reviews.collectAsState()
-    val userReview by viewModel.userReview.collectAsState()
-    val isFollowing by viewModel.isFollowing.collectAsState()
-    val followerCount by viewModel.followerCount.collectAsState()
-    val isRefreshing by viewModel.isRefreshing.collectAsState()
-    val syncError by viewModel.syncError.collectAsState()
+    val reviews by viewModel.reviews.collectAsState(emptyList<Review>())
+    val userReview by viewModel.userReview.collectAsState(null)
+    val isFollowing by viewModel.isFollowing.collectAsState(false)
+    val followerCount by viewModel.followerCount.collectAsState(0)
+    val isRefreshing by viewModel.isRefreshing.collectAsState(false)
+    val syncErrorResId by viewModel.syncErrorResId.collectAsState(null)
+    val syncErrorArgs by viewModel.syncErrorArgs.collectAsState(emptyArray<Any>())
     val isOwnProfile = viewModel.isOwnProfile
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
 
-    LaunchedEffect(syncError) {
-        syncError?.let {
-            android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_SHORT).show()
+    LaunchedEffect(syncErrorResId) {
+        syncErrorResId?.let { resId ->
+            val message = context.getString(resId, *syncErrorArgs)
+            android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
             viewModel.clearSyncError()
         }
     }
@@ -189,9 +187,10 @@ fun MerchantProfileScreen(
                 ) {
                     item {
                         Box(modifier = Modifier.fillMaxWidth().height(200.dp)) {
-                            if (!profile?.banner.isNullOrBlank()) {
+                            val bannerUrl = profile?.banner
+                            if (!bannerUrl.isNullOrBlank()) {
                                 AsyncImage(
-                                    model = profile?.banner,
+                                    model = bannerUrl,
                                     contentDescription = "Banner",
                                     modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Crop
@@ -241,7 +240,7 @@ fun MerchantProfileScreen(
                                     fontWeight = FontWeight.Bold, 
                                     color = kianColors.ink
                                 )
-                                if (!profile?.nip05.isNullOrBlank()) {
+                                if (profile?.nip05?.isNotBlank() == true) {
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Icon(
                                         imageVector = Icons.Default.Verified, 
@@ -252,22 +251,24 @@ fun MerchantProfileScreen(
                                 }
                             }
                             
+                            val nameTag = profile?.name
                             Text(
-                                text = if (!profile?.name.isNullOrBlank()) "@${profile?.name}" else "@" + pubkey.take(12) + "...", 
+                                text = if (!nameTag.isNullOrBlank()) "@$nameTag" else "@" + pubkey.take(12) + "...", 
                                 fontSize = 14.sp, 
                                 color = kianColors.muted,
                                 fontWeight = FontWeight.Medium
                             )
                             
-                            if (!profile?.website.isNullOrBlank()) {
+                            val website = profile?.website
+                            if (!website.isNullOrBlank()) {
                                 Row(
-                                    modifier = Modifier.padding(top = 10.dp).clickable { uriHandler.openUri(profile?.website!!) },
+                                    modifier = Modifier.padding(top = 10.dp).clickable { uriHandler.openUri(website) },
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(Icons.Default.Language, contentDescription = null, tint = kianColors.accent, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = profile?.website!!.removePrefix("https://").removePrefix("http://").removeSuffix("/"),
+                                        text = website.removePrefix("https://").removePrefix("http://").removeSuffix("/"),
                                         fontSize = 14.sp,
                                         color = kianColors.accent,
                                         fontWeight = FontWeight.SemiBold
@@ -275,13 +276,15 @@ fun MerchantProfileScreen(
                                 }
                             }
 
-                            if (!profile?.location.isNullOrBlank() || !profile?.geohash.isNullOrBlank()) {
+                            val geohash = profile?.geohash
+                            val location = profile?.location
+                            if (!location.isNullOrBlank() || !geohash.isNullOrBlank()) {
                                 val context = LocalContext.current
                                 Row(
                                     modifier = Modifier
                                         .padding(top = 8.dp)
-                                        .clickable(enabled = !profile?.geohash.isNullOrBlank()) {
-                                            profile?.geohash?.let { hash ->
+                                        .clickable(enabled = !geohash.isNullOrBlank()) {
+                                            geohash?.let { hash ->
                                                 try {
                                                     val (lat, lon) = Geohash.decode(hash)
                                                     NavigationUtils.openInMaps(
@@ -298,32 +301,33 @@ fun MerchantProfileScreen(
                                     Icon(
                                         imageVector = Icons.Default.LocationOn,
                                         contentDescription = null,
-                                        tint = if (!profile?.geohash.isNullOrBlank()) kianColors.accent else kianColors.muted,
+                                        tint = if (!geohash.isNullOrBlank()) kianColors.accent else kianColors.muted,
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = profile?.location ?: stringResource(R.string.open_navigation),
+                                        text = location ?: stringResource(R.string.open_navigation),
                                         fontSize = 14.sp,
-                                        color = if (!profile?.geohash.isNullOrBlank()) kianColors.accent else kianColors.muted,
+                                        color = if (!geohash.isNullOrBlank()) kianColors.accent else kianColors.muted,
                                         fontWeight = FontWeight.Medium,
-                                        textDecoration = if (!profile?.geohash.isNullOrBlank()) androidx.compose.ui.text.style.TextDecoration.Underline else null
+                                        textDecoration = if (!geohash.isNullOrBlank()) androidx.compose.ui.text.style.TextDecoration.Underline else null
                                     )
                                 }
                             }
 
                             Spacer(modifier = Modifier.height(16.dp))
                             
-                            if (!profile?.about.isNullOrBlank()) {
+                            val about = profile?.about
+                            if (!about.isNullOrBlank()) {
                                 Text(
-                                    text = profile?.about ?: "",
+                                    text = about,
                                     fontSize = 15.sp,
                                     lineHeight = 22.sp,
                                     color = kianColors.ink.copy(alpha = 0.8f)
                                 )
                             }
 
-                            if (!profile?.geohash.isNullOrBlank()) {
+                            if (!geohash.isNullOrBlank()) {
                                 Spacer(modifier = Modifier.height(20.dp))
                                 Text(
                                     text = stringResource(R.string.location),
@@ -333,8 +337,8 @@ fun MerchantProfileScreen(
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 
-                                val coords = remember(profile?.geohash) {
-                                    try { Geohash.decode(profile?.geohash!!) } catch (e: Exception) { null }
+                                val coords = remember(geohash) {
+                                    try { Geohash.decode(geohash) } catch (e: Exception) { null }
                                 }
                                 
                                 if (coords != null) {
@@ -534,11 +538,11 @@ fun MerchantProfileScreen(
                                     ShowcaseTokenCard(
                                         token = token,
                                         showAddToCart = !isOwnProfile,
-                                        onSendRequest = { qty, pos, img ->
+                                        onSendRequest = { qty, pos, img, spendingMsg, buyMsg ->
                                             flyingImage = img
                                             flyingStart = pos
                                             isFlying = true
-                                            viewModel.sendPurchaseRequest(token, qty)
+                                            viewModel.sendPurchaseRequest(token, qty, spendingMsg, buyMsg)
                                         }
                                     )
                                 }
