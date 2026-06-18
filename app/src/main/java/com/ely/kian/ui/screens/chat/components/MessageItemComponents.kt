@@ -196,6 +196,7 @@ fun PurchaseRequestCard(
     
     val isMine = message.isMine
     val isRejected = message.status == "rejected"
+    val isAccepted = message.status == "accepted"
     
     val cardColor = if (isMine) colors.accent.copy(alpha = 0.2f) else colors.panel
     val borderColor = if (isMine) colors.accent.copy(alpha = 0.4f) else colors.line
@@ -276,11 +277,19 @@ fun PurchaseRequestCard(
                 }
                 
                 Surface(
-                    color = if (isRejected) colors.line else colors.accent,
+                    color = when {
+                        isRejected -> colors.line
+                        isAccepted -> Color(0xFF4ADE80)
+                        else -> colors.accent
+                    },
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        text = if (isRejected) stringResource(R.string.rejected).uppercase() else stringResource(R.string.pending).uppercase(),
+                        text = when {
+                            isRejected -> stringResource(R.string.rejected).uppercase()
+                            isAccepted -> stringResource(R.string.completed).uppercase()
+                            else -> stringResource(R.string.pending).uppercase()
+                        },
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Black,
@@ -289,7 +298,7 @@ fun PurchaseRequestCard(
                 }
             }
 
-            if (!isMine && !isRejected) {
+            if (!isMine && !isRejected && !isAccepted) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -309,8 +318,20 @@ fun PurchaseRequestCard(
                         Text(stringResource(R.string.reject), fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     }
                     
+                    val acceptanceText = stringResource(R.string.purchase_request_accepted)
+                    val tokenId = metadata["token_id"]?.jsonPrimitive?.content ?: ""
+                    val amountLong = amount.toLongOrNull() ?: 1L
+                    
                     Button(
-                        onClick = { /* TODO: Accept logic */ },
+                        onClick = { 
+                            viewModel.acceptPurchaseRequest(
+                                message.id, 
+                                message.contactPubkey, 
+                                tokenId, 
+                                amountLong, 
+                                acceptanceText
+                            ) 
+                        },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
@@ -338,14 +359,16 @@ fun TokenMessageCard(
     val assetName = metadata["asset_name"]?.jsonPrimitive?.content ?: "Voucher"
     val amount = metadata["amount"]?.jsonPrimitive?.content ?: ""
     val utxoId = metadata["utxo_id"]?.jsonPrimitive?.content
+    val transferEventId = metadata["transfer_event_id"]?.jsonPrimitive?.content
     
     val isMine = message.isMine
     val cardColor = if (isMine) colors.accent.copy(alpha = 0.2f) else colors.panel
     val borderColor = if (isMine) colors.accent.copy(alpha = 0.4f) else colors.line
     
     val myUtxos by viewModel.getUtxos().collectAsState(initial = emptyList())
-    val isConfirmed = remember(myUtxos, utxoId) {
-        utxoId != null && myUtxos.any { it.prevUtxoId == utxoId }
+    val isConfirmed = remember(myUtxos, utxoId, transferEventId) {
+        (utxoId != null && myUtxos.any { it.prevUtxoId == utxoId }) || 
+        (transferEventId != null && myUtxos.any { it.utxoId == transferEventId })
     }
 
     Surface(

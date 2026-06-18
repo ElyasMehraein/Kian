@@ -170,6 +170,9 @@
     <string name="request_rejected">Request Rejected</string>
     <string name="reject">Reject</string>
     <string name="accept">Accept</string>
+    <string name="insufficient_balance">Insufficient balance</string>
+    <string name="purchase_accepted">Purchase Accepted</string>
+    <string name="purchase_request_accepted">✅ Purchase request accepted</string>
     <string name="open_navigation">Open in Navigation</string>
     <string name="anonymous_user">Anonymous User</string>
     <string name="scan">Scan</string>

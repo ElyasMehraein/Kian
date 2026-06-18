@@ -211,6 +211,83 @@ class VoucherNostrHandler(
         voucherDao.insertUtxo(VoucherUtxo(id, assetRef, myPubkey, recipientPubkey, amount, prevUtxoId, createdAt, false))
     }
 
+    suspend fun sendTransfer(
+        utxoId: String,
+        amount: Long,
+        recipientPubkey: String
+    ): String {
+        val myPrivKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: return ""
+        val myPrivKey = KianKeys.hexToBytes(myPrivKeyHex)
+        val myPubkey = KianKeys.bytesToHex(KianKeys.getPubKey(myPrivKey))
+
+        val utxo = voucherDao.getUtxo(utxoId) ?: return ""
+        if (utxo.spent) return ""
+
+        val assetRef = utxo.assetRef
+        val parsed = KianKeys.parseAssetRef(assetRef) ?: return ""
+
+        // Mark as spent locally
+        voucherDao.markSpent(utxoId)
+
+        return if (parsed.producer == myPubkey) {
+            // I am the producer, issue a Remint (Kind 35002)
+            val newUtxoId = issueRemintWithId(recipientPubkey, assetRef, amount, utxoId, myPrivKey)
+            
+            val change = utxo.amount - amount
+            if (change > 0) {
+                issueRemint(myPubkey, assetRef, change, utxoId, myPrivKey)
+            }
+            newUtxoId
+        } else {
+            // I am NOT the producer, send a Transfer Request (Kind 1050) to the producer
+            val createdAt = System.currentTimeMillis() / 1000
+            val content = buildJsonObject {
+                put("type", "transfer")
+                put("utxo_id", utxoId)
+                put("amount", amount)
+                put("recipient", recipientPubkey)
+                put("asset_ref", assetRef)
+            }.toString()
+
+            val tags = listOf(listOf("p", parsed.producer))
+            val id = KianKeys.computeEventId(myPubkey, createdAt, 1050, tags, content)
+            val sig = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(id), myPrivKey))
+
+            val event = NostrEvent(id, myPubkey, createdAt, 1050, tags, content, sig)
+            val rumor = json.encodeToString(event)
+            
+            val wrap = Nip59.giftWrap(rumor, myPrivKey, KianKeys.hexToBytes(parsed.producer), myPubkey)
+            syncManager.publishEvent(wrap, relayDao.getDmInboxRelayUrls(parsed.producer))
+            id
+        }
+    }
+
+    private suspend fun issueRemintWithId(
+        recipientPubkey: String,
+        assetRef: String,
+        amount: Long,
+        prevUtxoId: String,
+        myPrivKey: ByteArray
+    ): String {
+        val myPubkey = KianKeys.bytesToHex(KianKeys.getPubKey(myPrivKey))
+        val createdAt = System.currentTimeMillis() / 1000
+        val content = buildJsonObject {
+            put("amount", amount)
+            put("previous_utxo", prevUtxoId)
+        }.toString()
+
+        val tags = listOf(listOf("a", assetRef), listOf("p", recipientPubkey))
+        val id = KianKeys.computeEventId(myPubkey, createdAt, 35002, tags, content)
+        val sig = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(id), myPrivKey))
+
+        val event = NostrEvent(id, myPubkey, createdAt, 35002, tags, content, sig)
+        val rumor = json.encodeToString(event)
+        syncManager.publishEvent(Nip59.giftWrap(rumor, myPrivKey, KianKeys.hexToBytes(recipientPubkey), myPubkey), relayDao.getDmInboxRelayUrls(recipientPubkey))
+        
+        voucherDao.insertUtxo(VoucherUtxo(id, assetRef, myPubkey, recipientPubkey, amount, prevUtxoId, createdAt, false))
+        return id
+    }
+
     private suspend fun handleGenesis(event: NostrEvent) {
         val dTag = event.tags.find { it.size >= 2 && it[0] == "d" }?.get(1) ?: return
         val author = KianKeys.normalizePubkey(event.pubkey)

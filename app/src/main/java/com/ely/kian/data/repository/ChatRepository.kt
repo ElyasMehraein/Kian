@@ -245,10 +245,16 @@ class ChatRepository(
             if (metadata != null) {
                 try {
                     val metaObj = json.parseToJsonElement(metadata).jsonObject
-                    if (metaObj["type"]?.jsonPrimitive?.content == "purchase_rejection") {
+                    val type = metaObj["type"]?.jsonPrimitive?.content
+                    if (type == "purchase_rejection") {
                         val targetId = metaObj["target_id"]?.jsonPrimitive?.content
                         if (targetId != null) {
                             chatDao.updateMessageStatus(targetId, "rejected")
+                        }
+                    } else if (type == "purchase_acceptance") {
+                        val targetId = metaObj["target_id"]?.jsonPrimitive?.content
+                        if (targetId != null) {
+                            chatDao.updateMessageStatus(targetId, "accepted")
                         }
                     }
                 } catch (e: Exception) {

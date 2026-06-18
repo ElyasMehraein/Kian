@@ -169,6 +169,9 @@
     <string name="request_rejected">درخواست رد شد</string>
     <string name="reject">رد کردن</string>
     <string name="accept">تایید</string>
+    <string name="insufficient_balance">موجودی کافی نیست</string>
+    <string name="purchase_accepted">درخواست تایید شد</string>
+    <string name="purchase_request_accepted">✅ درخواست خرید تایید شد</string>
     <string name="open_navigation">باز کردن در نقشه</string>
     <string name="anonymous_user">کاربر ناشناس</string>
     <string name="scan">اسکن</string>

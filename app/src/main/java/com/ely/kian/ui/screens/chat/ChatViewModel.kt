@@ -101,6 +101,44 @@ class ChatViewModel(
         }
     }
 
+    fun acceptPurchaseRequest(messageId: String, contactPubkey: String, assetRef: String, amount: Long, localizedContent: String) {
+        viewModelScope.launch {
+            try {
+                val utxos = voucherRepository.getUtxos().first()
+                val availableUtxos = utxos.filter { it.assetRef == assetRef && !it.spent }
+                
+                // For simplicity, find the first UTXO that covers the amount. 
+                // A better implementation would combine multiple UTXOs.
+                val suitableUtxo = availableUtxos.find { it.amount >= amount }
+                
+                if (suitableUtxo == null) {
+                    // Could not find a single UTXO large enough
+                    return@launch
+                }
+                
+                // 1. Send the actual voucher (Kind 35002 or 1050)
+                val transferEventId = voucherRepository.sendTokenTransfer(suitableUtxo.utxoId, amount, contactPubkey)
+                
+                // 2. Update local message status
+                repository.updateMessageStatus(messageId, "accepted")
+                
+                // 3. Send acceptance message in chat
+                val metadata = buildJsonObject {
+                    put("type", "purchase_acceptance")
+                    put("target_id", messageId)
+                    put("utxo_id", suitableUtxo.utxoId) // The original UTXO being spent
+                    put("transfer_event_id", transferEventId) // The new event ID
+                    put("asset_name", suitableUtxo.assetRef.split(":").lastOrNull() ?: "Voucher")
+                    put("amount", amount)
+                }.toString()
+                
+                repository.sendMessage(contactPubkey, localizedContent, metadata)
+            } catch (e: Exception) {
+                android.util.Log.e("ChatViewModel", "Failed to accept purchase", e)
+            }
+        }
+    }
+
 
     fun sendMessage(contactPubkey: String, content: String, replyToId: String? = null) {
         viewModelScope.launch {
