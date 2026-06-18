@@ -297,6 +297,7 @@ class VoucherRepository(
     }
 
     suspend fun confirmReceipt(transferEventId: String, producerPubkey: String) {
+        nostrHandler.sendReceiptConfirmation(transferEventId, producerPubkey)
     }
 
     suspend fun handleTokenEvent(event: NostrEvent) {

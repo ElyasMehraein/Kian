@@ -133,10 +133,14 @@ class VoucherNostrHandler(
             
             if (existingUtxo.spent) return
 
+            val parsed = KianKeys.parseAssetRef(assetRef)
+            val definition = parsed?.let { voucherDao.getDefinition(it.assetId, myPubkey) }
+            val assetName = definition?.name ?: "Voucher"
+
             voucherDao.markSpent(utxoId)
 
             if (isRedemption) {
-                notifications.emit("🎁 Voucher redemption request from ${event.pubkey}")
+                notifications.emit("🎁 Redemption request: $amount x $assetName from ${event.pubkey}")
             } else {
                 issueRemint(recipient, assetRef, amount, utxoId, myPrivKey)
                 if (event.pubkey != recipient) {
@@ -146,7 +150,7 @@ class VoucherNostrHandler(
                 if (change > 0) {
                     issueRemint(event.pubkey, assetRef, change, utxoId, myPrivKey)
                 }
-                notifications.emit("✅ Approved voucher transfer ($amount units) to $recipient")
+                notifications.emit("✅ Approved transfer: $amount x $assetName to $recipient")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to handle transfer request", e)
@@ -177,6 +181,27 @@ class VoucherNostrHandler(
         val event = NostrEvent(id, myPubkey, createdAt, 35002, tags, content, sig)
         val rumor = json.encodeToString(event)
         syncManager.publishEvent(Nip59.giftWrap(rumor, myPrivKey, KianKeys.hexToBytes(senderPubkey), myPubkey), relayDao.getDmInboxRelayUrls(senderPubkey))
+    }
+
+    suspend fun sendReceiptConfirmation(transferEventId: String, producerPubkey: String) {
+        val myPrivKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: return
+        val myPrivKey = KianKeys.hexToBytes(myPrivKeyHex)
+        val myPubkey = KianKeys.bytesToHex(KianKeys.getPubKey(myPrivKey))
+
+        val createdAt = System.currentTimeMillis() / 1000
+        val tags = listOf(
+            listOf("e", transferEventId),
+            listOf("p", producerPubkey)
+        )
+        val content = "Product delivered/received"
+        
+        val id = KianKeys.computeEventId(myPubkey, createdAt, 1051, tags, content)
+        val sig = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(id), myPrivKey))
+
+        val event = NostrEvent(id, myPubkey, createdAt, 1051, tags, content, sig)
+        val rumor = json.encodeToString(event)
+        
+        syncManager.publishEvent(Nip59.giftWrap(rumor, myPrivKey, KianKeys.hexToBytes(producerPubkey), myPubkey), relayDao.getDmInboxRelayUrls(producerPubkey))
     }
 
     private suspend fun handleReceiptConfirmation(event: NostrEvent) {
