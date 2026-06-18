@@ -82,6 +82,25 @@ class ChatViewModel(
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     }
 
+    fun rejectPurchaseRequest(messageId: String, contactPubkey: String, localizedContent: String) {
+        viewModelScope.launch {
+            try {
+                // 1. Update original message status locally
+                repository.updateMessageStatus(messageId, "rejected")
+                
+                // 2. Send a rejection message with metadata
+                val metadata = buildJsonObject {
+                    put("type", "purchase_rejection")
+                    put("target_id", messageId)
+                }.toString()
+                
+                repository.sendMessage(contactPubkey, localizedContent, metadata)
+            } catch (e: Exception) {
+                android.util.Log.e("ChatViewModel", "Failed to reject", e)
+            }
+        }
+    }
+
 
     fun sendMessage(contactPubkey: String, content: String, replyToId: String? = null) {
         viewModelScope.launch {

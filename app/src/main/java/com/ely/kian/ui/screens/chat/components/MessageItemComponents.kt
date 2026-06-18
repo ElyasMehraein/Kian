@@ -15,6 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
@@ -48,17 +49,30 @@ fun MessageContent(
 
         if (metadata != null) {
             val type = metadata["type"]?.jsonPrimitive?.content ?: ""
-            if (type == "purchase_request") {
-                PurchaseRequestCard(metadata, colors, message.isMine)
-            } else {
-                TokenMessageCard(message, metadata, viewModel, colors)
+            when (type) {
+                "purchase_request" -> {
+                    PurchaseRequestCard(message, metadata, viewModel, colors)
+                }
+                "purchase_rejection" -> {
+                    Text(
+                        text = if (message.content.startsWith("🚫")) message.content else "🚫 " + stringResource(R.string.request_rejected),
+                        color = if (message.isMine) Color.White.copy(alpha = 0.7f) else colors.muted,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
+                }
+                else -> {
+                    TokenMessageCard(message, metadata, viewModel, colors)
+                }
             }
         } else {
             Text(
-                text = message.content,
-                color = textColor,
+                text = if (message.status == "rejected") stringResource(R.string.request_rejected) else message.content,
+                color = if (message.status == "rejected") colors.muted else textColor,
                 fontSize = 16.sp,
-                lineHeight = 22.sp
+                lineHeight = 22.sp,
+                textDecoration = if (message.status == "rejected") androidx.compose.ui.text.style.TextDecoration.LineThrough else null
             )
         }
 
@@ -171,96 +185,142 @@ fun MessageReactions(reactionsJson: String, colors: KianColors) {
 
 @Composable
 fun PurchaseRequestCard(
+    message: ChatMessage,
     metadata: JsonObject,
-    colors: KianColors,
-    isMine: Boolean
+    viewModel: ChatViewModel,
+    colors: KianColors
 ) {
     val assetName = metadata["asset_name"]?.jsonPrimitive?.content ?: "Voucher"
     val amount = metadata["amount"]?.jsonPrimitive?.content ?: "1"
     val image = metadata["image"]?.jsonPrimitive?.content
+    
+    val isMine = message.isMine
+    val isRejected = message.status == "rejected"
     
     val cardColor = if (isMine) colors.accent.copy(alpha = 0.2f) else colors.panel
     val borderColor = if (isMine) colors.accent.copy(alpha = 0.4f) else colors.line
     val textColor = if (isMine) Color.White else colors.ink
 
     Surface(
-        color = cardColor,
-        shape = RoundedCornerShape(16.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, borderColor),
+        color = if (isRejected) colors.panel.copy(alpha = 0.5f) else cardColor,
+        shape = RoundedCornerShape(20.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, if (isRejected) colors.line else borderColor),
         modifier = Modifier.padding(vertical = 4.dp).fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
-                    color = colors.accent.copy(alpha = 0.1f),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.size(48.dp)
+                    color = colors.accent.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.size(56.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         if (image != null) {
                             AsyncImage(
                                 model = image,
                                 contentDescription = null,
-                                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp)),
+                                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(14.dp)).alpha(if (isRejected) 0.4f else 1f),
                                 contentScale = ContentScale.Crop
                             )
                         } else {
                             Icon(
                                 imageVector = Icons.Default.ShoppingCart,
                                 contentDescription = null,
-                                tint = colors.accent,
-                                modifier = Modifier.size(24.dp)
+                                tint = colors.accent.copy(alpha = if (isRejected) 0.5f else 1f),
+                                modifier = Modifier.size(28.dp)
                             )
                         }
                     }
                 }
                 
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(16.dp))
                 
                 Column {
                     Text(
                         text = stringResource(R.string.purchase_request),
-                        fontSize = 12.sp,
+                        fontSize = 13.sp,
                         color = colors.muted,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.SemiBold
                     )
                     Text(
                         text = assetName,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = textColor
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = if (isRejected) colors.muted else textColor,
+                        textDecoration = if (isRejected) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
             
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(colors.line.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
-                    .padding(8.dp),
+                    .background(colors.line.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = stringResource(R.string.qty, amount.toIntOrNull() ?: 1),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = textColor
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Inventory, contentDescription = null, tint = colors.muted, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = stringResource(R.string.qty, amount.toIntOrNull() ?: 1),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isRejected) colors.muted else textColor
+                    )
+                }
                 
                 Surface(
-                    color = colors.accent,
-                    shape = RoundedCornerShape(6.dp)
+                    color = if (isRejected) colors.line else colors.accent,
+                    shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        text = stringResource(R.string.pending),
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        text = if (isRejected) stringResource(R.string.rejected).uppercase() else stringResource(R.string.pending).uppercase(),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Black,
+                        color = if (isRejected) colors.muted else Color.White
                     )
+                }
+            }
+
+            if (!isMine && !isRejected) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    val rejectionText = "🚫 " + stringResource(R.string.request_rejected)
+                    Button(
+                        onClick = { viewModel.rejectPurchaseRequest(message.id, message.contactPubkey, rejectionText) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.Red.copy(alpha = 0.1f),
+                            contentColor = Color.Red
+                        ),
+                        contentPadding = PaddingValues(vertical = 12.dp)
+                    ) {
+                        Text(stringResource(R.string.reject), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    }
+                    
+                    Button(
+                        onClick = { /* TODO: Accept logic */ },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = colors.ink,
+                            contentColor = colors.canvas
+                        ),
+                        contentPadding = PaddingValues(vertical = 12.dp)
+                    ) {
+                        Text(stringResource(R.string.accept), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }

@@ -18,7 +18,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.JsonPrimitive
 
 class ChatRepository(
     private val chatDao: ChatDao,
@@ -238,6 +241,20 @@ class ChatRepository(
             
             chatDao.insertMessage(message)
             updateConversation(contactPubkey, event.content, event.createdAt, !isMine)
+
+            if (metadata != null) {
+                try {
+                    val metaObj = json.parseToJsonElement(metadata).jsonObject
+                    if (metaObj["type"]?.jsonPrimitive?.content == "purchase_rejection") {
+                        val targetId = metaObj["target_id"]?.jsonPrimitive?.content
+                        if (targetId != null) {
+                            chatDao.updateMessageStatus(targetId, "rejected")
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to parse metadata in handleChatMessage", e)
+                }
+            }
 
             if (!isMine) {
                 sendReceipt(contactPubkey, listOf(event.id), 20001) // Delivered
