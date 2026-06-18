@@ -38,7 +38,8 @@
     <string name="mnemonic_hint">Tap generate to create your account keys.</string>
     <string name="recovery_desc">Paste a previously backed up mnemonic to restore this account.</string>
     <string name="private_key_login_desc">Enter your nsec or hex private key to log in.</string>
-    <string name="merchants">Merchants</string>
+    <string name="merchants">Kian</string>
+    <string name="home_subtitle">Digital Economy on Nostr</string>
     <string name="vouchers_persian" translatable="false">حواله</string>
     <string name="nearest">Nearest</string>
     <string name="top_rated">Top Rated</string>

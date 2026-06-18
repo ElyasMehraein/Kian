@@ -52,7 +52,10 @@ fun HomeScreen(
         modifier = Modifier.fillMaxSize()
     ) {
         // Header
-        ScreenHeader(title = stringResource(R.string.merchants))
+        ScreenHeader(
+            title = stringResource(R.string.merchants),
+            subtitle = stringResource(R.string.home_subtitle)
+        )
 
         // Sort Chips
         LazyRow(

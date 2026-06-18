@@ -5,7 +5,7 @@
     <string name="chat">گفتگو</string>
     <string name="vouchers">حواله‌ها</string>
     <string name="profile">پروفایل</string>
-    <string name="merchant">فروشنده</string>
+    <string name="merchant">تاجر</string>
     <string name="chatroom">اتاق گفتگو</string>
     <string name="cart">سبد خرید</string>
     <string name="backups">پشتیبان‌گیری</string>
@@ -13,7 +13,7 @@
     <string name="pending_events">رویدادهای معلق</string>
     <string name="private_key_management">مدیریت کلید خصوصی</string>
     <string name="account_mode">حالت حساب</string>
-    <string name="business">تجاری</string>
+    <string name="business">کسب و کار</string>
     <string name="logout">خروج</string>
     <string name="language">زبان / Language</string>
     <string name="english">English</string>
@@ -38,7 +38,8 @@
     <string name="mnemonic_hint">برای ایجاد کلیدهای خود، روی ایجاد کلیک کنید.</string>
     <string name="recovery_desc">یک عبارت بازیابی که قبلاً پشتیبان‌گیری شده را برای بازیابی حساب بچسبانید.</string>
     <string name="private_key_login_desc">کلید خصوصی خود را (nsec یا hex) برای ورود وارد کنید.</string>
-    <string name="merchants">فروشندگان</string>
+    <string name="merchants">کیان</string>
+    <string name="home_subtitle">اقتصاد دیجیتال روی شبکه نوستر</string>
     <string name="nearest">نزدیک‌ترین</string>
     <string name="top_rated">برترین رتبه‌ها</string>
     <string name="verified">تایید شده</string>
