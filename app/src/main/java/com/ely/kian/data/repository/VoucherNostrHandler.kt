@@ -349,11 +349,15 @@ class VoucherNostrHandler(
                 eventId = event.id,
                 createdAt = event.createdAt
             )
+            // Store the definition always
             voucherDao.upsertDefinition(definition)
 
-            if (recipient == myPubkey && voucherDao.getUtxo(event.id) == null) {
+            // Always store the UTXO to maintain history
+            if (voucherDao.getUtxo(event.id) == null) {
                 voucherDao.insertUtxo(VoucherUtxo(event.id, assetRef, author, recipient, amount, null, event.createdAt, false))
-                notifications.emit("New voucher received: ${definition.name} ($amount)")
+                if (recipient == myPubkey) {
+                    notifications.emit("New voucher received: ${definition.name} ($amount)")
+                }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to handle genesis", e)
@@ -365,20 +369,34 @@ class VoucherNostrHandler(
         val pTag = event.tags.find { it.size >= 2 && it[0] == "p" }?.get(1) ?: return
         
         try {
-            val myPubkey = keyDao.getKey()?.pubkey
-            if (pTag != myPubkey || voucherDao.getUtxo(event.id) != null) return
+            val myPubkey = keyDao.getKey()?.pubkey?.let { KianKeys.normalizePubkey(it) }
+            
+            // SECURITY: Verify that the signer of this 35002 is the actual producer of the asset
+            val parsed = KianKeys.parseAssetRef(aTag) ?: return
+            if (KianKeys.normalizePubkey(event.pubkey) != KianKeys.normalizePubkey(parsed.producer)) {
+                Log.w(TAG, "Rejecting invalid 35002: signed by ${event.pubkey}, but asset producer is ${parsed.producer}")
+                return
+            }
+
+            if (voucherDao.getUtxo(event.id) != null) return
 
             val contentObj = json.parseToJsonElement(event.content).jsonObject
             val prevUtxoId = contentObj["previous_utxo"]?.jsonPrimitive?.content
             val amount = contentObj["amount"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
             
+            // 1. Mark previous as spent locally (immediate effect)
             prevUtxoId?.let { voucherDao.markSpent(it) }
             
+            // 2. Always store 35002 to maintain the UTXO chain history.
+            // This is essential for the "NOT IN (SELECT prevUtxoId...)" query to work correctly
+            // during re-syncs and across different devices.
             voucherDao.insertUtxo(VoucherUtxo(event.id, aTag, event.pubkey, pTag, amount, prevUtxoId, event.createdAt, false))
             
-            val parsed = KianKeys.parseAssetRef(aTag)
-            val name = parsed?.let { voucherDao.getDefinition(it.assetId, it.producer)?.name } ?: "Asset"
-            notifications.emit("Voucher transfer completed: $name ($amount units)")
+            // 3. Notify user if they are the recipient
+            if (pTag == myPubkey) {
+                val name = voucherDao.getDefinition(parsed.assetId, parsed.producer)?.name ?: "Asset"
+                notifications.emit("Voucher transfer completed: $name ($amount units)")
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to handle remint", e)
         }

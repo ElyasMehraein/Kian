@@ -31,7 +31,7 @@ interface VoucherDao {
     @Query("SELECT * FROM voucher_utxos WHERE owner = :pubkey OR (producer = :pubkey AND owner != :pubkey) ORDER BY createdAt DESC")
     fun getAllActivityUtxos(pubkey: String): Flow<List<VoucherUtxo>>
 
-    @Query("SELECT * FROM voucher_utxos WHERE owner = :pubkey AND spent = 0 ORDER BY createdAt DESC")
+    @Query("SELECT * FROM voucher_utxos WHERE owner = :pubkey AND (spent = 0 AND utxoId NOT IN (SELECT prevUtxoId FROM voucher_utxos WHERE prevUtxoId IS NOT NULL)) ORDER BY createdAt DESC")
     fun getUnspentUtxosByOwner(pubkey: String): Flow<List<VoucherUtxo>>
 
     @Query("UPDATE voucher_utxos SET spent = 0 WHERE utxoId = :utxoId")
