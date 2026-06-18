@@ -455,44 +455,65 @@ fun TokenMessageCard(
                 )
             }
 
-            if (type == "token_redemption" && isMine && message.status != "received") {
-                Spacer(modifier = Modifier.height(12.dp))
-                var showConfirmDialog by remember { mutableStateOf(false) }
+            if (type == "token_redemption") {
+                if (isMine) {
+                    // Customer View
+                    if (message.status != "received") {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        var showConfirmDialog by remember { mutableStateOf(false) }
 
-                Button(
-                    onClick = { showConfirmDialog = true },
-                    colors = ButtonDefaults.buttonColors(containerColor = colors.accent),
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(0.dp)
-                ) {
-                    Text(stringResource(R.string.confirm_receipt), color = Color.White, fontSize = 14.sp)
-                }
+                        Button(
+                            onClick = { showConfirmDialog = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = colors.accent),
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Text(stringResource(R.string.confirm_receipt), color = Color.White, fontSize = 14.sp)
+                        }
 
-                if (showConfirmDialog) {
-                    AlertDialog(
-                        onDismissRequest = { showConfirmDialog = false },
-                        title = { Text(stringResource(R.string.confirm_delivery)) },
-                        text = { Text(stringResource(R.string.confirm_delivery_confirm)) },
-                        confirmButton = {
-                            TextButton(onClick = {
-                                if (utxoId != null) {
-                                    viewModel.confirmProductReceipt(message.id, message.contactPubkey, utxoId)
-                                }
-                                showConfirmDialog = false
-                            }) {
-                                Text(stringResource(R.string.confirm), color = colors.accent, fontWeight = FontWeight.Bold)
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { showConfirmDialog = false }) {
-                                Text(stringResource(R.string.cancel), color = colors.muted)
-                            }
-                        },
-                        containerColor = colors.panel,
-                        titleContentColor = colors.ink,
-                        textContentColor = colors.ink
-                    )
+                        if (showConfirmDialog) {
+                            AlertDialog(
+                                onDismissRequest = { showConfirmDialog = false },
+                                title = { Text(stringResource(R.string.confirm_delivery)) },
+                                text = { Text(stringResource(R.string.confirm_delivery_confirm)) },
+                                confirmButton = {
+                                    TextButton(onClick = {
+                                        if (utxoId != null) {
+                                            viewModel.confirmProductReceipt(message.id, message.contactPubkey, utxoId)
+                                        }
+                                        showConfirmDialog = false
+                                    }) {
+                                        Text(stringResource(R.string.confirm), color = colors.accent, fontWeight = FontWeight.Bold)
+                                    }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { showConfirmDialog = false }) {
+                                        Text(stringResource(R.string.cancel), color = colors.muted)
+                                    }
+                                },
+                                containerColor = colors.panel,
+                                titleContentColor = colors.ink,
+                                textContentColor = colors.ink
+                            )
+                        }
+                    }
+                } else {
+                    // Producer View
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Surface(
+                        color = colors.accent.copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = stringResource(R.string.producer_redemption_msg, assetName, amount),
+                            modifier = Modifier.padding(10.dp),
+                            fontSize = 13.sp,
+                            color = colors.ink,
+                            lineHeight = 18.sp
+                        )
+                    }
                 }
             }
         }

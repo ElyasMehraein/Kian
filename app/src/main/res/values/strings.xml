@@ -89,7 +89,8 @@
     <string name="authenticating">Authenticating...</string>
     <string name="confirm_receipt">Confirm Receipt</string>
     <string name="confirm_delivery">Confirm Delivery</string>
-    <string name="confirm_delivery_confirm">Confirmation means you have received the voucher with the specified quality and quantity. This action is irreversible.</string>
+    <string name="confirm_delivery_confirm">Confirming receipt means you accept the quantity and quality of the products received and waive any right to object in the future.</string>
+    <string name="producer_redemption_msg">This voucher for %1$s (Qty: %2$s) is valid and was produced by you. Please deliver the products as soon as possible with the specified quantity and quality, then wait for customer confirmation.</string>
     <string name="confirm">Confirm</string>
     <string name="select_token_to_send">Select Voucher to Send</string>
     <string name="token_picker_desc">You can send your digital vouchers to others or redeem them from the producer.</string>

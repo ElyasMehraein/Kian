@@ -65,6 +65,7 @@ class KianContainer(private val context: Context) {
         ChatRepository(
             chatDao = database.chatDao(),
             relayDao = database.relayDao(),
+            voucherDao = database.voucherDao(),
             offlineQueueDao = database.offlineQueueDao(),
             userProfileDao = userProfileDao,
             secureStorage = secureStorage,

@@ -26,6 +26,7 @@ import kotlinx.serialization.json.JsonPrimitive
 class ChatRepository(
     private val chatDao: ChatDao,
     private val relayDao: RelayDao,
+    private val voucherDao: com.ely.kian.data.local.dao.VoucherDao,
     private val offlineQueueDao: OfflineQueueDao,
     private val userProfileDao: UserProfileDao,
     private val secureStorage: SecureStorage,
@@ -250,6 +251,17 @@ class ChatRepository(
                         val targetId = metaObj["target_id"]?.jsonPrimitive?.content
                         if (targetId != null) {
                             chatDao.updateMessageStatus(targetId, "rejected")
+                            // Unlock the voucher associated with the target purchase request
+                            val originalMsg = chatDao.getMessageById(targetId)
+                            originalMsg?.metadata?.let { origMeta ->
+                                try {
+                                    val origMetaObj = json.parseToJsonElement(origMeta).jsonObject
+                                    val utxoId = origMetaObj["utxo_id"]?.jsonPrimitive?.content
+                                    if (utxoId != null) {
+                                        voucherDao.unmarkSpent(utxoId)
+                                    }
+                                } catch (e: Exception) { }
+                            }
                         }
                     } else if (type == "purchase_acceptance") {
                         val targetId = metaObj["target_id"]?.jsonPrimitive?.content

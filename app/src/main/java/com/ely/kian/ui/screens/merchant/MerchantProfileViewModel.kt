@@ -191,11 +191,27 @@ class MerchantProfileViewModel(
     fun sendPurchaseRequest(token: BalanceItem, quantity: Long) {
         viewModelScope.launch {
             try {
+                // 1. Protocol Level Lock: Find suitable UTXO and publish Kind 1050
+                val utxos = voucherRepository.getUtxos().first()
+                val suitableUtxo = utxos.find { it.assetRef == token.assetRef && !it.spent && it.amount >= quantity }
+                
+                if (suitableUtxo == null) {
+                    _syncError.value = "موجودی کافی برای رزرو این حواله یافت نشد."
+                    return@launch
+                }
+
+                // This publishes a signed Kind 1050 (Transfer Request) to the Producer/Relays
+                // making it a protocol-level commitment that cannot be easily double-spent.
+                val transferRequestId = voucherRepository.lockTokenForPurchase(suitableUtxo.utxoId, quantity, pubkey)
+
+                // 2. Chat UI Notification
                 val metadata = buildJsonObject {
                     put("type", "purchase_request")
                     put("asset_name", token.name)
                     put("amount", quantity)
                     put("token_id", token.assetRef)
+                    put("utxo_id", suitableUtxo.utxoId)
+                    put("transfer_request_id", transferRequestId)
                     put("producer", token.producer)
                     token.images.firstOrNull()?.let { put("image", it) }
                 }.toString()

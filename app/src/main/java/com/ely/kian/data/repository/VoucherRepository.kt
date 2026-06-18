@@ -288,6 +288,10 @@ class VoucherRepository(
         return "${parsed.producer.take(6)}:${parsed.assetId.take(10)}"
     }
 
+    suspend fun lockTokenForPurchase(utxoId: String, amount: Long, merchantPubkey: String): String {
+        return nostrHandler.sendTransfer(utxoId, amount, merchantPubkey)
+    }
+
     suspend fun sendTokenTransfer(utxoId: String, amount: Long, recipientPubkey: String): String {
         return nostrHandler.sendTransfer(utxoId, amount, recipientPubkey)
     }

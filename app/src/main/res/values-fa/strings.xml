@@ -88,7 +88,8 @@
     <string name="authenticating">در حال احراز اصالت...</string>
     <string name="confirm_receipt">تایید دریافت</string>
     <string name="confirm_delivery">تایید تحویل</string>
-    <string name="confirm_delivery_confirm">تایید به معنای دریافت حواله با کیفیت و مقدار مشخص شده است. این عمل غیرقابل بازگشت است.</string>
+    <string name="confirm_delivery_confirm">تایید دریافت به معنی تایید کمیت و کیفیت محصول دریافت شده است و حق هر اعتراضی را در آینده از شما سلب می نماید.</string>
+    <string name="producer_redemption_msg">این حواله مربوط به %1$s به تعداد %2$s معتبر است و توسط شما تولید شده است. لطفا در اسرع وقت محصولات این حواله را به مقدار و کیفیت مشخص شده در عنوان حواله به مشتری تحویل دهید و جهت تایید مشتری منتظر بمانید.</string>
     <string name="confirm">تایید</string>
     <string name="select_token_to_send">انتخاب حواله برای ارسال</string>
     <string name="token_picker_desc">شما می‌توانید حواله‌های دیجیتال خود را به دیگران ارسال کنید یا آن‌ها را از صادرکننده بازخرید کنید.</string>
