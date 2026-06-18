@@ -41,6 +41,14 @@
                 <data android:host="github.com" />
                 <data android:pathPrefix="/ElyasMehraein/Kian/releases" />
             </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="kian" />
+                <data android:host="profile" />
+            </intent-filter>
         </activity>
 
         <provider
