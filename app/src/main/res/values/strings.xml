@@ -261,6 +261,7 @@
     <string name="download_update">Download Update</string>
     <string name="update_failed">Failed to check for updates.</string>
     <string name="github_project">Project on GitHub</string>
+    <string name="share_profile_message">Check out this profile on Kian: https://github.com/ElyasMehraein/Kian/releases?pk=%1$s\n\n(If you have Kian installed, it will open the profile. Otherwise, it will take you to our GitHub page to download the app.)</string>
 
     <string name="depth_limit_reached">Maximum depth reached</string>
     <string name="depth_limit_desc">Categories can only go 5 levels deep.</string>

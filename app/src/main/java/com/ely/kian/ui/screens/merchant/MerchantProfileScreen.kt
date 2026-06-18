@@ -163,22 +163,17 @@ fun MerchantProfileScreen(
                 containerColor = kianColors.canvas,
                 contentWindowInsets = WindowInsets(0.dp),
                 topBar = {
-                    TopAppBar(
-                        title = { },
-                        navigationIcon = {
-                            if (!isOwnProfile) {
-                                IconButton(onClick = onBack, modifier = Modifier.background(kianColors.canvas.copy(alpha = 0.6f), RoundedCornerShape(12.dp))) {
-                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back), tint = kianColors.ink)
-                                }
+                    MerchantTopBar(
+                        onBack = onBack,
+                        showBack = !isOwnProfile,
+                        onShare = {
+                            val shareText = context.getString(R.string.share_profile_message, pubkey)
+                            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(android.content.Intent.EXTRA_TEXT, shareText)
                             }
-                        },
-                        actions = {
-                            IconButton(onClick = { /* Share */ }, modifier = Modifier.background(kianColors.canvas.copy(alpha = 0.6f), RoundedCornerShape(12.dp))) {
-                                Icon(Icons.Default.Share, contentDescription = stringResource(R.string.share), tint = kianColors.ink)
-                            }
-                            Spacer(modifier = Modifier.width(8.dp))
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                            context.startActivity(android.content.Intent.createChooser(intent, context.getString(R.string.share)))
+                        }
                     )
                 }
             ) { paddingValues ->
@@ -431,30 +426,7 @@ fun MerchantProfileScreen(
                     }
 
                     item {
-                        TabRow(
-                            selectedTabIndex = selectedTab,
-                            containerColor = kianColors.canvas,
-                            contentColor = kianColors.accent,
-                            divider = { HorizontalDivider(color = kianColors.line) },
-                            indicator = { tabPositions ->
-                                TabRowDefaults.SecondaryIndicator(
-                                    Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                                    color = kianColors.accent
-                                )
-                            },
-                            modifier = Modifier.offset(y = (-30).dp)
-                        ) {
-                            Tab(
-                                selected = selectedTab == 0,
-                                onClick = { selectedTab = 0 },
-                                text = { Text(stringResource(R.string.showcase_tab), fontWeight = FontWeight.Bold) }
-                            )
-                            Tab(
-                                selected = selectedTab == 1,
-                                onClick = { selectedTab = 1 },
-                                text = { Text(stringResource(R.string.reviews_tab), fontWeight = FontWeight.Bold) }
-                            )
-                        }
+                        MerchantProfileTabs(selectedTab = selectedTab, onTabSelected = { selectedTab = it })
                     }
 
                     if (selectedTab == 0) {
@@ -583,23 +555,7 @@ fun MerchantProfileScreen(
         }
 
         if (flyingImage != null) {
-            val offsetX = androidx.compose.ui.util.lerp(flyingStart.x, 0f, animProgress.value)
-            val offsetY = androidx.compose.ui.util.lerp(flyingStart.y, 0f, animProgress.value)
-            val scale = androidx.compose.ui.util.lerp(1f, 0.1f, animProgress.value)
-            val alpha = androidx.compose.ui.util.lerp(1f, 0f, animProgress.value)
-
-            AsyncImage(
-                model = flyingImage,
-                contentDescription = null,
-                modifier = Modifier
-                    .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
-                    .size(70.dp)
-                    .scale(scale)
-                    .alpha(alpha)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(kianColors.line),
-                contentScale = ContentScale.Crop
-            )
+            FlyingTokenAnimation(flyingImage = flyingImage!!, flyingStart = flyingStart, animProgress = animProgress.value)
         }
     }
 
@@ -614,4 +570,84 @@ fun MerchantProfileScreen(
             }
         )
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MerchantTopBar(onBack: () -> Unit, showBack: Boolean, onShare: () -> Unit) {
+    val kianColors = KianTheme.colors
+    TopAppBar(
+        title = { },
+        navigationIcon = {
+            Row(
+                modifier = Modifier.padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (showBack) {
+                    IconButton(onClick = onBack, modifier = Modifier.background(kianColors.canvas.copy(alpha = 0.6f), RoundedCornerShape(12.dp))) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back), tint = kianColors.ink)
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                IconButton(onClick = onShare, modifier = Modifier.background(kianColors.canvas.copy(alpha = 0.6f), RoundedCornerShape(12.dp))) {
+                    Icon(Icons.Default.Share, contentDescription = stringResource(R.string.share), tint = kianColors.ink)
+                }
+            }
+        },
+        actions = {
+            Spacer(modifier = Modifier.width(8.dp))
+        },
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+    )
+}
+
+@Composable
+fun MerchantProfileTabs(selectedTab: Int, onTabSelected: (Int) -> Unit) {
+    val kianColors = KianTheme.colors
+    TabRow(
+        selectedTabIndex = selectedTab,
+        containerColor = kianColors.canvas,
+        contentColor = kianColors.accent,
+        divider = { HorizontalDivider(color = kianColors.line) },
+        indicator = { tabPositions ->
+            TabRowDefaults.SecondaryIndicator(
+                Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                color = kianColors.accent
+            )
+        },
+        modifier = Modifier.offset(y = (-30).dp)
+    ) {
+        Tab(
+            selected = selectedTab == 0,
+            onClick = { onTabSelected(0) },
+            text = { Text(stringResource(R.string.showcase_tab), fontWeight = FontWeight.Bold) }
+        )
+        Tab(
+            selected = selectedTab == 1,
+            onClick = { onTabSelected(1) },
+            text = { Text(stringResource(R.string.reviews_tab), fontWeight = FontWeight.Bold) }
+        )
+    }
+}
+
+@Composable
+fun FlyingTokenAnimation(flyingImage: String, flyingStart: Offset, animProgress: Float) {
+    val kianColors = KianTheme.colors
+    val offsetX = androidx.compose.ui.util.lerp(flyingStart.x, 0f, animProgress)
+    val offsetY = androidx.compose.ui.util.lerp(flyingStart.y, 0f, animProgress)
+    val scale = androidx.compose.ui.util.lerp(1f, 0.1f, animProgress)
+    val alpha = androidx.compose.ui.util.lerp(1f, 0f, animProgress)
+
+    AsyncImage(
+        model = flyingImage,
+        contentDescription = null,
+        modifier = Modifier
+            .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
+            .size(70.dp)
+            .scale(scale)
+            .alpha(alpha)
+            .clip(RoundedCornerShape(12.dp))
+            .background(kianColors.line),
+        contentScale = ContentScale.Crop
+    )
 }

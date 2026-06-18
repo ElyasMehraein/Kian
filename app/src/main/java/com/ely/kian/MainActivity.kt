@@ -37,10 +37,16 @@ class MainActivity : ComponentActivity() {
         }
 
         val chatRoomId = intent.getStringExtra("chat_room_id")
+        val initialPubkey = if (intent.action == android.content.Intent.ACTION_VIEW) {
+            intent.data?.getQueryParameter("pk")
+        } else null
 
         setContent {
             KianTheme {
-                KianScaffold(initialChatRoomId = chatRoomId)
+                KianScaffold(
+                    initialChatRoomId = chatRoomId,
+                    initialPubkey = initialPubkey
+                )
             }
         }
     }

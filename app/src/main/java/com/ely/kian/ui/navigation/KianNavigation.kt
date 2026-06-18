@@ -74,7 +74,10 @@ val items = listOf(
 )
 
 @Composable
-fun KianScaffold(initialChatRoomId: String? = null) {
+fun KianScaffold(
+    initialChatRoomId: String? = null,
+    initialPubkey: String? = null
+) {
     val context = LocalContext.current
     val app = context.applicationContext as KianApp
     val viewModel: MainViewModel = viewModel(
@@ -102,11 +105,18 @@ fun KianScaffold(initialChatRoomId: String? = null) {
     val totalUnreadCount by viewModel.totalUnreadCount.collectAsState()
     val userProfile by viewModel.userProfile.collectAsState()
 
-    LaunchedEffect(isLoggedIn, initialChatRoomId) {
-        if (isLoggedIn == true && initialChatRoomId != null) {
-            navController.navigate("chat/$initialChatRoomId") {
-                popUpTo(Screen.Home.route)
-                launchSingleTop = true
+    LaunchedEffect(isLoggedIn, initialChatRoomId, initialPubkey) {
+        if (isLoggedIn == true) {
+            if (initialChatRoomId != null) {
+                navController.navigate("chat/$initialChatRoomId") {
+                    popUpTo(Screen.Home.route)
+                    launchSingleTop = true
+                }
+            } else if (initialPubkey != null) {
+                navController.navigate("merchant/$initialPubkey") {
+                    popUpTo(Screen.Home.route)
+                    launchSingleTop = true
+                }
             }
         }
     }
