@@ -15,8 +15,11 @@ import com.ely.kian.data.repository.VoucherRepository
 import com.ely.kian.data.repository.BalanceItem
 import com.ely.kian.crypto.SecureStorage
 import com.ely.kian.crypto.KianKeys
+import com.ely.kian.data.repository.ChatRepository
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -32,6 +35,7 @@ class MerchantProfileViewModel(
     ownPubkey: String?,
     private val userProfileDao: UserProfileDao,
     private val voucherRepository: VoucherRepository,
+    private val chatRepository: ChatRepository,
     private val reviewDao: ReviewDao,
     private val nostrSyncManager: NostrSyncManager,
     private val secureStorage: SecureStorage
@@ -184,6 +188,26 @@ class MerchantProfileViewModel(
         MutableStateFlow(null)
     }
 
+    fun sendPurchaseRequest(token: BalanceItem, quantity: Long) {
+        viewModelScope.launch {
+            try {
+                val metadata = buildJsonObject {
+                    put("type", "purchase_request")
+                    put("asset_name", token.name)
+                    put("amount", quantity)
+                    put("token_id", token.assetRef)
+                    put("producer", token.producer)
+                    token.images.firstOrNull()?.let { put("image", it) }
+                }.toString()
+
+                val summary = "🛍️ $quantity x ${token.name}"
+                chatRepository.sendMessage(pubkey, summary, metadata)
+            } catch (e: Exception) {
+                android.util.Log.e("MerchantProfileVM", "Failed to send purchase request", e)
+            }
+        }
+    }
+
     fun postReview(rating: Int, comment: String) {
         val reviewerPubkey = ownPubkey ?: return
         viewModelScope.launch {
@@ -254,13 +278,14 @@ class MerchantProfileViewModel(
             ownPubkey: String?, 
             userProfileDao: UserProfileDao, 
             voucherRepository: VoucherRepository,
+            chatRepository: ChatRepository,
             reviewDao: ReviewDao,
             nostrSyncManager: NostrSyncManager,
             secureStorage: SecureStorage
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return MerchantProfileViewModel(pubkey, ownPubkey, userProfileDao, voucherRepository, reviewDao, nostrSyncManager, secureStorage) as T
+                return MerchantProfileViewModel(pubkey, ownPubkey, userProfileDao, voucherRepository, chatRepository, reviewDao, nostrSyncManager, secureStorage) as T
             }
         }
     }

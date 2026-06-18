@@ -7,7 +7,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AddShoppingCart
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,7 +32,7 @@ import com.ely.kian.ui.theme.KianTheme
 fun ShowcaseTokenCard(
     token: BalanceItem,
     showAddToCart: Boolean = true,
-    onAddToCart: (Long, Offset, String?) -> Unit = { _, _, _ -> }
+    onSendRequest: (Long, Offset, String?) -> Unit = { _, _, _ -> }
 ) {
     val kianColors = KianTheme.colors
     var quantity by remember { mutableLongStateOf(1L) }
@@ -112,7 +112,7 @@ fun ShowcaseTokenCard(
                 }
 
                 Button(
-                    onClick = { onAddToCart(quantity, itemPosition, token.images.firstOrNull()) },
+                    onClick = { onSendRequest(quantity, itemPosition, token.images.firstOrNull()) },
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = kianColors.ink,
@@ -124,11 +124,12 @@ fun ShowcaseTokenCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(Icons.Default.AddShoppingCart, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Text(text = stringResource(R.string.add_to_cart), fontWeight = FontWeight.Bold)
+                        Icon(Icons.Default.Chat, contentDescription = null, modifier = Modifier.size(20.dp))
+                        Text(text = stringResource(R.string.send_request), fontWeight = FontWeight.Bold)
                     }
                 }
             }
         }
     }
 }
+

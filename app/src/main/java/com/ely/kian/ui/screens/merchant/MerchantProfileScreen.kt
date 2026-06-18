@@ -77,6 +77,7 @@ fun MerchantProfileScreen(
             ownPubkey,
             (LocalContext.current.applicationContext as KianApp).container.userProfileDao,
             (LocalContext.current.applicationContext as KianApp).container.voucherRepository,
+            (LocalContext.current.applicationContext as KianApp).container.chatRepository,
             (LocalContext.current.applicationContext as KianApp).container.reviewDao,
             (LocalContext.current.applicationContext as KianApp).container.nostrSyncManager,
             (LocalContext.current.applicationContext as KianApp).container.secureStorage
@@ -533,10 +534,11 @@ fun MerchantProfileScreen(
                                     ShowcaseTokenCard(
                                         token = token,
                                         showAddToCart = !isOwnProfile,
-                                        onAddToCart = { qty, pos, img ->
+                                        onSendRequest = { qty, pos, img ->
                                             flyingImage = img
                                             flyingStart = pos
                                             isFlying = true
+                                            viewModel.sendPurchaseRequest(token, qty)
                                         }
                                     )
                                 }

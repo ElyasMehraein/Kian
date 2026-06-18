@@ -164,6 +164,8 @@
     <string name="write_review_here">Write your review here...</string>
     <string name="post_review">Post Review</string>
     <string name="add_to_cart">Add to Cart</string>
+    <string name="send_request">Send Request</string>
+    <string name="purchase_request">Purchase Request</string>
     <string name="open_navigation">Open in Navigation</string>
     <string name="anonymous_user">Anonymous User</string>
     <string name="scan">Scan</string>

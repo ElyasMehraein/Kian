@@ -163,6 +163,8 @@
     <string name="write_review_here">نظر خود را اینجا بنویسید...</string>
     <string name="post_review">ثبت نظر</string>
     <string name="add_to_cart">افزودن به سبد</string>
+    <string name="send_request">ارسال درخواست</string>
+    <string name="purchase_request">درخواست خرید</string>
     <string name="open_navigation">باز کردن در نقشه</string>
     <string name="anonymous_user">کاربر ناشناس</string>
     <string name="scan">اسکن</string>

@@ -15,6 +15,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import com.ely.kian.R
 import com.ely.kian.data.local.entities.ChatMessage
 import com.ely.kian.ui.screens.chat.ChatViewModel
@@ -44,7 +47,12 @@ fun MessageContent(
         }
 
         if (metadata != null) {
-            TokenMessageCard(message, metadata, viewModel, colors)
+            val type = metadata["type"]?.jsonPrimitive?.content ?: ""
+            if (type == "purchase_request") {
+                PurchaseRequestCard(metadata, colors, message.isMine)
+            } else {
+                TokenMessageCard(message, metadata, viewModel, colors)
+            }
         } else {
             Text(
                 text = message.content,
@@ -155,6 +163,104 @@ fun MessageReactions(reactionsJson: String, colors: KianColors) {
                             modifier = Modifier.padding(top = 4.dp)
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PurchaseRequestCard(
+    metadata: JsonObject,
+    colors: KianColors,
+    isMine: Boolean
+) {
+    val assetName = metadata["asset_name"]?.jsonPrimitive?.content ?: "Voucher"
+    val amount = metadata["amount"]?.jsonPrimitive?.content ?: "1"
+    val image = metadata["image"]?.jsonPrimitive?.content
+    
+    val cardColor = if (isMine) colors.accent.copy(alpha = 0.2f) else colors.panel
+    val borderColor = if (isMine) colors.accent.copy(alpha = 0.4f) else colors.line
+    val textColor = if (isMine) Color.White else colors.ink
+
+    Surface(
+        color = cardColor,
+        shape = RoundedCornerShape(16.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, borderColor),
+        modifier = Modifier.padding(vertical = 4.dp).fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    color = colors.accent.copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        if (image != null) {
+                            AsyncImage(
+                                model = image,
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp)),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.ShoppingCart,
+                                contentDescription = null,
+                                tint = colors.accent,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.width(12.dp))
+                
+                Column {
+                    Text(
+                        text = stringResource(R.string.purchase_request),
+                        fontSize = 12.sp,
+                        color = colors.muted,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = assetName,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = textColor
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(colors.line.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                    .padding(8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(R.string.qty, amount.toIntOrNull() ?: 1),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = textColor
+                )
+                
+                Surface(
+                    color = colors.accent,
+                    shape = RoundedCornerShape(6.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.pending),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
                 }
             }
         }
