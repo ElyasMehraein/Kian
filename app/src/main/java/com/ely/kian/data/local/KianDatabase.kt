@@ -21,7 +21,8 @@ import com.ely.kian.data.local.entities.*
         com.ely.kian.data.local.entities.Relay::class,
         com.ely.kian.data.local.entities.DmInboxRelay::class,
         com.ely.kian.data.local.entities.ChatMessage::class,
-        com.ely.kian.data.local.entities.Conversation::class
+        com.ely.kian.data.local.entities.Conversation::class,
+        com.ely.kian.data.local.entities.DeletedEvent::class
     ],
     version = 1,
     exportSchema = false

@@ -27,5 +27,13 @@ data class Conversation(
     @PrimaryKey val contactPubkey: String,
     val lastMessage: String,
     val lastTimestamp: Long,
-    val unreadCount: Int = 0
+    val unreadCount: Int = 0,
+    val isDeleted: Boolean = false,
+    val deletedAt: Long = 0
+)
+
+@Entity(tableName = "deleted_events")
+data class DeletedEvent(
+    @PrimaryKey val id: String,
+    val deletedAt: Long
 )

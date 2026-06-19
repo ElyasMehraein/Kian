@@ -207,6 +207,11 @@ class ChatRepository(
 
     suspend fun handleChatMessage(event: NostrEvent) {
         repoMutex.withLock {
+            if (chatDao.isEventDeleted(event.id)) {
+                Log.d(TAG, "Ignoring deleted message: ${event.id}")
+                return@withLock
+            }
+
             val existing = chatDao.getMessageById(event.id)
             if (existing != null) {
                 if (existing.status == "pending") {
@@ -223,6 +228,13 @@ class ChatRepository(
                 event.tags.find { it.size >= 2 && it[0] == "p" }?.get(1) ?: return@withLock
             } else {
                 event.pubkey
+            }
+
+            // Check if conversation was deleted after this message was created
+            val conv = chatDao.getConversation(contactPubkey)
+            if (conv != null && event.createdAt <= conv.deletedAt) {
+                Log.d(TAG, "Ignoring old message for deleted conversation: ${event.id}")
+                return@withLock
             }
 
             val metadata = event.tags.find { it.size >= 2 && it[0] == "metadata" }?.get(1)
@@ -402,6 +414,7 @@ class ChatRepository(
 
         if (message.pubkey != myPubKey) {
             // Can only delete own messages on relays, but can remove locally
+            chatDao.insertDeletedEvent(com.ely.kian.data.local.entities.DeletedEvent(messageId, System.currentTimeMillis()))
             chatDao.deleteMessageById(messageId)
             return
         }
@@ -419,6 +432,7 @@ class ChatRepository(
         nostrSyncManager.publishEvent(deletionEvent)
 
         // 3. Delete locally
+        chatDao.insertDeletedEvent(com.ely.kian.data.local.entities.DeletedEvent(messageId, System.currentTimeMillis()))
         chatDao.deleteMessageById(messageId)
     }
 
@@ -442,11 +456,16 @@ class ChatRepository(
 
             // 3. Publish
             nostrSyncManager.publishEvent(deletionEvent)
+            
+            // Record as deleted locally
+            targetIds.forEach { id ->
+                chatDao.insertDeletedEvent(com.ely.kian.data.local.entities.DeletedEvent(id, System.currentTimeMillis()))
+            }
         }
 
         // 4. Delete everything locally
         chatDao.deleteMessagesForContact(contactPubkey)
-        chatDao.deleteConversation(contactPubkey)
+        chatDao.deleteConversation(contactPubkey, System.currentTimeMillis() / 1000)
     }
 
     suspend fun handleDeletion(event: NostrEvent) {
@@ -454,6 +473,7 @@ class ChatRepository(
         targetIds.forEach { id ->
             val message = chatDao.getMessageById(id)
             if (message != null && message.pubkey == event.pubkey) {
+                chatDao.insertDeletedEvent(com.ely.kian.data.local.entities.DeletedEvent(id, System.currentTimeMillis()))
                 chatDao.deleteMessageById(id)
             }
         }

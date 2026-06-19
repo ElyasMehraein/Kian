@@ -3,6 +3,7 @@ package com.ely.kian.data.local.dao
 import androidx.room.*
 import com.ely.kian.data.local.entities.ChatMessage
 import com.ely.kian.data.local.entities.Conversation
+import com.ely.kian.data.local.entities.DeletedEvent
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -13,13 +14,19 @@ interface ChatDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMessage(message: ChatMessage)
 
-    @Query("SELECT * FROM conversations ORDER BY lastTimestamp DESC")
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertDeletedEvent(event: DeletedEvent)
+
+    @Query("SELECT EXISTS(SELECT 1 FROM deleted_events WHERE id = :id)")
+    suspend fun isEventDeleted(id: String): Boolean
+
+    @Query("SELECT * FROM conversations WHERE isDeleted = 0 ORDER BY lastTimestamp DESC")
     fun getConversations(): Flow<List<Conversation>>
 
     @Query("SELECT * FROM conversations WHERE contactPubkey = :contactPubkey")
     suspend fun getConversation(contactPubkey: String): Conversation?
 
-    @Query("UPDATE conversations SET lastMessage = :lastMessage, lastTimestamp = :lastTimestamp, unreadCount = unreadCount + :unreadIncrement WHERE contactPubkey = :contactPubkey")
+    @Query("UPDATE conversations SET lastMessage = :lastMessage, lastTimestamp = :lastTimestamp, unreadCount = unreadCount + :unreadIncrement, isDeleted = 0 WHERE contactPubkey = :contactPubkey")
     suspend fun updateConversationLastMessage(contactPubkey: String, lastMessage: String, lastTimestamp: Long, unreadIncrement: Int)
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
@@ -46,8 +53,8 @@ interface ChatDao {
     @Query("DELETE FROM chat_messages WHERE contactPubkey = :contactPubkey")
     suspend fun deleteMessagesForContact(contactPubkey: String)
 
-    @Query("DELETE FROM conversations WHERE contactPubkey = :contactPubkey")
-    suspend fun deleteConversation(contactPubkey: String)
+    @Query("UPDATE conversations SET isDeleted = 1, unreadCount = 0, deletedAt = :deletedAt WHERE contactPubkey = :contactPubkey")
+    suspend fun deleteConversation(contactPubkey: String, deletedAt: Long)
 
     @Query("SELECT id FROM chat_messages WHERE contactPubkey = :contactPubkey AND pubkey = :myPubkey")
     suspend fun getOwnMessageIdsForContact(contactPubkey: String, myPubkey: String): List<String>
@@ -61,6 +68,6 @@ interface ChatDao {
     @Query("SELECT * FROM chat_messages WHERE status = 'pending' ORDER BY createdAt ASC")
     suspend fun getPendingMessages(): List<ChatMessage>
 
-    @Query("SELECT SUM(unreadCount) FROM conversations")
+    @Query("SELECT SUM(unreadCount) FROM conversations WHERE isDeleted = 0")
     fun getTotalUnreadCount(): Flow<Int?>
 }
