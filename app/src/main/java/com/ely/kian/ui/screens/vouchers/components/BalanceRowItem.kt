@@ -6,9 +6,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.ConfirmationNumber
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material3.*
@@ -52,14 +51,16 @@ fun BalanceRow(
         onClick = { /* Go to details */ }
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.height(IntrinsicSize.Min),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Image or Icon
-            Surface(
-                modifier = Modifier.size(64.dp),
-                shape = RoundedCornerShape(12.dp),
-                color = colors.canvas
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .aspectRatio(1f)
+                    .background(colors.canvas)
+                    .clip(RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp))
             ) {
                 if (item.images.isNotEmpty()) {
                     AsyncImage(
@@ -70,14 +71,21 @@ fun BalanceRow(
                     )
                 } else {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.ConfirmationNumber, contentDescription = null, tint = colors.accent.copy(alpha = 0.3f))
+                        Icon(
+                            Icons.Default.ConfirmationNumber,
+                            contentDescription = null,
+                            tint = colors.accent.copy(alpha = 0.3f),
+                            modifier = Modifier.size(32.dp)
+                        )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(12.dp)
+            ) {
                 Text(
                     text = item.name,
                     fontSize = 16.sp,
@@ -94,43 +102,64 @@ fun BalanceRow(
                     overflow = TextOverflow.Ellipsis
                 )
                 
+                Spacer(modifier = Modifier.height(8.dp))
+
                 Row(
-                    modifier = Modifier.padding(top = 4.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(
-                        text = "x${item.amount}",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Black,
-                        color = colors.accent
-                    )
-                    
-                    if (item.categories.isNotEmpty()) {
-                        val catName = myCategories.find { it.id == item.categories.first() }?.name ?: ""
-                        if (catName.isNotEmpty()) {
-                            Text(
-                                text = "#$catName",
-                                fontSize = 11.sp,
-                                color = colors.muted
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "x${item.amount}",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Black,
+                            color = colors.accent
+                        )
+                        
+                        if (item.categories.isNotEmpty()) {
+                            val catName = myCategories.find { it.id == item.categories.first() }?.name ?: ""
+                            if (catName.isNotEmpty()) {
+                                Text(
+                                    text = "#$catName",
+                                    fontSize = 11.sp,
+                                    color = colors.muted
+                                )
+                            }
+                        }
+                    }
+
+                    // Actions
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        IconButton(
+                            onClick = { onToggleShowcase(!item.isShowcase) },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                if (item.isShowcase) Icons.Default.Storefront else Icons.Outlined.Storefront,
+                                contentDescription = null,
+                                tint = if (item.isShowcase) colors.accent else colors.muted,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        IconButton(
+                            onClick = { onEdit(item) },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Category,
+                                contentDescription = null,
+                                tint = colors.muted,
+                                modifier = Modifier.size(24.dp)
                             )
                         }
                     }
-                }
-            }
-
-            // Actions
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { onToggleShowcase(!item.isShowcase) }) {
-                    Icon(
-                        if (item.isShowcase) Icons.Default.Storefront else Icons.Outlined.Storefront,
-                        contentDescription = null,
-                        tint = if (item.isShowcase) colors.accent else colors.muted,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-                IconButton(onClick = { onEdit(item) }) {
-                    Icon(Icons.Default.Edit, contentDescription = null, tint = colors.muted, modifier = Modifier.size(18.dp))
                 }
             }
         }
@@ -179,23 +208,6 @@ fun VoucherGridItem(
                         color = Color.White
                     )
                 }
-
-                // Showcase Toggle
-                IconButton(
-                    onClick = { onToggleShowcase(!item.isShowcase) },
-                    modifier = Modifier.align(Alignment.TopEnd).padding(4.dp)
-                ) {
-                    Surface(shape = CircleShape, color = colors.canvas.copy(alpha = 0.7f), modifier = Modifier.size(32.dp)) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                if (item.isShowcase) Icons.Default.Storefront else Icons.Outlined.Storefront,
-                                contentDescription = null,
-                                tint = if (item.isShowcase) colors.accent else colors.ink,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-                }
             }
             
             Column(modifier = Modifier.padding(12.dp)) {
@@ -207,21 +219,41 @@ fun VoucherGridItem(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                Text(
+                    text = item.description.ifEmpty { "..." },
+                    fontSize = 11.sp,
+                    color = colors.muted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = item.description.ifEmpty { "..." },
-                        fontSize = 11.sp,
-                        color = colors.muted,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
-                    )
-                    IconButton(onClick = { onEdit(item) }, modifier = Modifier.size(24.dp)) {
-                        Icon(Icons.Default.Edit, contentDescription = null, tint = colors.muted, modifier = Modifier.size(14.dp))
+                    IconButton(
+                        onClick = { onToggleShowcase(!item.isShowcase) },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            if (item.isShowcase) Icons.Default.Storefront else Icons.Outlined.Storefront,
+                            contentDescription = null,
+                            tint = if (item.isShowcase) colors.accent else colors.muted,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    IconButton(
+                        onClick = { onEdit(item) },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Category,
+                            contentDescription = null,
+                            tint = colors.muted,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 }
             }
