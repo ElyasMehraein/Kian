@@ -3,6 +3,7 @@ package com.ely.kian.data.remote
 import android.util.Log
 import com.ely.kian.data.local.dao.UserProfileDao
 import com.ely.kian.data.remote.model.NostrEvent
+import com.ely.kian.util.AppConfig
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.json.*
@@ -22,13 +23,7 @@ class NostrSyncManager(
     private val syncScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var currentSyncPubkey: String? = null
     
-    private val defaultRelays = listOf(
-        "wss://relay.damus.io",
-        "wss://nos.lol",
-        "wss://relay.snort.social",
-        "wss://nostr.mom",
-        "ws://192.168.1.14:8080"
-    )
+    private val defaultRelays = AppConfig.defaultRelays
 
     fun startSyncing(myPubkey: String? = null) {
         if (currentSyncPubkey == myPubkey && myPubkey != null) {
@@ -50,9 +45,6 @@ class NostrSyncManager(
             
             // 1. Fetch from Relay DAO (Global list)
             try {
-                // Ensure local relay is always in the database
-                relayDao?.insertRelay(com.ely.kian.data.local.entities.Relay("ws://192.168.1.14:8080", true, true, true))
-
                 val savedRelays = relayDao?.getAllRelays()?.first() ?: emptyList()
                 if (savedRelays.isEmpty()) {
                     // Seed with local relay if empty
