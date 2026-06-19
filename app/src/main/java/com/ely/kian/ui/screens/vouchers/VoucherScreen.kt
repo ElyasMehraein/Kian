@@ -50,6 +50,7 @@ fun VoucherScreen(
 
     val balances by viewModel.balances.collectAsState()
     val myCategories by viewModel.myCategories.collectAsState()
+    val myPubkey by viewModel.myPubkey.collectAsState()
     val searchQuery = viewModel.searchQuery
     val selectedCat = viewModel.selectedCategoryId
 
@@ -305,10 +306,14 @@ fun VoucherScreen(
         VoucherEditBottomSheet(
             token = editingToken!!,
             allCategories = myCategories,
+            isProducer = editingToken!!.producer == myPubkey,
             onDismiss = { showEditSheet = false },
             onSave = { _, _, selectedCats ->
                 viewModel.updateVoucherCategories(editingToken!!.assetRef, selectedCats)
                 showEditSheet = false
+            },
+            onBurn = {
+                viewModel.burnToken(editingToken!!.assetRef)
             },
             colors = kianColors
         )

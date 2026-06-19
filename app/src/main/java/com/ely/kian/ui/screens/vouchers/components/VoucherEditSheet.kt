@@ -29,12 +29,41 @@ import com.ely.kian.ui.theme.KianColors
 fun VoucherEditBottomSheet(
     token: BalanceItem,
     allCategories: List<VoucherCategory>,
+    isProducer: Boolean,
     onDismiss: () -> Unit,
     onSave: (String, String, List<String>) -> Unit,
+    onBurn: () -> Unit,
     colors: KianColors
 ) {
     var selectedCategoryIds by remember { mutableStateOf(token.categories) }
+    var showBurnConfirm by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    if (showBurnConfirm) {
+        AlertDialog(
+            onDismissRequest = { showBurnConfirm = false },
+            title = { Text(stringResource(R.string.burn_token), color = colors.ink) },
+            text = { Text(stringResource(R.string.burn_token_confirm), color = colors.ink) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onBurn()
+                        showBurnConfirm = false
+                        onDismiss()
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = colors.accent)
+                ) {
+                    Text(stringResource(R.string.confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showBurnConfirm = false }) {
+                    Text(stringResource(R.string.cancel), color = colors.muted)
+                }
+            },
+            containerColor = colors.panel
+        )
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -114,6 +143,17 @@ fun VoucherEditBottomSheet(
                 onClick = { onSave(token.name, token.description, selectedCategoryIds) },
                 modifier = Modifier.fillMaxWidth()
             )
+
+            if (isProducer) {
+                Spacer(modifier = Modifier.height(12.dp))
+                KianButton(
+                    text = stringResource(R.string.burn_token),
+                    onClick = { showBurnConfirm = true },
+                    backgroundColor = colors.accent.copy(alpha = 0.1f),
+                    contentColor = colors.accent,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
             Spacer(modifier = Modifier.height(20.dp))
         }
     }

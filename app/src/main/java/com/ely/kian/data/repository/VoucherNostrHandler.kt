@@ -28,11 +28,31 @@ class VoucherNostrHandler(
 
     suspend fun handleTokenEvent(event: NostrEvent) {
         when (event.kind) {
+            5 -> handleDeletion(event)
             35001 -> handleGenesis(event)
             35002 -> handleRemint(event)
             30017 -> handleShowcaseSync(event)
             1050 -> handleTransferRequest(event)
             1051 -> handleReceiptConfirmation(event)
+        }
+    }
+
+    private suspend fun handleDeletion(event: NostrEvent) {
+        val myPubkey = keyDao.getKey()?.pubkey
+        event.tags.filter { it.size >= 2 && it[0] == "a" }.forEach { tag ->
+            val assetRef = tag[1]
+            if (assetRef.startsWith("35001:")) {
+                val parsed = KianKeys.parseAssetRef(assetRef)
+                if (parsed != null && KianKeys.normalizePubkey(event.pubkey) == KianKeys.normalizePubkey(parsed.producer)) {
+                    voucherDao.deleteDefinition(parsed.producer, parsed.assetId)
+                    voucherDao.deleteUtxosForAsset(assetRef)
+                    voucherDao.deleteAssetSettings(assetRef)
+                    if (myPubkey != null) {
+                        voucherDao.deleteMappingsForAsset(myPubkey, assetRef)
+                    }
+                    Log.d(TAG, "Asset $assetRef deleted via Kind 5 from producer")
+                }
+            }
         }
     }
 

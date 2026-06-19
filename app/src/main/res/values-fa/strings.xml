@@ -268,4 +268,7 @@
     <string name="showcase_no_category_desc">برای نمایش این محصول در ویترین، ابتدا باید حداقل یک دسته‌بندی برای آن انتخاب کنید.</string>
     <string name="category_in_use">دسته بندی در حال استفاده است</string>
     <string name="category_in_use_desc">قبل از حذف این شاخه، این دسته بندی را از محصولات خود جدا کنید.</string>
+
+    <string name="burn_token">سوزاندن حواله (حذف کامل)</string>
+    <string name="burn_token_confirm">آیا از سوزاندن این حواله اطمینان دارید؟ با این کار تمام سوابق محلی این حواله حذف شده و درخواست حذف آن به شبکه ارسال می‌شود. این عمل غیرقابل بازگشت است.</string>
 </resources>

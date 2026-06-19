@@ -372,4 +372,47 @@ class VoucherRepository(
             _notifications.emit("Error minting voucher")
         }
     }
+
+    suspend fun burnToken(assetRef: String) {
+        try {
+            val privKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: return
+            val privKey = KianKeys.hexToBytes(privKeyHex)
+            val myPubkey = KianKeys.bytesToHex(KianKeys.getPubKey(privKey))
+
+            val parsed = KianKeys.parseAssetRef(assetRef) ?: return
+            if (KianKeys.normalizePubkey(parsed.producer) != KianKeys.normalizePubkey(myPubkey)) {
+                _notifications.emit("You can only burn tokens you produced")
+                return
+            }
+
+            // Get definition before deleting to publish Kind 5 if needed
+            val definition = voucherDao.getDefinition(parsed.producer, parsed.assetId)
+
+            // 1. Locally delete everything related to this asset
+            voucherDao.deleteDefinition(parsed.producer, parsed.assetId)
+            voucherDao.deleteUtxosForAsset(assetRef)
+            voucherDao.deleteAssetSettings(assetRef)
+            voucherDao.deleteMappingsForAsset(myPubkey, assetRef)
+
+            // 2. Publish Deletion event (Kind 5)
+            if (definition != null) {
+                val now = System.currentTimeMillis() / 1000
+                val tags = mutableListOf<List<String>>()
+                tags.add(listOf("e", definition.eventId))
+                tags.add(listOf("a", "35001:${parsed.producer}:${parsed.assetId}"))
+                
+                val content = "Voucher burned by producer"
+                val id = KianKeys.computeEventId(myPubkey, now, 5, tags, content)
+                val sig = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(id), privKey))
+                
+                val event = NostrEvent(id, myPubkey, now, 5, tags, content, sig)
+                syncManager.publishEvent(event)
+            }
+
+            _notifications.emit("Voucher burned and removed")
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "Failed to burn token", e)
+            _notifications.emit("Error burning voucher")
+        }
+    }
 }

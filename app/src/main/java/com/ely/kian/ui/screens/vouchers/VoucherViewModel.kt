@@ -60,6 +60,10 @@ class VoucherViewModel(
     var selectedCategoryId by mutableStateOf<String?>(null)
         private set
 
+    val myPubkey: StateFlow<String?> = keyDao.getKeyFlow()
+        .map { it?.pubkey }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     private val _uiEvent = MutableSharedFlow<UiEvent>()
     val uiEvent = _uiEvent.asSharedFlow()
 
@@ -121,6 +125,12 @@ class VoucherViewModel(
         viewModelScope.launch {
             val images = imageUrls.split("\n").map { it.trim() }.filter { it.isNotEmpty() }
             voucherRepository.mintToken(name, description, images, quantity)
+        }
+    }
+
+    fun burnToken(assetRef: String) {
+        viewModelScope.launch {
+            voucherRepository.burnToken(assetRef)
         }
     }
 

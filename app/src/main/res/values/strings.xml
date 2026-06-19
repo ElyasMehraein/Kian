@@ -269,4 +269,7 @@
     <string name="showcase_no_category_desc">To show this product in the showcase, you must first select at least one category for it.</string>
     <string name="category_in_use">Category in use</string>
     <string name="category_in_use_desc">Remove this category from your products before deleting this branch.</string>
+
+    <string name="burn_token">Burn Voucher (Permanent Delete)</string>
+    <string name="burn_token_confirm">Are you sure you want to burn this voucher? This will remove all local records and send a deletion request to the network. This action cannot be undone.</string>
 </resources>

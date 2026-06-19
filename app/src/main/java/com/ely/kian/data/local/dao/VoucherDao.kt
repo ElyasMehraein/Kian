@@ -100,6 +100,15 @@ interface VoucherDao {
     @Query("DELETE FROM voucher_definitions WHERE pubkey = :pubkey")
     suspend fun deleteDefinitionsByPubkey(pubkey: String)
 
+    @Query("DELETE FROM voucher_definitions WHERE pubkey = :pubkey AND assetId = :assetId")
+    suspend fun deleteDefinition(pubkey: String, assetId: String)
+
     @Query("DELETE FROM voucher_utxos WHERE owner = :pubkey")
     suspend fun deleteUtxosByPubkey(pubkey: String)
+
+    @Query("DELETE FROM voucher_utxos WHERE assetRef = :assetRef")
+    suspend fun deleteUtxosForAsset(assetRef: String)
+
+    @Query("DELETE FROM voucher_asset_settings WHERE assetRef = :assetRef")
+    suspend fun deleteAssetSettings(assetRef: String)
 }
