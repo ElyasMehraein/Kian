@@ -10,6 +10,7 @@ import android.Manifest
 import android.os.Build
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import com.ely.kian.ui.navigation.KianScaffold
 import com.ely.kian.ui.theme.KianTheme
@@ -21,6 +22,8 @@ class MainActivity : ComponentActivity() {
     ) { isGranted: Boolean ->
         // Handle permission result if needed
     }
+
+    private var initialPubkeyState = mutableStateOf<String?>(null)
 
     override fun attachBaseContext(newBase: Context) {
         val secureStorage = SecureStorage(newBase)
@@ -37,7 +40,7 @@ class MainActivity : ComponentActivity() {
         }
 
         val chatRoomId = intent.getStringExtra("chat_room_id")
-        val initialPubkey = if (intent.action == android.content.Intent.ACTION_VIEW) {
+        initialPubkeyState.value = if (intent.action == android.content.Intent.ACTION_VIEW) {
             intent.data?.getQueryParameter("pk")
         } else null
 
@@ -45,8 +48,18 @@ class MainActivity : ComponentActivity() {
             KianTheme {
                 KianScaffold(
                     initialChatRoomId = chatRoomId,
-                    initialPubkey = initialPubkey
+                    initialPubkey = initialPubkeyState.value
                 )
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        if (intent.action == android.content.Intent.ACTION_VIEW) {
+            val pk = intent.data?.getQueryParameter("pk")
+            if (pk != null) {
+                initialPubkeyState.value = pk
             }
         }
     }

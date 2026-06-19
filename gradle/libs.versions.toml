@@ -20,6 +20,7 @@ securityCrypto = "1.1.0-alpha06"
 coil = "2.7.0"
 osmdroid = "6.1.20"
 workManager = "2.10.0"
+zxing = "3.5.3"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -55,6 +56,7 @@ play-services-location = { group = "com.google.android.gms", name = "play-servic
 androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workManager" }
 hilt-work = { group = "androidx.hilt", name = "hilt-work", version = "1.2.0" }
 androidx-hilt-compiler = { group = "androidx.hilt", name = "hilt-compiler", version = "1.2.0" }
+zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

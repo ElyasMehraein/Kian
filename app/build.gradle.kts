@@ -62,6 +62,7 @@ dependencies {
 
     // WorkManager
     implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.zxing.core)
 
     // Crypto
     implementation(libs.secp256k1)

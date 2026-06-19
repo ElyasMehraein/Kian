@@ -44,6 +44,7 @@ import com.ely.kian.data.local.entities.Profile
 import com.ely.kian.data.repository.BalanceItem
 import com.ely.kian.ui.components.InitialAvatar
 import com.ely.kian.ui.components.KianButton
+import com.ely.kian.ui.components.QrCodeDialog
 import com.ely.kian.ui.screens.merchant.components.*
 import com.ely.kian.ui.theme.KianTheme
 import com.ely.kian.ui.screens.vouchers.components.FilterChip
@@ -121,6 +122,7 @@ fun MerchantProfileScreen(
     
     var selectedTab by remember { mutableIntStateOf(0) }
     var showReviewDialog by remember { mutableStateOf(false) }
+    var showQrDialog by remember { mutableStateOf(false) }
     
     var flyingImage by remember { mutableStateOf<String?>(null) }
     var flyingStart by remember { mutableStateOf(Offset.Zero) }
@@ -173,7 +175,8 @@ fun MerchantProfileScreen(
                                 putExtra(android.content.Intent.EXTRA_TEXT, shareText)
                             }
                             context.startActivity(android.content.Intent.createChooser(intent, context.getString(R.string.share)))
-                        }
+                        },
+                        onShowQr = { showQrDialog = true }
                     )
                 }
             ) { paddingValues ->
@@ -570,11 +573,19 @@ fun MerchantProfileScreen(
             }
         )
     }
+
+    if (showQrDialog) {
+        QrCodeDialog(
+            content = "https://github.com/ElyasMehraein/Kian/releases?pk=$pubkey",
+            title = profile?.displayName ?: profile?.name ?: stringResource(R.string.merchant),
+            onDismiss = { showQrDialog = false }
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MerchantTopBar(onBack: () -> Unit, showBack: Boolean, onShare: () -> Unit) {
+fun MerchantTopBar(onBack: () -> Unit, showBack: Boolean, onShare: () -> Unit, onShowQr: () -> Unit) {
     val kianColors = KianTheme.colors
     TopAppBar(
         title = { },
@@ -591,6 +602,10 @@ fun MerchantTopBar(onBack: () -> Unit, showBack: Boolean, onShare: () -> Unit) {
                 }
                 IconButton(onClick = onShare, modifier = Modifier.background(kianColors.canvas.copy(alpha = 0.6f), RoundedCornerShape(12.dp))) {
                     Icon(Icons.Default.Share, contentDescription = stringResource(R.string.share), tint = kianColors.ink)
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                IconButton(onClick = onShowQr, modifier = Modifier.background(kianColors.canvas.copy(alpha = 0.6f), RoundedCornerShape(12.dp))) {
+                    Icon(Icons.Default.QrCode, contentDescription = stringResource(R.string.scan_qr), tint = kianColors.ink)
                 }
             }
         },
