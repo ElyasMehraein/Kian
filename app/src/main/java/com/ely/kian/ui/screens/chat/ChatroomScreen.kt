@@ -155,6 +155,7 @@ fun ChatroomScreen(
                     colors = kianColors,
                     onLongClick = { showMenu = true },
                     onDoubleClick = { viewModel.toggleReaction(message.id, contactPubkey, "❤️") },
+                    onSwipeToReply = { replyingTo = message },
                     reactions = {
                         if (message.reactions != null) {
                             MessageReactions(message.reactions!!, kianColors)
