@@ -56,7 +56,7 @@ class ChatViewModel(
                     put("utxo_id", utxoId) 
                     put("asset_name", assetName)
                     put("asset_description", balance?.description ?: "")
-                    put("asset_images", json.encodeToJsonElement(balance?.images ?: emptyList()))
+                    put("asset_images", JsonArray((balance?.images ?: emptyList()).map { JsonPrimitive(it) }))
                     put("amount", amount)
                     put("producer", utxo.producer)
                     put("asset_ref", utxo.assetRef)
@@ -127,12 +127,18 @@ class ChatViewModel(
                 repository.updateMessageStatus(messageId, "accepted")
                 
                 // 3. Send acceptance message in chat
+                val balances = voucherRepository.getBalances().first()
+                val balance = balances.find { it.assetRef == suitableUtxo.assetRef }
+                val assetName = balance?.name ?: "Voucher"
+
                 val metadata = buildJsonObject {
                     put("type", "purchase_acceptance")
                     put("target_id", messageId)
                     put("utxo_id", suitableUtxo.utxoId) // The original UTXO being spent
                     put("transfer_event_id", transferEventId) // The new event ID
-                    put("asset_name", suitableUtxo.assetRef.split(":").lastOrNull() ?: "Voucher")
+                    put("asset_name", assetName)
+                    put("asset_description", balance?.description ?: "")
+                    put("asset_images", JsonArray((balance?.images ?: emptyList()).map { JsonPrimitive(it) }))
                     put("amount", amount)
                 }.toString()
                 

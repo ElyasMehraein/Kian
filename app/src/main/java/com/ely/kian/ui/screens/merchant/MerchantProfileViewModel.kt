@@ -18,6 +18,8 @@ import com.ely.kian.crypto.KianKeys
 import com.ely.kian.data.repository.ChatRepository
 import com.ely.kian.R
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -161,12 +163,13 @@ class MerchantProfileViewModel(
                     val metadata = buildJsonObject {
                         put("type", "purchase_request")
                         put("asset_name", token.name)
+                        put("asset_description", token.description ?: "")
+                        put("asset_images", JsonArray(token.images.map { JsonPrimitive(it) }))
                         put("amount", quantity)
                         put("token_id", token.assetRef)
                         put("utxo_id", suitableUtxo.utxoId)
                         put("transfer_request_id", transferRequestId)
                         put("producer", token.producer)
-                        token.images.firstOrNull()?.let { put("image", it) }
                     }.toString()
 
                     chatRepository.sendMessage(pubkey, spendingSummary, metadata)
@@ -174,10 +177,11 @@ class MerchantProfileViewModel(
                     val metadata = buildJsonObject {
                         put("type", "purchase_request")
                         put("asset_name", token.name)
+                        put("asset_description", token.description ?: "")
+                        put("asset_images", JsonArray(token.images.map { JsonPrimitive(it) }))
                         put("amount", quantity)
                         put("token_id", token.assetRef)
                         put("producer", token.producer)
-                        token.images.firstOrNull()?.let { put("image", it) }
                     }.toString()
 
                     chatRepository.sendMessage(pubkey, buySummary, metadata)

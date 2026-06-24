@@ -357,6 +357,10 @@ fun TokenMessageCard(
 ) {
     val type = metadata["type"]?.jsonPrimitive?.content ?: ""
     val assetName = metadata["asset_name"]?.jsonPrimitive?.content ?: "Voucher"
+    val assetDescription = metadata["asset_description"]?.jsonPrimitive?.content
+    val assetImagesJson = metadata["asset_images"]?.jsonArray
+    val assetImage = assetImagesJson?.firstOrNull()?.jsonPrimitive?.content
+
     val amount = metadata["amount"]?.jsonPrimitive?.content ?: ""
     val utxoId = metadata["utxo_id"]?.jsonPrimitive?.content
     val transferEventId = metadata["transfer_event_id"]?.jsonPrimitive?.content
@@ -417,6 +421,32 @@ fun TokenMessageCard(
                         fontWeight = FontWeight.Bold,
                         color = if (isMine) Color.White else colors.ink
                     )
+                }
+            }
+
+            if (!assetImage.isNullOrEmpty() || !assetDescription.isNullOrEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(verticalAlignment = Alignment.Top) {
+                    if (!assetImage.isNullOrEmpty()) {
+                        coil.compose.AsyncImage(
+                            model = assetImage,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(60.dp)
+                                .clip(RoundedCornerShape(8.dp)),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                    }
+                    if (!assetDescription.isNullOrEmpty()) {
+                        Text(
+                            text = assetDescription,
+                            fontSize = 13.sp,
+                            color = if (isMine) Color.White.copy(alpha = 0.8f) else colors.muted,
+                            maxLines = 3,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
             
