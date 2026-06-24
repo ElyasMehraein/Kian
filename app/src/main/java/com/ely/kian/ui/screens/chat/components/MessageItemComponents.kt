@@ -191,8 +191,10 @@ fun PurchaseRequestCard(
     colors: KianColors
 ) {
     val assetName = metadata["asset_name"]?.jsonPrimitive?.content ?: "Voucher"
+    val assetDescription = metadata["asset_description"]?.jsonPrimitive?.content
+    val assetImagesJson = metadata["asset_images"]?.jsonArray
+    val image = assetImagesJson?.firstOrNull()?.jsonPrimitive?.content
     val amount = metadata["amount"]?.jsonPrimitive?.content ?: "1"
-    val image = metadata["image"]?.jsonPrimitive?.content
     
     val isMine = message.isMine
     val isRejected = message.status == "rejected"
@@ -253,6 +255,17 @@ fun PurchaseRequestCard(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
+            }
+
+            if (!assetDescription.isNullOrEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = assetDescription,
+                    fontSize = 13.sp,
+                    color = if (isRejected) colors.muted else textColor.copy(alpha = 0.7f),
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
             
             Spacer(modifier = Modifier.height(16.dp))
@@ -409,6 +422,7 @@ fun TokenMessageCard(
                         text = when(type) {
                             "token_mint" -> stringResource(R.string.genesis_mint)
                             "token_redemption" -> stringResource(R.string.product_redemption)
+                            "purchase_acceptance" -> stringResource(R.string.purchase_accepted)
                             else -> stringResource(R.string.token_transfer)
                         },
                         fontSize = 12.sp,
