@@ -1,179 +1,174 @@
-کیان (Kian) - بازار تهاتر محلی بر بستر Nostr
-کیان یک نرم‌افزار اندرویدی منبع‌باز برای ایجاد و مدیریت بازارهای تهاتر محلی است. هدف کیان این است که کسب‌وکارها، تولیدکنندگان، خدمات‌دهندگان و تاجران یک منطقه بتوانند بخشی از مبادلات خود را بدون وابستگی کامل به پول نقد، از طریق حواله‌های قابل انتقال، اعتبار محلی و استخرهای محصول انجام دهند.
+# Kian - Local Barter Market on Nostr
 
-کیان قرار نیست جایگزین کامل پول، بانک، قانون یا اقتصاد رسمی شود. این پروژه یک ابزار کمکی برای جوامع محلی است تا زمانی که پول نقد کمیاب است، فروش کند شده، ظرفیت تولید خالی مانده یا کسب‌وکارها می‌توانند بخشی از نیازهای یکدیگر را با کالا و خدمات تأمین کنند، امکان مبادله ساده‌تر و شفاف‌تر داشته باشند.
+[![Kotlin](https://img.shields.io/badge/Kotlin-1.9+-blue.svg)](https://kotlinlang.org)
+[![Android](https://img.shields.io/badge/Platform-Android-green.svg)](https://developer.android.com)
+[![License](https://img.shields.io/badge/License-Open%20Source-brightgreen.svg)]()
 
-ایده اصلی
+[🇮🇷 فارسی (Persian)](README-fa.md) | [🇺🇸 English](README.md)
 
-در بسیاری از بازارهای محلی، مشکل اصلی نبود کالا یا نبود مهارت نیست؛ بلکه نبود نقدینگی، ضعف هماهنگی و نبود اعتماد کافی میان فعالان اقتصادی است.
+Kian is an open-source Android application for creating and managing local barter markets. The goal of Kian is to enable businesses, producers, service providers, and merchants in a region to conduct part of their transactions without complete dependence on fiat money, through transferable vouchers, local credit, and product pools.
 
-برای مثال:
+Kian is not meant to completely replace money, banks, the law, or the formal economy. This project is an auxiliary tool for local communities so that when cash is scarce, sales have slowed down, production capacity is idle, or businesses can supply each other's needs with goods and services, they have the possibility of simpler and more transparent exchange.
 
-کشاورز محصول دارد، اما پول نقد کافی برای خرید ابزار ندارد.
-تعمیرکار خدمات ارائه می‌دهد، اما مشتریانش توان پرداخت نقدی فوری ندارند.
-فروشنده کالاهای مختلف در اختیار دارد، اما بخشی از مشتریانش می‌توانند به‌جای پول، محصول یا خدمت ارائه کنند.
-تولیدکننده ظرفیت خالی دارد، اما نمی‌تواند آن را به سرعت به تقاضای واقعی وصل کند.
-کیان تلاش می‌کند این ظرفیت‌های پراکنده را در قالب یک بازار محلی به هم متصل کند.
+## Table of Contents
+- [Core Idea](#core-idea)
+- [How Does Kian Work?](#how-does-kian-work)
+- [Key Features](#key-features)
+- [Tech Stack](#tech-stack)
+- [Technical Architecture & Infrastructure](#technical-architecture--infrastructure)
+- [Getting Started](#getting-started)
+- [Who Can Use Kian?](#who-can-use-kian)
+- [Limitations & Realism](#limitations--realism)
+- [Contributing](#contributing)
 
-معیار ارزش‌گذاری (Unit of Account) چیست؟
+---
 
-در کیان، هیچ سکه یا توکن انتزاعی و بدون پشتوانه‌ای وجود ندارد. مبنای ارزش‌گذاری کالا و خدمات است. حواله (Voucher) یک تعهد فیزیکی یا خدماتی است که توسط تولیدکننده داده می‌شود (مانند یک چک یا حواله انبار). این توکن مشخص می‌کند که دارنده آن می‌تواند در آینده یک کالا با کیفیت مشخص (مثلاً «یک جفت کفش مدل X») را از صادرکننده دریافت کند.
+## Core Idea
 
-کیان چگونه کار می‌کند؟
+In many local markets, the main problem is not the lack of goods or skills, but the lack of liquidity, poor coordination, and insufficient trust among economic actors.
 
-در کیان، هر کسب‌وکار می‌تواند کالا یا خدمت خود را معرفی کند و در برابر آن، حواله یا اعتبار قابل انتقال صادر کند. این حواله نشان می‌دهد که صادرکننده متعهد است در آینده مقدار مشخصی کالا یا خدمت ارائه دهد.
+For example:
+- **A farmer** has produce but not enough cash to buy tools.
+- **A repairman** offers services but his customers cannot pay in cash immediately.
+- **A seller** has various goods but some customers can offer products or services instead of money.
+- **A producer** has idle capacity but cannot quickly connect it to real demand.
 
-اما مبادله در کیان فقط بین دو نفر انجام نمی‌شود. بخش مهم سیستم، نقش تاجران است.
+Kian attempts to connect these scattered capacities into a local market.
 
-تاجران در کیان مانند مدیران بازار یا گردانندگان استخرهای محصول عمل می‌کنند. آن‌ها از کسب‌وکارهای مختلف حواله، کالا یا خدمت دریافت می‌کنند و در مقابل، نیازهای متنوع فعالان بازار را تأمین می‌کنند. به این ترتیب، لازم نیست همیشه دو نفر دقیقاً به کالای یکدیگر نیاز داشته باشند.
+### What is the Unit of Account?
+In Kian, there are no abstract, unbacked coins or tokens. The basis of valuation is goods and services. A **Voucher** is a physical or service commitment given by a producer (like a check or warehouse receipt). This token specifies that its holder can receive a specific good with specified quality (e.g., "one pair of Model X shoes") from the issuer in the future.
 
-برای مثال:
+---
 
-کفاش حواله کفش صادر می‌کند.
-تاجر این حواله را می‌پذیرد و در مقابل به کفاش مواد اولیه یا کالای مورد نیاز می‌دهد.
-تاجر حواله کفش را در ویترین خود قرار می‌دهد.
-شخص دیگری که به کفش نیاز دارد، می‌تواند آن حواله را از تاجر دریافت کند.
-در نهایت، دارنده حواله می‌تواند آن را نزد کفاش خرج کند و کفش واقعی دریافت کند.
-در این مدل، تاجر نقش واسطه مخرب یا دلال صرف را ندارد؛ بلکه نقش او تجمیع کالاها، مدیریت ریسک، ایجاد تنوع در بازار و افزایش قابلیت نقدشوندگی حواله‌ها است.
+## How Does Kian Work?
 
-استخرهای محصول
+In Kian, any business can introduce its good or service and issue a transferable voucher or credit in return. This voucher shows that the issuer is committed to providing a specific amount of goods or services in the future.
 
-یکی از مفاهیم اصلی کیان، استخر محصول است.
+### The Role of Merchants and Product Pools
+Exchange in Kian is not just between two people. An important part of the system is the role of merchants.
+Merchants in Kian act as market managers or operators of **product pools**. They receive vouchers, goods, or services from various businesses and, in return, supply the diverse needs of market actors.
 
-استخر محصول یعنی مجموعه‌ای از کالاها، خدمات و حواله‌هایی که توسط یک تاجر یا کسب‌وکار معتبر مدیریت می‌شود. این استخر باعث می‌شود کاربران بتوانند به‌جای جست‌وجوی مستقیم و دشوار میان افراد، از طریق یک نقطه قابل اعتمادتر به مجموعه‌ای از نیازهای روزمره دسترسی داشته باشند.
+For example:
+1. **Shoemaker** issues a shoe voucher.
+2. **Merchant** accepts this voucher and gives the shoemaker raw materials or needed goods in return.
+3. Merchant puts the shoe voucher in his showcase.
+4. Another person who needs shoes can receive that voucher from the merchant.
+5. Finally, the voucher holder can spend it at the shoemaker and receive actual shoes.
 
-استخرهای محصول می‌توانند شامل مواردی مانند این باشند:
+In this model, the merchant does not act as a destructive middleman or mere broker; rather, his role is aggregating goods, managing risk, creating variety in the market, and increasing the liquidity of vouchers.
 
-مواد غذایی محلی
-محصولات کشاورزی
-پوشاک
-خدمات فنی و تعمیرات
-ابزار و مواد اولیه
-خدمات حمل‌ونقل
-حواله کالاهای تولیدکنندگان محلی
-حتی پول، طلا یا رمزارز، در صورتی که کاربران بخواهند آن‌ها را به‌عنوان یکی از کالاهای قابل مبادله وارد بازار کنند
-این ساختار کمک می‌کند تهاتر از حالت ساده و محدود «کالا در برابر کالا» خارج شود و به یک بازار چندطرفه محلی تبدیل شود.
+### Product Pools can include:
+- Local food and agricultural products
+- Clothing, technical services, and repairs
+- Tools and raw materials
+- Transportation services and local producers' vouchers
+- Even fiat money, gold, or cryptocurrency (as exchangeable goods)
 
-نقش تاجران و مدیریت ریسک (مدل فروشگاهی)
+### Merchant's Responsibility for Vouchers (Store Model)
+Kian is built on the principle that "credit is the engine of trade." Merchants act as guarantors of liquidity:
+- **Refund:** If a voucher is not honored by the producer, you can return it to the merchant and receive an equivalent value.
+- **Transparency:** Negative ratings and reviews ruin the reputation of defaulting merchants.
+- **Whistleblowing:** Other merchants cut ties with individuals who have a low rating.
 
-کیان بر پایه این اصل بنا شده که «اعتبار، موتور محرک تجارت است». در این بازار، تاجران (مدیران استخرهای محصول) به عنوان ضامن نقدشوندگی و کیفیت عمل می‌کنند.
+### Transferable Vouchers
+Vouchers can change hands among different people. To prevent fraud, voucher transfers are done with cryptographic signatures and local recording of their spent status. The voucher issuer manages the ledger related to their own vouchers.
 
-مسئولیت تاجر در قبال حواله‌ها
+---
 
-در کیان، اگر شما حواله‌ای را از استخر یک تاجر دریافت کنید و آن حواله توسط تولیدکننده‌اش نقد نشود:
+## Key Features
 
-بازپس‌گیری حواله (Refund): شما می‌توانید حواله نقد نشده را به تاجر پس بدهید و از او بخواهید حواله معتبر دیگری از برندهای دیگر به شما بدهد یا تعهداتی که قبلاً به او داده بودید را بازپس بگیرید.
-منطق دنیای واقعی: این دقیقاً مشابه خرید از یک فروشگاه فیزیکی است. اگر جنس داخل جعبه خراب باشد، فروشنده مسئول است، نه کارخانه تولیدکننده آن محصول.
-شفافیت در عملکرد: اگر تاجری مسئولیت حواله‌های استخرش را نپذیرد، کاربران با ثبت امتیاز منفی و نظرات، اعتبار او را در شبکه تخریب می‌کنند.
-انزوای تجاری (Whistleblowing): سایر تاجران و کسب‌وکارهای معتبر، با مشاهده افت امتیاز یک تاجر، برای جلوگیری از ضرر خود، ارتباطشان را با او قطع می‌کنند.
-این سیستم باعث می‌شود تاجران به طور خودکار نقش «بازرس کیفیت» را ایفا کنند و فقط با تولیدکنندگان خوش‌نام و متعهد کار کنند تا اعتبار استخر خود را به خطر نیندازند.
+- **Android App** with a simple user interface
+- **Offline-First Architecture**
+- Uses **Nostr Protocol** for decentralized communication
+- **Identity based on cryptographic keys**
+- **Transferable Vouchers** with local state tracking
+- Ability to work with multiple Nostr relays
+- **Encrypted Chat** for coordinating transactions
+- **Local Rating and Trust Validation**
 
-حواله قابل انتقال
+---
 
-در کیان، حواله‌ها می‌توانند میان افراد مختلف دست‌به‌دست شوند. این یعنی اگر کسی حواله‌ای را از یک تولیدکننده دریافت کرد، الزاماً مجبور نیست خودش مصرف‌کننده نهایی آن باشد. او می‌تواند آن را به فرد دیگری منتقل کند.
+## Tech Stack
 
-برای جلوگیری از خرج‌کرد دوباره یا تقلب، انتقال حواله‌ها با امضای رمزنگاری‌شده و ثبت وضعیت خرج‌شدن انجام می‌شود. صادرکننده حواله، دفترکل مربوط به حواله‌های خود را مدیریت می‌کند و هنگام انتقال، حواله قبلی باطل و حواله جدید برای گیرنده بعدی صادر می‌شود.
+- **Programming Language:** Kotlin 1.9+
+- **UI:** Jetpack Compose with KianTheme based on Material 3
+- **Database:** Room Database
+- **Networking:** WebSockets (async sync with Coroutine/Flow) using Nostr protocol relays
+- **Cryptography:** Secp256k1 (authentication), NIP-44 (secure chat), and BIP39 (recovery phrases)
 
-ویژگی‌های فنی
+---
 
-کیان با تمرکز بر سادگی استفاده و استقلال کاربران طراحی شده است:
+## Technical Architecture & Infrastructure
 
-اپلیکیشن اندرویدی با رابط کاربری ساده
-معماری آفلاین‌اول
-استفاده از پروتکل Nostr برای ارتباط غیرمتمرکز
-هویت مبتنی بر کلید رمزنگاری‌شده
-حواله‌های قابل انتقال
-ثبت محلی وضعیت حواله‌ها
-امکان کار با چند رله Nostr
-چت رمزنگاری‌شده برای هماهنگی معاملات
-امتیازدهی و اعتبارسنجی محلی
-طراحی مناسب برای بازارهای کوچک و متوسط محلی
-معماری فنی و کدهای زیرساختی (حل چالش‌های اقتصادی)
+### 1. Solving Double-Spending with Producer-Led Ledger
+To prevent double-spending without needing a blockchain, Kian uses a multi-hop transferable UTXO model:
+- Vouchers are `Kind 35001` Nostr events, whose status is stored in the `token_utxos` database.
+- To transfer to another person, a transfer request (`Kind 1050`) is sent to the original issuer.
+- The `VoucherNostrHandler` class on the issuer's phone checks the UTXO status, invalidates it (`voucherDao.markSpent`), and signs a new reminted voucher (`Remint - Kind 35002`) for the new recipient.
 
-کیان برای پیاده‌سازی مفاهیم فوق، از راهکارهای فنی زیر بهره می‌برد:
+### 2. Sybil Resistance in Web of Trust (Default Risk)
+Kian's rating engine only calculates the scores of people you follow directly or indirectly (Web of Trust - `Kind 3`). With the filtered query `WHERE pubkey IN (:authorPubkeys)`, fake scammer accounts will have no credibility.
 
-۱. حل مشکل خرج‌کرد مضاعف با Producer-Led Ledger
+### 3. Resilience Against Internet Outages and Censorship
+- **Offline Queue:** During internet outages, transactions are compressed in CBOR format and stored in the `offline_queue` table to be sent later (even via SMS or radio).
+- **Commercial Darkroom (NIP-59 / NIP-44):** Voucher transfers are published as encrypted Gift Wraps.
 
-برای جلوگیری از تقلب (Double-Spending) بدون نیاز به بلاک‌چین، کیان از مدل UTXO انتقال‌پذیر چنددستی استفاده می‌کند:
+---
 
-حواله‌ها رویدادهای Kind 35001 در نوستر هستند که وضعیت آن‌ها در دیتابیس token_utxos ذخیره می‌شود.
-زمانی که کاربر A می‌خواهد حواله را به کاربر B بدهد، اپلیکیشن او یک درخواست انتقال (Kind 1050) را از طریق چت رمزنگاری‌شده برای صادرکننده اصلی (مثلاً کفاش) ارسال می‌کند.
-کلاس VoucherNostrHandler در گوشی کفاش، بررسی می‌کند که آیا این UTXO خرج‌نشده است یا خیر. در صورت صحت، آن را باطل کرده (voucherDao.markSpent) و حواله بازنشر شده جدیدی (Remint - Kind 35002) برای گیرنده جدید امضا و صادر می‌کند.
-۲. مهار حملات سایبیل در شبکه اعتماد (Default Risk)
+## Getting Started
 
-امتیازدهی در کیان میانگین‌گیری خام از کل شبکه نیست. موتور رتبه‌بندی کیان تنها امتیاز کسانی را محاسبه می‌کند که شما مستقیماً یا باواسطه آن‌ها را دنبال کرده‌اید (Web of Trust - Kind 3). با کوئری فیلترشده WHERE pubkey IN (:authorPubkeys)، هزاران اکانت جعلی کلاهبرداران در گوشی شما هیچ اعتباری نخواهند داشت.
+To develop or run the code for this project, you need the following tools:
+- Android Studio Ladybug (or newer)
+- JDK 17
+- Internet connection to download Gradle packages
+- Bash
 
-۳. تقابل با قطعی اینترنت و سانسور
-
-صف آفلاین (Offline Queue): در صورت قطع اینترنت، تراکنش‌ها در جدول offline_queue با فرمت CBOR فشرده و ذخیره می‌شوند تا از طریق بسترهای جایگزین (مثل SMS یا امواج رادیویی) در آینده نزدیک ارسال شوند.
-تاریک‌خانه تجاری (NIP-59 / NIP-44): انتقال حواله‌ها و هویت فرستنده/گیرنده به صورت رمزنگاری‌شده (Gift Wrap) در رله‌ها منتشر می‌شوند تا هیچ نهاد واسطی متوجه متادیتای تراکنش‌ها نشود.
-چه کسانی می‌توانند از کیان استفاده کنند؟
-
-کیان برای گروه‌های زیر طراحی شده است:
-
-تولیدکنندگان محلی
-فروشگاه‌ها و مغازه‌ها
-کشاورزان و دامداران
-ارائه‌دهندگان خدمات
-تعمیرکاران و متخصصان فنی
-تعاونی‌ها و بازارچه‌های محلی
-تاجران و تأمین‌کنندگانی که می‌توانند چند نوع کالا یا خدمت را مدیریت کنند
-گروه‌هایی که می‌خواهند یک بازار تهاتر محلی، شفاف و قابل پیگیری ایجاد کنند
-پشته تکنولوژی (Tech Stack)
-
-زبان برنامه‌نویسی: Kotlin 1.9+
-رابط کاربری: Jetpack Compose با طراحی KianTheme مبتنی بر Material 3
-پایگاه داده: Room Database
-پروتکل ارتباطی: WebSockets (همگام‌سازی ناهمزمان با Coroutine/Flow) با رله‌های پروتکل Nostr
-رمزنگاری: Secp256k1 (احراز هویت)، NIP-44 (چت امن) و BIP39 (عبارات بازیابی)
-راه‌اندازی و نصب برای توسعه‌دهندگان
-
-برای توسعه یا اجرای کدهای این پروژه، به ابزارهای زیر نیاز دارید:
-
-Android Studio Ladybug (یا نسخه‌های جدیدتر)
-JDK 17
-اتصال به اینترنت جهت دریافت پکیج‌های Gradle
-Bash
-
+### Installation Steps
+```bash
 # Clone the repository
-git clone https://github.com/elyasmehraein/kian.git# Navigate to the project directorycd kian# Build the debug APK or run on connected emulator/device
+git clone https://github.com/elyasmehraein/kian.git
+
+# Navigate to the project directory
+cd kian
+
+# Build the debug APK or run on connected emulator/device
 ./gradlew assembleDebug
-کیان چه مشکلی را حل می‌کند؟
+```
 
-کیان برای حل همه مشکلات اقتصادی طراحی نشده است. اما می‌تواند در چند حوزه مشخص مفید باشد:
+---
 
-کمک به کسب‌وکارهای کوچک برای فروش در شرایط کمبود نقدینگی
-فعال کردن ظرفیت خالی تولیدکنندگان محلی
-ایجاد مسیرهای جدید مبادله میان کالاها و خدمات
-کاهش وابستگی کامل به پرداخت نقدی در معاملات کوچک و متوسط
-کمک به شکل‌گیری شبکه‌های اعتماد محلی
-فراهم کردن ابزار دیجیتال برای تهاتر، ثبت حواله و پیگیری تعهدات
-افزایش تاب‌آوری بازارهای محلی در دوره‌های رکود، تورم یا اختلال در پرداخت‌های رسمی
-کیان یک ابزار اقتصادی محلی است، نه یک وعده قطعی برای حذف فقر یا جایگزینی کامل نظام پولی. موفقیت آن به کیفیت کاربران، اعتبار تاجران، شفافیت تعهدات، تنوع کالاها و پذیرش واقعی در جامعه محلی بستگی دارد.
+## Who Can Use Kian?
+- Local producers, shops, and stores
+- Farmers and livestock breeders
+- Service providers and repairmen
+- Cooperatives and local markets
+- Merchants and suppliers who can manage multiple types of goods or services
 
-محدودیت‌ها و واقع‌بینی
+### What Problems Does Kian Solve?
+- Helping small businesses sell during liquidity shortages
+- Reducing complete reliance on cash payments in small and medium transactions
+- Helping form local trust networks
+- Increasing the resilience of local markets during recessions, inflation, or disruptions in formal payments
 
-کیان به‌تنهایی اعتماد، تولید، تعهد یا عدالت اقتصادی ایجاد نمی‌کند. این نرم‌افزار فقط ابزار هماهنگی، ثبت و انتقال اعتبار محلی را فراهم می‌کند.
+---
 
-برای موفقیت یک بازار کیان، وجود این عوامل ضروری است:
+## Limitations & Realism
 
-کسب‌وکارهای واقعی با کالا و خدمت قابل ارائه
-تاجران قابل اعتماد برای مدیریت استخرهای محصول
-قواعد روشن برای تسویه اختلافات
-پذیرش اجتماعی در یک محدوده محلی
-شفافیت در ارزش‌گذاری کالاها و حواله‌ها
-مدیریت ریسک نکول یا عمل‌نکردن صادرکننده به تعهدات
-ارتباط با قوانین رسمی، مالیات و مقررات محلی
-بنابراین کیان بهتر است به‌عنوان یک زیرساخت نرم‌افزاری برای بازار تهاتر محلی دیده شود؛ ابزاری که می‌تواند بخشی از مبادلات جامعه را آسان‌تر کند، نه سیستمی که به‌تنهایی همه مشکلات اقتصادی را حل کند.
+Kian alone does not create trust, production, commitment, or economic justice. This software only provides the tool for coordinating, recording, and transferring local credit.
 
-مشارکت در پروژه (Contributing)
+For a Kian market to succeed, these factors are essential:
+- Real businesses offering goods and services
+- Trustworthy merchants to manage product pools
+- Clear rules for dispute resolution
+- Social acceptance within a local area
+- Transparency in the valuation of goods and vouchers
 
-کیان یک پروژه متن‌باز است و از مشارکت برنامه‌نویسان، اقتصاددانان و علاقه‌مندان به اقتصاد غیرمتمرکز استقبال می‌کند. شما می‌توانید از طریق باز کردن Issue برای گزارش باگ، پیشنهاد قابلیت‌های جدید، یا ارسال Pull Request در توسعه این زیرساخت سهیم باشید.
+---
 
-هدف پروژه
+## Contributing
 
-هدف کیان ایجاد بستری است که در آن مردم و کسب‌وکارهای یک منطقه بتوانند راحت‌تر بفهمند چه کسی چه چیزی دارد، چه چیزی نیاز دارد، چه تعهدی صادر کرده و چه کسی در بازار قابل اعتمادتر است.
+Kian is an open-source project and welcomes contributions from developers, economists, and decentralized economy enthusiasts.
+You can contribute to this infrastructure by opening an **Issue** to report bugs, suggest new features, or by submitting a **Pull Request**.
 
-اگر یک جامعه محلی بتواند بخشی از نیازهای خود را از طریق تولیدکنندگان، تاجران و خدمات‌دهندگان همان منطقه تأمین کند، کیان می‌تواند ابزار ثبت، هماهنگی و گردش اعتبار میان آن‌ها باشد.
-
-کیان یعنی بازار تهاتر محلی؛ بازاری برای تبدیل ظرفیت‌های پراکنده به مبادلات واقعی.
+---
+*Kian means local barter market; a market for turning scattered capacities into real exchanges.*
