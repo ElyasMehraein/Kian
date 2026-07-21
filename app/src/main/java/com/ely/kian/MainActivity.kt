@@ -45,14 +45,6 @@ class MainActivity : ComponentActivity() {
         } else null
 
         setContent {
-            val context = androidx.compose.ui.platform.LocalContext.current
-            LaunchedEffect(Unit) {
-                val app = context.applicationContext as KianApp
-                com.ely.kian.util.DemoDataSeeder.seedSmartStore(
-                    app.container.userProfileDao,
-                    app.container.voucherDao
-                )
-            }
             KianTheme {
                 KianScaffold(
                     initialChatRoomId = chatRoomId,

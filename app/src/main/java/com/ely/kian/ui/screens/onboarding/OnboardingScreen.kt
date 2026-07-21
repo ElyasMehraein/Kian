@@ -4,8 +4,6 @@ import android.widget.Toast
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -176,33 +174,9 @@ fun OnboardingScreen(
             Text(
                 text = stringResource(R.string.login_private_key),
                 fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = kianColors.ink
+                fontWeight = FontWeight.SemiBold,
+                color = kianColors.muted
             )
-            
-            // Smart Store Quick Login
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(kianColors.accent.copy(alpha = 0.1f))
-                    .clickable { viewModel.privateKeyInput = com.ely.kian.util.DemoDataSeeder.STORE_NSEC }
-                    .padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("ورود سریع به فروشگاه هوشمند", fontWeight = FontWeight.Bold, color = kianColors.accent, fontSize = 14.sp)
-                    Text("برای تست ۲۰۰ محصول و مدیریت ویترین", color = kianColors.muted, fontSize = 12.sp)
-                }
-                androidx.compose.material3.Icon(
-                    Icons.Default.Store,
-                    contentDescription = null, 
-                    tint = kianColors.accent
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
             Text(
                 text = stringResource(R.string.private_key_login_desc),
                 fontSize = 14.sp,
