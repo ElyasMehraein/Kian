@@ -47,10 +47,10 @@ class VoucherRepository(
     fun getBalancesForPubkey(pubkey: String): Flow<List<BalanceItem>> {
         val normalizedPubkey = KianKeys.normalizePubkey(pubkey)
         return combine(
-            voucherDao.getUnspentUtxosByOwner(normalizedPubkey).onStart { emit(emptyList()) },
-            voucherDao.getAssetSettingsByPubkey(normalizedPubkey).onStart { emit(emptyList()) },
-            voucherDao.getAllMappingsByPubkey(normalizedPubkey).onStart { emit(emptyList()) },
-            voucherDao.getAllDefinitionsFlow().onStart { emit(emptyList()) }
+            voucherDao.getUnspentUtxosByOwner(normalizedPubkey),
+            voucherDao.getAssetSettingsByPubkey(normalizedPubkey),
+            voucherDao.getAllMappingsByPubkey(normalizedPubkey),
+            voucherDao.getAllDefinitionsFlow()
         ) { utxos, settings, mappings, definitions ->
             val settingsMap = settings.associateBy { it.assetRef }
             val mappingsMap = mappings.groupBy { it.assetRef }
