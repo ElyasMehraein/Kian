@@ -120,6 +120,13 @@ class ChatViewModel(
                     return@launch
                 }
                 
+                // Get token details BEFORE spending it
+                val balances = voucherRepository.getBalances().first()
+                val balance = balances.find { it.assetRef == suitableUtxo.assetRef }
+                val assetName = balance?.name ?: "Voucher"
+                val assetDescription = balance?.description ?: ""
+                val assetImages = balance?.images ?: emptyList()
+                
                 // 1. Send the actual voucher (Kind 35002 or 1050)
                 val transferEventId = voucherRepository.sendTokenTransfer(suitableUtxo.utxoId, amount, contactPubkey)
                 
@@ -127,19 +134,17 @@ class ChatViewModel(
                 repository.updateMessageStatus(messageId, "accepted")
                 
                 // 3. Send acceptance message in chat
-                val balances = voucherRepository.getBalances().first()
-                val balance = balances.find { it.assetRef == suitableUtxo.assetRef }
-                val assetName = balance?.name ?: "Voucher"
-
                 val metadata = buildJsonObject {
                     put("type", "purchase_acceptance")
                     put("target_id", messageId)
                     put("utxo_id", suitableUtxo.utxoId) // The original UTXO being spent
                     put("transfer_event_id", transferEventId) // The new event ID
                     put("asset_name", assetName)
-                    put("asset_description", balance?.description ?: "")
-                    put("asset_images", JsonArray((balance?.images ?: emptyList()).map { JsonPrimitive(it) }))
+                    put("asset_description", assetDescription)
+                    put("asset_images", JsonArray(assetImages.map { JsonPrimitive(it) }))
                     put("amount", amount)
+                    put("asset_ref", suitableUtxo.assetRef)
+                    put("producer", suitableUtxo.producer)
                 }.toString()
                 
                 repository.sendMessage(contactPubkey, localizedContent, metadata)

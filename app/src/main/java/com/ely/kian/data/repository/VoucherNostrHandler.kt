@@ -188,10 +188,18 @@ class VoucherNostrHandler(
         val myPubkey = KianKeys.bytesToHex(KianKeys.getPubKey(myPrivKey))
         val createdAt = System.currentTimeMillis() / 1000
         
+        val parsed = KianKeys.parseAssetRef(assetRef)
+        val definition = parsed?.let { voucherDao.getDefinition(it.assetId, it.producer) }
+
         val content = buildJsonObject {
             put("amount", amount)
             put("previous_utxo", prevUtxoId)
             put("status", "approved")
+            if (definition != null) {
+                put("asset_name", definition.name)
+                put("asset_description", definition.description ?: "")
+                put("asset_images", JsonArray(definition.images.map { JsonPrimitive(it) }))
+            }
         }.toString()
 
         val tags = listOf(listOf("a", assetRef), listOf("p", recipientPubkey))
@@ -240,9 +248,18 @@ class VoucherNostrHandler(
     ) {
         val myPubkey = KianKeys.bytesToHex(KianKeys.getPubKey(myPrivKey))
         val createdAt = System.currentTimeMillis() / 1000
+        
+        val parsed = KianKeys.parseAssetRef(assetRef)
+        val definition = parsed?.let { voucherDao.getDefinition(it.assetId, it.producer) }
+        
         val content = buildJsonObject {
             put("amount", amount)
             put("previous_utxo", prevUtxoId)
+            if (definition != null) {
+                put("asset_name", definition.name)
+                put("asset_description", definition.description ?: "")
+                put("asset_images", JsonArray(definition.images.map { JsonPrimitive(it) }))
+            }
         }.toString()
 
         val tags = listOf(listOf("a", assetRef), listOf("p", recipientPubkey))
@@ -316,9 +333,18 @@ class VoucherNostrHandler(
     ): String {
         val myPubkey = KianKeys.bytesToHex(KianKeys.getPubKey(myPrivKey))
         val createdAt = System.currentTimeMillis() / 1000
+        
+        val parsed = KianKeys.parseAssetRef(assetRef)
+        val definition = parsed?.let { voucherDao.getDefinition(it.assetId, it.producer) }
+        
         val content = buildJsonObject {
             put("amount", amount)
             put("previous_utxo", prevUtxoId)
+            if (definition != null) {
+                put("asset_name", definition.name)
+                put("asset_description", definition.description ?: "")
+                put("asset_images", JsonArray(definition.images.map { JsonPrimitive(it) }))
+            }
         }.toString()
 
         val tags = listOf(listOf("a", assetRef), listOf("p", recipientPubkey))
@@ -403,6 +429,28 @@ class VoucherNostrHandler(
             val contentObj = json.parseToJsonElement(event.content).jsonObject
             val prevUtxoId = contentObj["previous_utxo"]?.jsonPrimitive?.content
             val amount = contentObj["amount"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
+            
+            val assetName = contentObj["asset_name"]?.jsonPrimitive?.content
+            if (assetName != null) {
+                val description = contentObj["asset_description"]?.jsonPrimitive?.content ?: ""
+                val images = try {
+                    contentObj["asset_images"]?.jsonArray?.map { it.jsonPrimitive.content } ?: emptyList()
+                } catch (e: Exception) { emptyList() }
+                
+                if (voucherDao.getDefinition(parsed.assetId, parsed.producer) == null) {
+                    val def = com.ely.kian.data.local.entities.VoucherDefinition(
+                        assetId = parsed.assetId,
+                        pubkey = parsed.producer,
+                        name = assetName,
+                        description = description,
+                        images = images,
+                        amount = 0L,
+                        eventId = event.id,
+                        createdAt = event.createdAt
+                    )
+                    voucherDao.upsertDefinition(def)
+                }
+            }
             
             // 1. Mark previous as spent locally (immediate effect)
             prevUtxoId?.let { voucherDao.markSpent(it) }
