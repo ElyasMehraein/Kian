@@ -4,17 +4,20 @@ import com.ely.kian.BuildConfig
 
 object AppConfig {
     private val RELEASE_RELAYS = listOf(
-        "wss://relay.damus.io",
-        "wss://nos.lol",
-        "wss://relay.snort.social",
-        "wss://nostr.mom",
-        "wss://relay.primal.net",
-        "wss://relay.snort.social"
+//        "wss://relay.damus.io",
+//        "wss://nos.lol",
+//        "wss://relay.snort.social",
+//        "wss://nostr.mom",
+//        "wss://relay.primal.net",
+//        "wss://relay.snort.social"
+        "wss://nostr.liara.run"
+
     )
 
     private val DEBUG_RELAYS = listOf(
-        "ws://192.168.1.14:8080", // Local test relay
-        "wss://relay.damus.io"    // One stable public relay for testing
+//        "ws://192.168.1.14:8080", // Local test relay
+//        "wss://relay.damus.io"    // One stable public relay for testing
+        "wss://nostr.liara.run"
     )
 
     val defaultRelays: List<String>
