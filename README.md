@@ -10,6 +10,20 @@ Kian is an open-source Android application for creating and managing local barte
 
 Kian is not meant to completely replace money, banks, the law, or the formal economy. This project is an auxiliary tool for local communities so that when cash is scarce, sales have slowed down, production capacity is idle, or businesses can supply each other's needs with goods and services, they have the possibility of simpler and more transparent exchange.
 
+## Screenshots
+
+| Home | Menu |
+|------|------|
+| ![](docs/screenshots/home.jpg) | ![](docs/screenshots/menu.jpg) |
+
+| Profile | Profile Details |
+|---------|-----------------|
+| ![](docs/screenshots/profile.jpg) | ![](docs/screenshots/profile2.jpg) |
+
+| Vouchers |
+|-----------|
+| ![](docs/screenshots/vouchers.jpg) |
+
 ## Table of Contents
 - [Core Idea](#core-idea)
 - [How Does Kian Work?](#how-does-kian-work)
