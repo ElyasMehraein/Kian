@@ -38,6 +38,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.viewinterop.AndroidView
 import com.ely.kian.KianApp
+import com.ely.kian.crypto.KianKeys
 import com.ely.kian.data.local.entities.Review
 import com.ely.kian.data.local.entities.VoucherCategory
 import com.ely.kian.data.local.entities.Profile
@@ -169,7 +170,8 @@ fun MerchantProfileScreen(
                         onBack = onBack,
                         showBack = !isOwnProfile,
                         onShare = {
-                            val shareText = context.getString(R.string.share_profile_message, pubkey)
+                            val npub = KianKeys.toNpub(KianKeys.hexToBytes(pubkey))
+                            val shareText = context.getString(R.string.share_profile_message, npub)
                             val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
                                 type = "text/plain"
                                 putExtra(android.content.Intent.EXTRA_TEXT, shareText)

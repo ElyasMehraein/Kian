@@ -265,7 +265,7 @@
     <string name="github_project">Project on GitHub</string>
     <string name="app_version">Version %1$s</string>
     <string name="current_version">Current version: %1$s</string>
-    <string name="share_profile_message">Check out my profile on Kian!\n\n🔗 Open in Kian: https://github.com/ElyasMehraein/Kian/releases?pk=%1$s\n\n📥 Download Kian: https://github.com/ElyasMehraein/Kian/releases</string>
+    <string name="share_profile_message">Check out my profile on Kian!\n\n🔗 Open in Kian: https://github.com/ElyasMehraein/Kian/releases?npub=%1$s\n\nnostr:%1$s\n\n📥 Download Kian: https://github.com/ElyasMehraein/Kian/releases</string>
     <string name="scan_qr">Scan QR Code</string>
 
     <string name="depth_limit_reached">Maximum depth reached</string>

@@ -41,7 +41,12 @@ class MainActivity : ComponentActivity() {
 
         val chatRoomId = intent.getStringExtra("chat_room_id")
         initialPubkeyState.value = if (intent.action == android.content.Intent.ACTION_VIEW) {
-            intent.data?.getQueryParameter("pk")
+            val uri = intent.data
+            if (uri?.scheme == "nostr") {
+                uri.schemeSpecificPart
+            } else {
+                uri?.getQueryParameter("npub") ?: uri?.getQueryParameter("pk")
+            }
         } else null
 
         setContent {
@@ -57,7 +62,12 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
         if (intent.action == android.content.Intent.ACTION_VIEW) {
-            val pk = intent.data?.getQueryParameter("pk")
+            val uri = intent.data
+            val pk = if (uri?.scheme == "nostr") {
+                uri.schemeSpecificPart
+            } else {
+                uri?.getQueryParameter("npub") ?: uri?.getQueryParameter("pk")
+            }
             if (pk != null) {
                 initialPubkeyState.value = pk
             }

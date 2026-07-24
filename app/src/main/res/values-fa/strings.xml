@@ -264,7 +264,7 @@
     <string name="github_project">پروژه در گیت‌هاب</string>
     <string name="app_version">نسخه %1$s</string>
     <string name="current_version">نسخه فعلی: %1$s</string>
-    <string name="share_profile_message">پروفایل من در کیان را مشاهده کنید!\n\n🔗 باز کردن در اپلیکیشن: https://github.com/ElyasMehraein/Kian/releases?pk=%1$s\n\n📥 دریافت اپلیکیشن: https://github.com/ElyasMehraein/Kian/releases</string>
+    <string name="share_profile_message">پروفایل من در کیان را مشاهده کنید!\n\n🔗 باز کردن در اپلیکیشن: https://github.com/ElyasMehraein/Kian/releases?npub=%1$s\n\nnostr:%1$s\n\n📥 دریافت اپلیکیشن: https://github.com/ElyasMehraein/Kian/releases</string>
     <string name="scan_qr">اسکن کد QR</string>
 
     <string name="depth_limit_reached">به حداکثر عمق رسیدید</string>
