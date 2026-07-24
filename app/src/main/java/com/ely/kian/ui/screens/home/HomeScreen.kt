@@ -97,7 +97,7 @@ fun HomeScreen(
                 visible = !isSearchActive,
                 enter = fadeIn(animationSpec = tween(400)),
                 exit = fadeOut(animationSpec = tween(400)),
-                modifier = Modifier.align(Alignment.TopEnd)
+                modifier = Modifier.align(Alignment.TopEnd).padding(end = 48.dp)
             ) {
                 IconButton(onClick = { viewModel.setIsSearchActive(true) }) {
                     Icon(
@@ -114,7 +114,7 @@ fun HomeScreen(
                 visible = isSearchActive,
                 enter = expandHorizontally(animationSpec = tween(400), expandFrom = Alignment.End) + fadeIn(animationSpec = tween(400)),
                 exit = shrinkHorizontally(animationSpec = tween(400), shrinkTowards = Alignment.End) + fadeOut(animationSpec = tween(400)),
-                modifier = Modifier.fillMaxWidth().align(Alignment.Center)
+                modifier = Modifier.fillMaxWidth().padding(end = 48.dp).align(Alignment.Center)
             ) {
                 TextField(
                     value = searchQuery,

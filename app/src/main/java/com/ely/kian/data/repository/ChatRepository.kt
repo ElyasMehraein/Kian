@@ -156,6 +156,11 @@ class ChatRepository(
             // Since we don't store it locally, we just avoid sending another Kind 7.
             return
         }
+
+        if (contactPubkey == GLOBAL_CHAT_PUBKEY) {
+            nostrSyncManager.publishEvent(reactionEvent)
+            return
+        }
         
         // 2. Publish to recipient's inbox relays
         val giftWrapToRecipient = Nip59.giftWrap(reactionJson, myPrivKey, KianKeys.hexToBytes(contactPubkey), myPubKey)
@@ -337,6 +342,8 @@ class ChatRepository(
 
     suspend fun markAsRead(contactPubkey: String) {
         chatDao.markAsRead(contactPubkey)
+        
+        if (contactPubkey == GLOBAL_CHAT_PUBKEY) return
         
         // Send Read Receipts
         val unread = chatDao.getUnreadMessagesFrom(contactPubkey)
