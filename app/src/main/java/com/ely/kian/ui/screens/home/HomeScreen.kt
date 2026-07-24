@@ -163,7 +163,8 @@ fun HomeScreen(
                     .fillMaxSize()
                     .padding(horizontal = 16.dp)
             ) {
-                if (searchQuery.isNotEmpty() && searchResults == null) {
+                val currentSearchResults = searchResults
+                if (searchQuery.isNotEmpty() && currentSearchResults == null) {
                     // Loading State
                     Row(
                         modifier = Modifier
@@ -180,8 +181,8 @@ fun HomeScreen(
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(text = stringResource(R.string.searching), color = kianColors.muted)
                     }
-                } else if (searchResults != null) {
-                    if (searchResults!!.isEmpty() && searchQuery.isNotEmpty()) {
+                } else if (currentSearchResults != null) {
+                    if (currentSearchResults.isEmpty() && searchQuery.isNotEmpty()) {
                         Text(
                             text = stringResource(R.string.no_results_found),
                             color = kianColors.muted,
@@ -192,7 +193,7 @@ fun HomeScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             contentPadding = PaddingValues(bottom = 80.dp)
                         ) {
-                            items(searchResults!!) { profile ->
+                            items(currentSearchResults) { profile ->
                                 ListItem(
                                     headlineContent = {
                                         Text(
