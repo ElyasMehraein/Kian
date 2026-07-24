@@ -20,21 +20,16 @@ import com.ely.kian.ui.components.KianChip
 import com.ely.kian.ui.components.MerchantCard
 import com.ely.kian.ui.components.ScreenHeader
 import com.ely.kian.ui.theme.KianTheme
-
 import androidx.compose.ui.res.stringResource
 import com.ely.kian.R
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import com.ely.kian.ui.components.InitialAvatar
@@ -98,7 +93,7 @@ fun HomeScreen(
             }
 
             // Search Icon (when inactive)
-            AnimatedVisibility(
+            androidx.compose.animation.AnimatedVisibility(
                 visible = !isSearchActive,
                 enter = fadeIn(animationSpec = tween(400)),
                 exit = fadeOut(animationSpec = tween(400)),
@@ -115,7 +110,7 @@ fun HomeScreen(
 
             // Animated Search Input
             val focusRequester = remember { FocusRequester() }
-            AnimatedVisibility(
+            androidx.compose.animation.AnimatedVisibility(
                 visible = isSearchActive,
                 enter = expandHorizontally(animationSpec = tween(400), expandFrom = Alignment.End) + fadeIn(animationSpec = tween(400)),
                 exit = shrinkHorizontally(animationSpec = tween(400), shrinkTowards = Alignment.End) + fadeOut(animationSpec = tween(400)),
