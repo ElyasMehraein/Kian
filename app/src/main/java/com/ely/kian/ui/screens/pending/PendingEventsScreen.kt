@@ -4,11 +4,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
@@ -17,6 +17,8 @@ import com.ely.kian.ui.components.ButtonType
 import com.ely.kian.ui.components.KianButton
 import com.ely.kian.ui.components.KianInput
 import com.ely.kian.ui.theme.KianTheme
+import com.ely.kian.ui.components.util.setText
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,7 +28,8 @@ fun PendingEventsScreen(
 ) {
     val pendingEvents by viewModel.pendingEvents.collectAsState()
     val kianColors = KianTheme.colors
-    val clipboardManager = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
     var manualInput by remember { mutableStateOf("") }
 
     Scaffold(
@@ -35,7 +38,7 @@ fun PendingEventsScreen(
                 title = { Text(stringResource(R.string.pending_events)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -76,7 +79,7 @@ fun PendingEventsScreen(
                 }
             }
 
-            Divider(color = kianColors.line, modifier = Modifier.padding(vertical = 8.dp))
+            HorizontalDivider(color = kianColors.line, modifier = Modifier.padding(vertical = 8.dp))
 
             // Pending Events List
             Text(
@@ -94,7 +97,7 @@ fun PendingEventsScreen(
                 LazyColumn(modifier = Modifier.fillMaxSize().weight(1f)) {
                     items(pendingEvents) { item ->
                         PendingEventRow(item, onCopy = {
-                            clipboardManager.setText(AnnotatedString(item.rawJson))
+                            scope.launch { clipboard.setText(item.rawJson) }
                         })
                     }
                 }

@@ -281,4 +281,5 @@
     <string name="global_chat">پیام گلوبال</string>
     <string name="global_chat_subtitle">چت عمومی برای همه کاربران</string>
     <string name="global_chat_pinned">چت عمومی</string>
+    <string name="error">خطا</string>
 </resources>

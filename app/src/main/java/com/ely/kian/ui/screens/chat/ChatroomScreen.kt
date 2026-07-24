@@ -208,6 +208,7 @@ fun ChatroomScreen(
                             onActionClick = { 
                             }
                         )
+                    }
                     
                     DropdownMenu(
                         expanded = showMenu,
