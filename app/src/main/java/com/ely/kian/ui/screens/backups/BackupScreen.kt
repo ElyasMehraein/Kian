@@ -52,207 +52,209 @@ fun BackupScreen(onBack: () -> Unit) {
         containerColor = kianColors.canvas,
         contentWindowInsets = WindowInsets(0.dp)
     ) { padding ->
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
-            contentPadding = PaddingValues(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
+                .padding(padding)
         ) {
-            item {
-                ScreenHeader(
-                    title = stringResource(R.string.backup_recovery),
-                    subtitle = stringResource(R.string.e2e_backups),
-                    onBack = onBack
-                )
-            }
+            ScreenHeader(
+                title = stringResource(R.string.backup_recovery),
+                subtitle = stringResource(R.string.e2e_backups),
+                onBack = onBack
+            )
 
-            // Auto Backup Status Card
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = kianColors.panel),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, kianColors.line)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(18.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp)
+            ) {
+                // Auto Backup Status Card
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = kianColors.panel),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, kianColors.line)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(12.dp)
-                                .background(kianColors.success, CircleShape)
-                        )
-                        Column {
-                            Text(
-                                text = stringResource(R.string.local_backup_storage),
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = kianColors.ink
+                        Row(
+                            modifier = Modifier.padding(18.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .background(kianColors.success, CircleShape)
                             )
+                            Column {
+                                Text(
+                                    text = stringResource(R.string.local_backup_storage),
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = kianColors.ink
+                                )
+                                Text(
+                                    text = stringResource(R.string.data_stored_locally),
+                                    color = kianColors.muted,
+                                    fontSize = 13.sp
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Folder Path Card
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = kianColors.panel),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, kianColors.line)
+                    ) {
+                        Column(modifier = Modifier.padding(18.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Icon(Icons.Default.Folder, contentDescription = null, tint = kianColors.ink, modifier = Modifier.size(20.dp))
+                                Text(text = stringResource(R.string.backup_folder), fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            }
+                            
+                            Box(
+                                modifier = Modifier
+                                    .padding(top = 12.dp)
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0xFF020617))
+                                    .padding(14.dp)
+                            ) {
+                                Text(
+                                    text = viewModel.backupFolderPath.replace(context.packageName, "com.ely.kian"),
+                                    color = Color(0xFF93C5FD),
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 12.sp
+                                )
+                            }
+                            
                             Text(
-                                text = stringResource(R.string.data_stored_locally),
+                                text = "To import an external backup, place the file in the directory above. It will automatically appear in the list.",
                                 color = kianColors.muted,
-                                fontSize = 13.sp
+                                fontSize = 14.sp,
+                                lineHeight = 22.sp,
+                                modifier = Modifier.padding(top = 12.dp)
                             )
                         }
                     }
                 }
-            }
 
-            // Folder Path Card
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = kianColors.panel),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, kianColors.line)
-                ) {
-                    Column(modifier = Modifier.padding(18.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(Icons.Default.Folder, contentDescription = null, tint = kianColors.ink, modifier = Modifier.size(20.dp))
-                            Text(text = stringResource(R.string.backup_folder), fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                        }
-                        
+                // Create Backup Button
+                item {
+                    Button(
+                        onClick = { 
+                            viewModel.createBackup()
+                            showMessage("Encrypted backup created successfully!")
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                        contentPadding = PaddingValues()
+                    ) {
                         Box(
                             modifier = Modifier
-                                .padding(top = 12.dp)
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Color(0xFF020617))
-                                .padding(14.dp)
+                                .fillMaxSize()
+                                .background(
+                                    brush = Brush.linearGradient(
+                                        colors = listOf(Color(0xFF4F46E5), Color(0xFF7C3AED))
+                                    )
+                                ),
+                            contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = viewModel.backupFolderPath.replace(context.packageName, "com.ely.kian"),
-                                color = Color(0xFF93C5FD),
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 12.sp
+                                text = stringResource(R.string.create_new_backup), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp
                             )
                         }
-                        
-                        Text(
-                            text = "To import an external backup, place the file in the directory above. It will automatically appear in the list.",
-                            color = kianColors.muted,
-                            fontSize = 14.sp,
-                            lineHeight = 22.sp,
-                            modifier = Modifier.padding(top = 12.dp)
-                        )
                     }
                 }
-            }
 
-            // Create Backup Button
-            item {
-                Button(
-                    onClick = { 
-                        viewModel.createBackup()
-                        showMessage("Encrypted backup created successfully!")
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                    contentPadding = PaddingValues()
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                brush = Brush.linearGradient(
-                                    colors = listOf(Color(0xFF4F46E5), Color(0xFF7C3AED))
-                                )
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = stringResource(R.string.create_new_backup), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp
-                        )
-                    }
-                }
-            }
-
-            item {
-                Text(
-                    text = stringResource(R.string.existing_backups),
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = kianColors.ink,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            }
-
-            // List of Backups
-            if (viewModel.backups.isEmpty()) {
                 item {
                     Text(
-                        text = stringResource(R.string.no_backups_found),
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp),
-                        textAlign = TextAlign.Center,
-                        color = kianColors.muted
+                        text = stringResource(R.string.existing_backups),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = kianColors.ink,
+                        modifier = Modifier.padding(top = 8.dp)
                     )
                 }
-            } else {
-                items(viewModel.backups) { backup ->
-                    BackupItem(
-                        backup = backup,
-                        onRestore = {
-                            viewModel.restoreBackup(
-                                backup = backup,
-                                onSuccess = { 
-                                    showMessage("Data restored! Please restart the app.")
-                                },
-                                onError = { error ->
-                                    showMessage("Error: $error")
-                                }
-                            )
-                        },
-                        onShare = {
-                            try {
-                                val authority = "${context.packageName}.fileprovider"
-                                val uri = FileProvider.getUriForFile(context, authority, backup.file)
-                                
-                                val intent = Intent(Intent.ACTION_SEND).apply {
-                                    type = "application/octet-stream"
-                                    putExtra(Intent.EXTRA_STREAM, uri)
-                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                    // For better compatibility on Android 10+
-                                    clipData = android.content.ClipData.newRawUri("", uri)
-                                }
-                                
-                                val chooser = Intent.createChooser(intent, "Share Backup")
-                                chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                context.startActivity(chooser)
-                            } catch (e: Exception) {
-                                android.util.Log.e("BackupScreen", "Share failed: ${e.message}", e)
-                                showMessage("Share failed: ${e.localizedMessage}")
-                            }
-                        },
-                        onDelete = {
-                            viewModel.deleteBackup(backup)
-                            showMessage("Backup deleted.")
-                        }
-                    )
-                }
-            }
 
-            // Warning
-            item {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = kianColors.danger.copy(alpha = 0.1f),
-                    shape = RoundedCornerShape(16.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, kianColors.danger.copy(alpha = 0.3f))
-                ) {
-                    Text(
-                        text = stringResource(R.string.backup_warning),
-                        modifier = Modifier.padding(16.dp),
-                        color = kianColors.danger,
-                        fontSize = 14.sp,
-                        lineHeight = 22.sp
-                    )
+                // List of Backups
+                if (viewModel.backups.isEmpty()) {
+                    item {
+                        Text(
+                            text = stringResource(R.string.no_backups_found),
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp),
+                            textAlign = TextAlign.Center,
+                            color = kianColors.muted
+                        )
+                    }
+                } else {
+                    items(viewModel.backups) { backup ->
+                        BackupItem(
+                            backup = backup,
+                            onRestore = {
+                                viewModel.restoreBackup(
+                                    backup = backup,
+                                    onSuccess = { 
+                                        showMessage("Data restored! Please restart the app.")
+                                    },
+                                    onError = { error ->
+                                        showMessage("Error: $error")
+                                    }
+                                )
+                            },
+                            onShare = {
+                                try {
+                                    val authority = "${context.packageName}.fileprovider"
+                                    val uri = FileProvider.getUriForFile(context, authority, backup.file)
+                                    
+                                    val intent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "application/octet-stream"
+                                        putExtra(Intent.EXTRA_STREAM, uri)
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                        // For better compatibility on Android 10+
+                                        clipData = android.content.ClipData.newRawUri("", uri)
+                                    }
+                                    
+                                    val chooser = Intent.createChooser(intent, "Share Backup")
+                                    chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    context.startActivity(chooser)
+                                } catch (e: Exception) {
+                                    android.util.Log.e("BackupScreen", "Share failed: ${e.message}", e)
+                                    showMessage("Share failed: ${e.localizedMessage}")
+                                }
+                            },
+                            onDelete = {
+                                viewModel.deleteBackup(backup)
+                                showMessage("Backup deleted.")
+                            }
+                        )
+                    }
+                }
+
+                // Warning
+                item {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = kianColors.danger.copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(16.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, kianColors.danger.copy(alpha = 0.3f))
+                    ) {
+                        Text(
+                            text = stringResource(R.string.backup_warning),
+                            modifier = Modifier.padding(16.dp),
+                            color = kianColors.danger,
+                            fontSize = 14.sp,
+                            lineHeight = 22.sp
+                        )
+                    }
                 }
             }
         }
@@ -288,31 +290,49 @@ fun BackupItem(
             
             Row(
                 modifier = Modifier.padding(top = 16.dp).fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Button(
                     onClick = onRestore,
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB)),
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
                 ) {
-                    Text(stringResource(R.string.restore), fontSize = 13.sp)
+                    Text(
+                        text = stringResource(R.string.restore),
+                        fontSize = 12.sp,
+                        maxLines = 1,
+                        softWrap = false
+                    )
                 }
                 Button(
                     onClick = onShare,
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C3AED))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C3AED)),
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
                 ) {
-                    Text(stringResource(R.string.share), fontSize = 13.sp)
+                    Text(
+                        text = stringResource(R.string.share),
+                        fontSize = 12.sp,
+                        maxLines = 1,
+                        softWrap = false
+                    )
                 }
                 Button(
                     onClick = onDelete,
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626)),
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
                 ) {
-                    Text(stringResource(R.string.delete), fontSize = 13.sp)
+                    Text(
+                        text = stringResource(R.string.delete),
+                        fontSize = 12.sp,
+                        maxLines = 1,
+                        softWrap = false
+                    )
                 }
             }
         }
