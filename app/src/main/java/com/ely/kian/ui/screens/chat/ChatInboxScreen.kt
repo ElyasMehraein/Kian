@@ -4,8 +4,10 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Public
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -33,6 +35,13 @@ fun ChatInboxScreen(
     var showStartChatDialog by remember { mutableStateOf(false) }
     var conversationToDelete by remember { mutableStateOf<String?>(null) }
 
+    val globalConversation = remember(conversations) {
+        conversations.find { it.contactPubkey == com.ely.kian.data.repository.ChatRepository.GLOBAL_CHAT_PUBKEY }
+    }
+    val privateConversations = remember(conversations) {
+        conversations.filter { it.contactPubkey != com.ely.kian.data.repository.ChatRepository.GLOBAL_CHAT_PUBKEY }
+    }
+
     Scaffold(
         containerColor = kianColors.canvas,
         contentWindowInsets = WindowInsets(0.dp),
@@ -49,13 +58,33 @@ fun ChatInboxScreen(
         Column(modifier = Modifier.padding(padding)) {
             ScreenHeader(title = stringResource(R.string.messages))
             
-            if (conversations.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                    Text(stringResource(R.string.no_messages), color = kianColors.ink.copy(alpha = 0.5f))
+            LazyColumn {
+                item {
+                    GlobalChatItem(
+                        conversation = globalConversation,
+                        colors = kianColors,
+                        onClick = { onConversationClick(com.ely.kian.data.repository.ChatRepository.GLOBAL_CHAT_PUBKEY) }
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = kianColors.line.copy(alpha = 0.5f),
+                        thickness = 0.5.dp
+                    )
                 }
-            } else {
-                LazyColumn {
-                    items(conversations) { conversation ->
+
+                if (privateConversations.isEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 48.dp),
+                            contentAlignment = androidx.compose.ui.Alignment.Center
+                        ) {
+                            Text(stringResource(R.string.no_messages), color = kianColors.ink.copy(alpha = 0.5f))
+                        }
+                    }
+                } else {
+                    items(privateConversations, key = { it.contactPubkey }) { conversation ->
                         ConversationItem(
                             conversation = conversation, 
                             colors = kianColors,
@@ -227,4 +256,104 @@ fun formatTimestamp(timestamp: Long): String {
     val date = Date(timestamp * 1000)
     val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
     return sdf.format(date)
+}
+
+@Composable
+fun GlobalChatItem(
+    conversation: Conversation?,
+    colors: com.ely.kian.ui.theme.KianColors,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .background(colors.accent.copy(alpha = 0.05f))
+            .padding(vertical = 12.dp, horizontal = 16.dp),
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+    ) {
+        Surface(
+            color = colors.accent,
+            shape = androidx.compose.foundation.shape.CircleShape,
+            modifier = Modifier.size(52.dp)
+        ) {
+            Box(contentAlignment = androidx.compose.ui.Alignment.Center) {
+                Icon(
+                    imageVector = Icons.Default.Public,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Text(
+                        text = stringResource(R.string.global_chat),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = colors.ink,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Surface(
+                        color = colors.accent.copy(alpha = 0.15f),
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.global_chat_pinned),
+                            color = colors.accent,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+                if (conversation != null && conversation.lastTimestamp > 0) {
+                    Text(
+                        text = formatTimestamp(conversation.lastTimestamp),
+                        fontSize = 12.sp,
+                        color = colors.muted
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(2.dp))
+
+            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Text(
+                    text = if (conversation != null && conversation.lastMessage.isNotBlank()) conversation.lastMessage else stringResource(R.string.global_chat_subtitle),
+                    maxLines = 1,
+                    fontSize = 14.sp,
+                    color = colors.ink.copy(alpha = 0.6f),
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                if (conversation != null && conversation.unreadCount > 0) {
+                    Surface(
+                        color = colors.accent,
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                        modifier = Modifier.padding(start = 8.dp)
+                    ) {
+                        Text(
+                            text = conversation.unreadCount.toString(),
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
 }

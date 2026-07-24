@@ -29,6 +29,13 @@ class EventProcessor(
         try {
             when (event.kind) {
                 0 -> handleMetadata(event)
+                1 -> {
+                    val isGlobalChat = event.tags.any { it.size >= 2 && it[0] == "t" && (it[1] == com.ely.kian.data.repository.ChatRepository.GLOBAL_CHAT_TAG || it[1] == "global") }
+                    if (isGlobalChat) {
+                        Log.i(TAG, "Processing Global Chat Message (Kind 1)")
+                        chatRepository.handleGlobalChatMessage(event)
+                    }
+                }
                 5 -> {
                     handleDeletion(event)
                     chatRepository.handleDeletion(event)

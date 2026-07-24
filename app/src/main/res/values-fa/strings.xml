@@ -276,4 +276,9 @@
 
     <string name="burn_token">سوزاندن حواله (حذف کامل)</string>
     <string name="burn_token_confirm">آیا از سوزاندن این حواله اطمینان دارید؟ با این کار تمام سوابق محلی این حواله حذف شده و درخواست حذف آن به شبکه ارسال می‌شود. این عمل غیرقابل بازگشت است.</string>
+
+    <!-- Global Chat -->
+    <string name="global_chat">پیام گلوبال</string>
+    <string name="global_chat_subtitle">چت عمومی برای همه کاربران</string>
+    <string name="global_chat_pinned">چت عمومی</string>
 </resources>

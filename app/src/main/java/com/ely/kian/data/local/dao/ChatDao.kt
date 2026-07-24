@@ -70,4 +70,7 @@ interface ChatDao {
 
     @Query("SELECT SUM(unreadCount) FROM conversations WHERE isDeleted = 0")
     fun getTotalUnreadCount(): Flow<Int?>
+
+    @Query("DELETE FROM chat_messages WHERE contactPubkey = :contactPubkey AND id NOT IN (SELECT id FROM chat_messages WHERE contactPubkey = :contactPubkey ORDER BY createdAt DESC LIMIT :maxCount)")
+    suspend fun pruneMessagesForContact(contactPubkey: String, maxCount: Int = 50)
 }

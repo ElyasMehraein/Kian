@@ -65,10 +65,16 @@ fun ChatroomScreen(
         }
     }
 
+    val isGlobalChat = remember(contactPubkey) {
+        contactPubkey == com.ely.kian.data.repository.ChatRepository.GLOBAL_CHAT_PUBKEY
+    }
+
     LaunchedEffect(contactPubkey) {
-        val profile = viewModel.getProfile(contactPubkey)
-        if (profile != null) {
-            contactName = profile.displayName ?: profile.name ?: contactName
+        if (!isGlobalChat) {
+            val profile = viewModel.getProfile(contactPubkey)
+            if (profile != null) {
+                contactName = profile.displayName ?: profile.name ?: contactName
+            }
         }
     }
 
@@ -83,11 +89,35 @@ fun ChatroomScreen(
         topBar = {
             TopAppBar(
                 title = { 
-                    Column(
-                        modifier = Modifier.clickable { onProfileClick(contactPubkey) }
-                    ) {
-                        Text(contactName, color = kianColors.ink, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                        Text(contactNpub.take(16) + "...", color = kianColors.muted, fontSize = 11.sp)
+                    if (isGlobalChat) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Surface(
+                                color = kianColors.accent,
+                                shape = androidx.compose.foundation.shape.CircleShape,
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.Public,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(stringResource(R.string.global_chat), color = kianColors.ink, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.global_chat_subtitle), color = kianColors.muted, fontSize = 11.sp)
+                            }
+                        }
+                    } else {
+                        Column(
+                            modifier = Modifier.clickable { onProfileClick(contactPubkey) }
+                        ) {
+                            Text(contactName, color = kianColors.ink, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            Text(contactNpub.take(16) + "...", color = kianColors.muted, fontSize = 11.sp)
+                        }
                     }
                 },
                 navigationIcon = {
@@ -113,7 +143,7 @@ fun ChatroomScreen(
                             replyingTo = null
                         }
                     },
-                    onActionClick = { showVoucherPicker = true },
+                    onActionClick = if (isGlobalChat) null else { { showVoucherPicker = true } },
                     colors = kianColors
                 )
             }
@@ -150,25 +180,34 @@ fun ChatroomScreen(
                 var showMenu by remember { mutableStateOf(false) }
                 val clipboard = androidx.compose.ui.platform.LocalClipboard.current
 
-                ChatBubbleLayout(
-                    isMine = message.isMine,
-                    colors = kianColors,
-                    onLongClick = { showMenu = true },
-                    onDoubleClick = { viewModel.toggleReaction(message.id, contactPubkey, "❤️") },
-                    onSwipeToReply = { replyingTo = message },
-                    reactions = {
-                        if (message.reactions != null) {
-                            MessageReactions(message.reactions!!, kianColors)
-                        }
+                Column {
+                    if (isGlobalChat && !message.isMine) {
+                        GlobalSenderHeader(
+                            pubkey = message.pubkey,
+                            viewModel = viewModel,
+                            colors = kianColors,
+                            onProfileClick = onProfileClick
+                        )
                     }
-                ) {
-                    MessageContent(
-                        message = message,
-                        viewModel = viewModel,
+                    ChatBubbleLayout(
+                        isMine = message.isMine,
                         colors = kianColors,
-                        onActionClick = { 
+                        onLongClick = { showMenu = true },
+                        onDoubleClick = { viewModel.toggleReaction(message.id, contactPubkey, "❤️") },
+                        onSwipeToReply = { replyingTo = message },
+                        reactions = {
+                            if (message.reactions != null) {
+                                MessageReactions(message.reactions!!, kianColors)
+                            }
                         }
-                    )
+                    ) {
+                        MessageContent(
+                            message = message,
+                            viewModel = viewModel,
+                            colors = kianColors,
+                            onActionClick = { 
+                            }
+                        )
                     
                     DropdownMenu(
                         expanded = showMenu,
@@ -220,5 +259,46 @@ fun ChatroomScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun GlobalSenderHeader(
+    pubkey: String,
+    viewModel: ChatViewModel,
+    colors: com.ely.kian.ui.theme.KianColors,
+    onProfileClick: (String) -> Unit
+) {
+    var senderName by remember { mutableStateOf(pubkey.take(8) + "...") }
+    var pictureUrl by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(pubkey) {
+        val profile = viewModel.getProfile(pubkey)
+        if (profile != null) {
+            senderName = profile.displayName ?: profile.name ?: senderName
+            pictureUrl = profile.picture
+        }
+    }
+
+    Row(
+        modifier = Modifier
+            .padding(start = 4.dp, bottom = 2.dp, top = 4.dp)
+            .clickable { onProfileClick(pubkey) },
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        com.ely.kian.ui.components.InitialAvatar(
+            name = senderName,
+            pictureUrl = pictureUrl,
+            size = 20.dp
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(
+            text = senderName,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = colors.accent,
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+        )
     }
 }

@@ -92,6 +92,10 @@ class NostrSyncManager(
                 val traderFilter = """{"kinds": [0, 10002, 10050], "#t": ["trader"], "limit": 100}"""
                 relayPool.subscribe(url, "trader_sync", traderFilter)
                 
+                // 1b. Global Chat sync (limit 50 as requested)
+                val globalChatFilter = """{"kinds": [1], "#t": ["${com.ely.kian.data.repository.ChatRepository.GLOBAL_CHAT_TAG}"], "limit": 50}"""
+                relayPool.subscribe(url, "global_chat_sync", globalChatFilter)
+                
                 if (myPubkey != null) {
                     // 2. Metadata and Relay lists
                     val inboxRelayFilter = """{"kinds": [0, 3, 10002, 10050], "authors": ["$myPubkey"], "limit": 5}"""

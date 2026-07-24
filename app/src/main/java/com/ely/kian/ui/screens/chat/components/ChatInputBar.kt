@@ -25,7 +25,7 @@ fun ChatInput(
     text: String,
     onTextChange: (String) -> Unit,
     onSend: () -> Unit,
-    onActionClick: () -> Unit,
+    onActionClick: (() -> Unit)? = null,
     colors: KianColors
 ) {
     Surface(
@@ -40,8 +40,10 @@ fun ChatInput(
                 .imePadding(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onActionClick) {
-                Icon(Icons.Default.ConfirmationNumber, contentDescription = "Send Voucher", tint = colors.accent)
+            if (onActionClick != null) {
+                IconButton(onClick = onActionClick) {
+                    Icon(Icons.Default.ConfirmationNumber, contentDescription = "Send Voucher", tint = colors.accent)
+                }
             }
 
             TextField(

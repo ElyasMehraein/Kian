@@ -277,4 +277,9 @@
 
     <string name="burn_token">Burn Voucher (Permanent Delete)</string>
     <string name="burn_token_confirm">Are you sure you want to burn this voucher? This will remove all local records and send a deletion request to the network. This action cannot be undone.</string>
+
+    <!-- Global Chat -->
+    <string name="global_chat">Global Messages</string>
+    <string name="global_chat_subtitle">Public group chatroom for all users</string>
+    <string name="global_chat_pinned">Global Chat</string>
 </resources>

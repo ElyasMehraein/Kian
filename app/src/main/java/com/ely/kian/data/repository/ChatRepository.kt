@@ -52,6 +52,10 @@ class ChatRepository(
     }
 
     suspend fun sendMessage(contactPubkey: String, content: String, metadata: String? = null, replyToId: String? = null) {
+        if (contactPubkey == GLOBAL_CHAT_PUBKEY) {
+            sendGlobalMessage(content, replyToId)
+            return
+        }
         val myPrivKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: return
         val myPrivKey = KianKeys.hexToBytes(myPrivKeyHex)
         val myPubKey = KianKeys.bytesToHex(KianKeys.getPubKey(myPrivKey))
@@ -468,6 +472,88 @@ class ChatRepository(
         chatDao.deleteConversation(contactPubkey, System.currentTimeMillis() / 1000)
     }
 
+    suspend fun sendGlobalMessage(content: String, replyToId: String? = null) {
+        val myPrivKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: return
+        val myPrivKey = KianKeys.hexToBytes(myPrivKeyHex)
+        val myPubKey = KianKeys.bytesToHex(KianKeys.getPubKey(myPrivKey))
+
+        val createdAt = System.currentTimeMillis() / 1000
+        val kind = 1 // Public text note
+
+        val tags = mutableListOf(
+            listOf("t", GLOBAL_CHAT_TAG)
+        )
+        if (replyToId != null) {
+            tags.add(listOf("e", replyToId, "", "reply"))
+        }
+
+        val id = KianKeys.computeEventId(myPubKey, createdAt, kind, tags, content)
+        val sig = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(id), myPrivKey))
+
+        val globalEvent = NostrEvent(
+            id = id,
+            pubkey = myPubKey,
+            createdAt = createdAt,
+            kind = kind,
+            tags = tags,
+            content = content,
+            sig = sig
+        )
+
+        val message = ChatMessage(
+            id = id,
+            pubkey = myPubKey,
+            contactPubkey = GLOBAL_CHAT_PUBKEY,
+            createdAt = createdAt,
+            content = content,
+            kind = kind,
+            isMine = true,
+            status = "sent",
+            replyTo = replyToId
+        )
+
+        chatDao.insertMessage(message)
+        chatDao.pruneMessagesForContact(GLOBAL_CHAT_PUBKEY, 50)
+        updateConversation(GLOBAL_CHAT_PUBKEY, content, createdAt, incrementUnread = false)
+
+        nostrSyncManager.publishEvent(globalEvent)
+    }
+
+    suspend fun handleGlobalChatMessage(event: NostrEvent) {
+        repoMutex.withLock {
+            if (chatDao.isEventDeleted(event.id)) return@withLock
+
+            val existing = chatDao.getMessageById(event.id)
+            if (existing != null) return@withLock
+
+            val myPrivKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY)
+            val myPubKey = myPrivKeyHex?.let { KianKeys.bytesToHex(KianKeys.getPubKey(KianKeys.hexToBytes(it))) }
+            val isMine = (event.pubkey == myPubKey)
+
+            val replyToId = event.tags.find { it.size >= 2 && it[0] == "e" }?.get(1)
+
+            val message = ChatMessage(
+                id = event.id,
+                pubkey = event.pubkey,
+                contactPubkey = GLOBAL_CHAT_PUBKEY,
+                createdAt = event.createdAt,
+                content = event.content,
+                kind = event.kind,
+                isMine = isMine,
+                status = "sent",
+                replyTo = replyToId
+            )
+
+            chatDao.insertMessage(message)
+            chatDao.pruneMessagesForContact(GLOBAL_CHAT_PUBKEY, 50)
+            updateConversation(GLOBAL_CHAT_PUBKEY, event.content, event.createdAt, incrementUnread = !isMine)
+
+            if (userProfileDao.getProfile(event.pubkey) == null) {
+                nostrSyncManager.requestProfiles(listOf(event.pubkey))
+            }
+        }
+    }
+
     suspend fun handleDeletion(event: NostrEvent) {
         val targetIds = event.tags.filter { it.size >= 2 && it[0] == "e" }.map { it[1] }
         targetIds.forEach { id ->
@@ -477,5 +563,10 @@ class ChatRepository(
                 chatDao.deleteMessageById(id)
             }
         }
+    }
+
+    companion object {
+        const val GLOBAL_CHAT_PUBKEY = "global_chat"
+        const val GLOBAL_CHAT_TAG = "kian_global"
     }
 }
