@@ -266,6 +266,10 @@
     <string name="app_version">Version %1$s</string>
     <string name="current_version">Current version: %1$s</string>
     <string name="share_profile_message">Check out my profile on Kian!\n\n📱 If Kian is installed, tap here:\nnostr:%1$s\n\n📥 If you don\'t have Kian, download it here:\nhttps://github.com/ElyasMehraein/Kian/releases</string>
+    <string name="search">Search</string>
+    <string name="searching">Searching...</string>
+    <string name="search_hint">Search by Pubkey, Username, or Name</string>
+    <string name="no_results_found">No results found.</string>
     <string name="scan_qr">Scan QR Code</string>
 
     <string name="depth_limit_reached">Maximum depth reached</string>

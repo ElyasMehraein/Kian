@@ -20,7 +20,7 @@ interface UserProfileDao {
     @Query("SELECT * FROM profiles WHERE pubkey IN (:pubkeys)")
     suspend fun getProfiles(pubkeys: List<String>): List<Profile>
 
-    @Query("SELECT * FROM profiles WHERE displayName LIKE :query OR name LIKE :query ORDER BY updatedAt DESC")
+    @Query("SELECT * FROM profiles WHERE displayName LIKE :query OR name LIKE :query OR pubkey LIKE :query OR nip05 LIKE :query ORDER BY updatedAt DESC")
     fun searchProfiles(query: String): Flow<List<Profile>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

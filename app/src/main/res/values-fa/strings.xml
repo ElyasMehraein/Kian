@@ -265,6 +265,10 @@
     <string name="app_version">نسخه %1$s</string>
     <string name="current_version">نسخه فعلی: %1$s</string>
     <string name="share_profile_message">پروفایل من در کیان را مشاهده کنید!\n\n📱 اگر کیان نصب است روی لینک زیر بزنید:\nnostr:%1$s\n\n📥 اگر کیان را ندارید، از اینجا دانلود کنید:\nhttps://github.com/ElyasMehraein/Kian/releases</string>
+    <string name="search">جستجو</string>
+    <string name="searching">در حال جستجو...</string>
+    <string name="search_hint">جستجو با کلید عمومی، نام کاربری یا نام</string>
+    <string name="no_results_found">نتیجه‌ای یافت نشد.</string>
     <string name="scan_qr">اسکن کد QR</string>
 
     <string name="depth_limit_reached">به حداکثر عمق رسیدید</string>

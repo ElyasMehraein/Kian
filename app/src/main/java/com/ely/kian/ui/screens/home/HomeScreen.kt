@@ -23,6 +23,22 @@ import com.ely.kian.ui.theme.KianTheme
 
 import androidx.compose.ui.res.stringResource
 import com.ely.kian.R
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import com.ely.kian.ui.components.InitialAvatar
+import androidx.compose.ui.text.style.TextOverflow
 
 @Composable
 fun HomeScreen(
@@ -40,6 +56,9 @@ fun HomeScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val selectedSort by viewModel.selectedSort.collectAsState()
     val userGeohash by viewModel.userGeohash.collectAsState()
+    val isSearchActive by viewModel.isSearchActive.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val searchResults by viewModel.searchResults.collectAsState()
     
     val sortOptions = listOf(
         "Nearest" to R.string.nearest,
@@ -52,10 +71,188 @@ fun HomeScreen(
         modifier = Modifier.fillMaxSize()
     ) {
         // Header
-        ScreenHeader(
-            title = stringResource(R.string.merchants),
-            subtitle = stringResource(R.string.home_subtitle)
-        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(top = 12.dp, bottom = 20.dp)
+        ) {
+            // Standard Header Content
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = stringResource(R.string.merchants),
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = kianColors.ink,
+                    lineHeight = 34.sp
+                )
+                Text(
+                    text = stringResource(R.string.home_subtitle),
+                    fontSize = 14.sp,
+                    color = kianColors.muted,
+                    modifier = Modifier.padding(top = 4.dp),
+                    lineHeight = 20.sp
+                )
+            }
+
+            // Search Icon (when inactive)
+            AnimatedVisibility(
+                visible = !isSearchActive,
+                enter = fadeIn(animationSpec = tween(400)),
+                exit = fadeOut(animationSpec = tween(400)),
+                modifier = Modifier.align(Alignment.TopEnd)
+            ) {
+                IconButton(onClick = { viewModel.setIsSearchActive(true) }) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = stringResource(R.string.search),
+                        tint = kianColors.ink
+                    )
+                }
+            }
+
+            // Animated Search Input
+            val focusRequester = remember { FocusRequester() }
+            AnimatedVisibility(
+                visible = isSearchActive,
+                enter = expandHorizontally(animationSpec = tween(400), expandFrom = Alignment.End) + fadeIn(animationSpec = tween(400)),
+                exit = shrinkHorizontally(animationSpec = tween(400), shrinkTowards = Alignment.End) + fadeOut(animationSpec = tween(400)),
+                modifier = Modifier.fillMaxWidth().align(Alignment.Center)
+            ) {
+                TextField(
+                    value = searchQuery,
+                    onValueChange = { viewModel.updateSearchQuery(it) },
+                    placeholder = { Text(stringResource(R.string.search_hint), color = kianColors.muted, fontSize = 14.sp) },
+                    singleLine = true,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = kianColors.panel,
+                        unfocusedContainerColor = kianColors.panel,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        focusedTextColor = kianColors.ink,
+                        unfocusedTextColor = kianColors.ink
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = stringResource(R.string.search),
+                            tint = kianColors.muted
+                        )
+                    },
+                    trailingIcon = {
+                        IconButton(onClick = { viewModel.setIsSearchActive(false) }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = kianColors.muted
+                            )
+                        }
+                    }
+                )
+                LaunchedEffect(isSearchActive) {
+                    if (isSearchActive) {
+                        focusRequester.requestFocus()
+                    }
+                }
+            }
+        }
+
+        if (isSearchActive) {
+            // Search Results Dropdown/Overlay
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp)
+            ) {
+                if (searchQuery.isNotEmpty() && searchResults == null) {
+                    // Loading State
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator(
+                            color = kianColors.accent,
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(text = stringResource(R.string.searching), color = kianColors.muted)
+                    }
+                } else if (searchResults != null) {
+                    if (searchResults!!.isEmpty() && searchQuery.isNotEmpty()) {
+                        Text(
+                            text = stringResource(R.string.no_results_found),
+                            color = kianColors.muted,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    } else {
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            contentPadding = PaddingValues(bottom = 80.dp)
+                        ) {
+                            items(searchResults!!) { profile ->
+                                ListItem(
+                                    headlineContent = {
+                                        Text(
+                                            text = profile.displayName ?: profile.name ?: "Unknown",
+                                            fontWeight = FontWeight.Bold,
+                                            color = kianColors.ink
+                                        )
+                                    },
+                                    supportingContent = {
+                                        Column {
+                                            if (!profile.nip05.isNullOrEmpty()) {
+                                                Text(
+                                                    text = profile.nip05,
+                                                    color = kianColors.accent,
+                                                    fontSize = 12.sp
+                                                )
+                                            }
+                                            Text(
+                                                text = profile.pubkey,
+                                                color = kianColors.muted,
+                                                fontSize = 10.sp,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            if (!profile.about.isNullOrEmpty()) {
+                                                Text(
+                                                    text = profile.about,
+                                                    color = kianColors.muted,
+                                                    fontSize = 12.sp,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                        }
+                                    },
+                                    leadingContent = {
+                                        InitialAvatar(
+                                            name = profile.displayName ?: profile.name ?: "U",
+                                            pictureUrl = profile.picture,
+                                            size = 40.dp
+                                        )
+                                    },
+                                    colors = ListItemDefaults.colors(
+                                        containerColor = kianColors.panel,
+                                    ),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { onMerchantClick(profile.pubkey) }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
 
         // Sort Chips
         LazyRow(
@@ -152,6 +349,7 @@ fun HomeScreen(
                     )
                 }
             }
+        }
         }
     }
 }

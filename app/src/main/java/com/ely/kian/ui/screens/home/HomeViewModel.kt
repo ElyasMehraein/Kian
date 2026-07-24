@@ -10,7 +10,9 @@ import com.ely.kian.data.local.dao.UserProfileDao
 import com.ely.kian.data.local.dao.ReviewDao
 import com.ely.kian.services.MerchantInfo
 import com.ely.kian.services.MerchantRankingEngine
+import com.ely.kian.data.local.entities.Profile
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -32,8 +34,41 @@ class HomeViewModel(
     private val _userGeohash = MutableStateFlow<String?>(null)
     val userGeohash: StateFlow<String?> = _userGeohash.asStateFlow()
 
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    private val _isSearchActive = MutableStateFlow(false)
+    val isSearchActive: StateFlow<Boolean> = _isSearchActive.asStateFlow()
+
+    @OptIn(FlowPreview::class)
+    val searchResults: StateFlow<List<Profile>?> = _searchQuery
+        .debounce(300)
+        .flatMapLatest { query ->
+            if (query.isBlank()) {
+                flowOf(null)
+            } else {
+                var actualQuery = query.trim()
+                if (actualQuery.startsWith("npub")) {
+                    actualQuery = KianKeys.normalizePubkey(actualQuery)
+                }
+                userProfileDao.searchProfiles("%$actualQuery%")
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     init {
         loadMerchants()
+    }
+
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
+    fun setIsSearchActive(active: Boolean) {
+        _isSearchActive.value = active
+        if (!active) {
+            _searchQuery.value = ""
+        }
     }
 
     fun setSort(sort: String) {
