@@ -1,41 +1,40 @@
 package com.ely.kian.ui.screens.home
 
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Text
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.ely.kian.KianApp
-import com.ely.kian.ui.components.KianChip
-import com.ely.kian.ui.components.MerchantCard
-import com.ely.kian.ui.components.ScreenHeader
-import com.ely.kian.ui.theme.KianTheme
-import androidx.compose.ui.res.stringResource
-import com.ely.kian.R
-import androidx.compose.animation.*
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import com.ely.kian.ui.components.InitialAvatar
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ely.kian.KianApp
+import com.ely.kian.R
+import com.ely.kian.ui.components.InitialAvatar
+import com.ely.kian.ui.components.KianChip
+import com.ely.kian.ui.components.MerchantCard
+import com.ely.kian.ui.theme.KianTheme
+import kotlinx.coroutines.delay
 
 @Composable
 fun HomeScreen(
@@ -56,7 +55,7 @@ fun HomeScreen(
     val isSearchActive by viewModel.isSearchActive.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val searchResults by viewModel.searchResults.collectAsState()
-    
+
     val sortOptions = listOf(
         "Nearest" to R.string.nearest,
         "Online" to R.string.online_merchants,
@@ -66,9 +65,27 @@ fun HomeScreen(
 
     val focusRequester = remember { FocusRequester() }
 
-    Box(
+    // Animate Header Search Bar Width over 600ms
+    val searchBarWidthFraction by animateFloatAsState(
+        targetValue = if (isSearchActive) 1f else 0f,
+        animationSpec = tween(600),
+        label = "SearchBarWidthAnimation"
+    )
+
+    // Animate Overlay Panel Expansion Progress (0 to 1) over 600ms
+    val isOverlayVisible = isSearchActive && searchQuery.isNotEmpty()
+    val overlayHeightFraction by animateFloatAsState(
+        targetValue = if (isOverlayVisible) 1f else 0f,
+        animationSpec = tween(600),
+        label = "OverlayHeightAnimation"
+    )
+
+    BoxWithConstraints(
         modifier = Modifier.fillMaxSize()
     ) {
+        val maxWidth = maxWidth
+        val maxHeight = maxHeight
+
         // Main Home Column (Header + Home Content)
         Column(
             modifier = Modifier.fillMaxSize()
@@ -81,14 +98,13 @@ fun HomeScreen(
                     .padding(horizontal = 20.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
-                // Title and Subtitle (fades out when search is active)
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = !isSearchActive,
-                    enter = fadeIn(animationSpec = tween(1000)),
-                    exit = fadeOut(animationSpec = tween(1000)),
-                    modifier = Modifier.align(Alignment.CenterStart)
-                ) {
-                    Column {
+                // Title and Subtitle
+                if (searchBarWidthFraction < 0.8f) {
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.CenterStart)
+                            .alpha(1f - (searchBarWidthFraction / 0.8f))
+                    ) {
                         Text(
                             text = stringResource(R.string.merchants),
                             fontSize = 26.sp,
@@ -105,16 +121,14 @@ fun HomeScreen(
                     }
                 }
 
-                // Search Icon (visible when search is NOT active)
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = !isSearchActive,
-                    enter = fadeIn(animationSpec = tween(1000)),
-                    exit = fadeOut(animationSpec = tween(1000)),
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(end = 56.dp)
-                ) {
-                    IconButton(onClick = { viewModel.setIsSearchActive(true) }) {
+                // Search Icon (Visible when search is NOT active)
+                if (!isSearchActive && searchBarWidthFraction == 0f) {
+                    IconButton(
+                        onClick = { viewModel.setIsSearchActive(true) },
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .padding(end = 56.dp)
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Search,
                             contentDescription = stringResource(R.string.search),
@@ -123,66 +137,63 @@ fun HomeScreen(
                     }
                 }
 
-                // Animated Expanding Search Input Bar (visible when search IS active)
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = isSearchActive,
-                    enter = expandHorizontally(
-                        animationSpec = tween(1000),
-                        expandFrom = Alignment.End
-                    ) + fadeIn(animationSpec = tween(1000)),
-                    exit = shrinkHorizontally(
-                        animationSpec = tween(1000),
-                        shrinkTowards = Alignment.End
-                    ) + fadeOut(animationSpec = tween(1000)),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(end = 56.dp)
-                        .align(Alignment.Center)
-                ) {
-                    TextField(
-                        value = searchQuery,
-                        onValueChange = { viewModel.updateSearchQuery(it) },
-                        placeholder = { 
-                            Text(
-                                stringResource(R.string.search_hint),
-                                color = kianColors.muted,
-                                fontSize = 14.sp
-                            ) 
-                        },
-                        singleLine = true,
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = kianColors.panel,
-                            unfocusedContainerColor = kianColors.panel,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            focusedTextColor = kianColors.ink,
-                            unfocusedTextColor = kianColors.ink
-                        ),
-                        shape = RoundedCornerShape(12.dp),
+                // Smoothly Expanding Search TextField (Width grows over 0.6 second)
+                if (searchBarWidthFraction > 0f) {
+                    val animatedWidth = (maxWidth - 96.dp) * searchBarWidthFraction
+
+                    Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .focusRequester(focusRequester),
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = stringResource(R.string.search),
-                                tint = kianColors.muted
-                            )
-                        },
-                        trailingIcon = {
-                            IconButton(onClick = { viewModel.setIsSearchActive(false) }) {
+                            .align(Alignment.CenterEnd)
+                            .padding(end = 56.dp)
+                            .width(animatedWidth)
+                    ) {
+                        TextField(
+                            value = searchQuery,
+                            onValueChange = { viewModel.updateSearchQuery(it) },
+                            placeholder = {
+                                Text(
+                                    stringResource(R.string.search_hint),
+                                    color = kianColors.muted,
+                                    fontSize = 14.sp
+                                )
+                            },
+                            singleLine = true,
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = kianColors.panel,
+                                unfocusedContainerColor = kianColors.panel,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent,
+                                focusedTextColor = kianColors.ink,
+                                unfocusedTextColor = kianColors.ink
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(focusRequester),
+                            leadingIcon = {
                                 Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Close",
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = stringResource(R.string.search),
                                     tint = kianColors.muted
                                 )
+                            },
+                            trailingIcon = {
+                                IconButton(onClick = { viewModel.setIsSearchActive(false) }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Close",
+                                        tint = kianColors.muted
+                                    )
+                                }
                             }
-                        }
-                    )
+                        )
+                    }
                 }
 
+                // Focus request after animation finishes (500ms)
                 LaunchedEffect(isSearchActive) {
                     if (isSearchActive) {
+                        delay(500)
                         focusRequester.requestFocus()
                     }
                 }
@@ -268,7 +279,7 @@ fun HomeScreen(
                         } else {
                             "${merchant.title} (${merchant.socialRating})"
                         }
-                        
+
                         MerchantCard(
                             name = merchant.profile.displayName ?: merchant.profile.name ?: stringResource(R.string.unknown),
                             bio = merchant.profile.about ?: stringResource(R.string.no_bio_yet),
@@ -286,24 +297,15 @@ fun HomeScreen(
             }
         }
 
-        // Search Results Overlay Panel (Expands downward ONLY when searchQuery is NOT empty)
-        androidx.compose.animation.AnimatedVisibility(
-            visible = isSearchActive && searchQuery.isNotEmpty(),
-            enter = expandVertically(
-                animationSpec = tween(1000),
-                expandFrom = Alignment.Top
-            ) + fadeIn(animationSpec = tween(1000)),
-            exit = shrinkVertically(
-                animationSpec = tween(1000),
-                shrinkTowards = Alignment.Top
-            ) + fadeOut(animationSpec = tween(1000)),
-            modifier = Modifier
-                .padding(top = 64.dp)
-                .fillMaxSize()
-        ) {
+        // Search Results Overlay Panel (Expands Vertically downwards over 600ms)
+        if (overlayHeightFraction > 0f) {
+            val animatedHeight = (maxHeight - 64.dp) * overlayHeightFraction
+
             Surface(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .padding(top = 64.dp)
+                    .fillMaxWidth()
+                    .height(animatedHeight)
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 shape = RoundedCornerShape(16.dp),
                 color = kianColors.canvas.copy(alpha = 0.96f),
@@ -403,4 +405,3 @@ fun HomeScreen(
         }
     }
 }
-
