@@ -110,7 +110,9 @@ fun HomeScreen(
                     visible = !isSearchActive,
                     enter = fadeIn(animationSpec = tween(300)),
                     exit = fadeOut(animationSpec = tween(300)),
-                    modifier = Modifier.align(Alignment.CenterEnd)
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = 56.dp)
                 ) {
                     IconButton(onClick = { viewModel.setIsSearchActive(true) }) {
                         Icon(
@@ -134,6 +136,7 @@ fun HomeScreen(
                     ) + fadeOut(animationSpec = tween(300)),
                     modifier = Modifier
                         .fillMaxWidth()
+                        .padding(end = 56.dp)
                         .align(Alignment.Center)
                 ) {
                     TextField(
