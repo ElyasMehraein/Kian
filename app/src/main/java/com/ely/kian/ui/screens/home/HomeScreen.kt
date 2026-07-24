@@ -35,6 +35,8 @@ import androidx.compose.ui.focus.focusRequester
 import com.ely.kian.ui.components.InitialAvatar
 import androidx.compose.ui.text.style.TextOverflow
 
+import androidx.compose.ui.draw.clip
+
 @Composable
 fun HomeScreen(
     onMerchantClick: (String) -> Unit,
@@ -62,127 +64,273 @@ fun HomeScreen(
         "Verified" to R.string.verified
     )
 
-    Column(
+    val focusRequester = remember { FocusRequester() }
+
+    Box(
         modifier = Modifier.fillMaxSize()
     ) {
-        // Header
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .padding(top = 12.dp, bottom = 20.dp)
+        // Main Home Column (Header + Home Content)
+        Column(
+            modifier = Modifier.fillMaxSize()
         ) {
-            // Standard Header Content
-            Column(
-                modifier = Modifier.fillMaxWidth()
+            // Header Bar
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(64.dp)
+                    .padding(horizontal = 20.dp),
+                contentAlignment = Alignment.CenterStart
             ) {
-                Text(
-                    text = stringResource(R.string.merchants),
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = kianColors.ink,
-                    lineHeight = 34.sp
-                )
-                Text(
-                    text = stringResource(R.string.home_subtitle),
-                    fontSize = 14.sp,
-                    color = kianColors.muted,
-                    modifier = Modifier.padding(top = 4.dp),
-                    lineHeight = 20.sp
-                )
-            }
-
-            // Search Icon (when inactive)
-            androidx.compose.animation.AnimatedVisibility(
-                visible = !isSearchActive,
-                enter = fadeIn(animationSpec = tween(400)),
-                exit = fadeOut(animationSpec = tween(400)),
-                modifier = Modifier.align(Alignment.TopEnd).padding(end = 48.dp)
-            ) {
-                IconButton(onClick = { viewModel.setIsSearchActive(true) }) {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = stringResource(R.string.search),
-                        tint = kianColors.ink
-                    )
+                // Title and Subtitle (fades out when search is active)
+                AnimatedVisibility(
+                    visible = !isSearchActive,
+                    enter = fadeIn(animationSpec = tween(300)),
+                    exit = fadeOut(animationSpec = tween(300)),
+                    modifier = Modifier.align(Alignment.CenterStart)
+                ) {
+                    Column {
+                        Text(
+                            text = stringResource(R.string.merchants),
+                            fontSize = 26.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = kianColors.ink,
+                            lineHeight = 30.sp
+                        )
+                        Text(
+                            text = stringResource(R.string.home_subtitle),
+                            fontSize = 13.sp,
+                            color = kianColors.muted,
+                            lineHeight = 16.sp
+                        )
+                    }
                 }
-            }
 
-            // Animated Search Input
-            val focusRequester = remember { FocusRequester() }
-            androidx.compose.animation.AnimatedVisibility(
-                visible = isSearchActive,
-                enter = expandHorizontally(animationSpec = tween(400), expandFrom = Alignment.End) + fadeIn(animationSpec = tween(400)),
-                exit = shrinkHorizontally(animationSpec = tween(400), shrinkTowards = Alignment.End) + fadeOut(animationSpec = tween(400)),
-                modifier = Modifier.fillMaxWidth().padding(end = 48.dp).align(Alignment.Center)
-            ) {
-                TextField(
-                    value = searchQuery,
-                    onValueChange = { viewModel.updateSearchQuery(it) },
-                    placeholder = { Text(stringResource(R.string.search_hint), color = kianColors.muted, fontSize = 14.sp) },
-                    singleLine = true,
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = kianColors.panel,
-                        unfocusedContainerColor = kianColors.panel,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        focusedTextColor = kianColors.ink,
-                        unfocusedTextColor = kianColors.ink
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
-                    leadingIcon = {
+                // Search Icon (visible when search is NOT active)
+                AnimatedVisibility(
+                    visible = !isSearchActive,
+                    enter = fadeIn(animationSpec = tween(300)),
+                    exit = fadeOut(animationSpec = tween(300)),
+                    modifier = Modifier.align(Alignment.CenterEnd)
+                ) {
+                    IconButton(onClick = { viewModel.setIsSearchActive(true) }) {
                         Icon(
                             imageVector = Icons.Default.Search,
                             contentDescription = stringResource(R.string.search),
-                            tint = kianColors.muted
+                            tint = kianColors.ink
                         )
-                    },
-                    trailingIcon = {
-                        IconButton(onClick = { viewModel.setIsSearchActive(false) }) {
+                    }
+                }
+
+                // Animated Expanding Search Input Bar (visible when search IS active)
+                AnimatedVisibility(
+                    visible = isSearchActive,
+                    enter = expandHorizontally(
+                        animationSpec = tween(400),
+                        expandFrom = Alignment.End
+                    ) + fadeIn(animationSpec = tween(300)),
+                    exit = shrinkHorizontally(
+                        animationSpec = tween(400),
+                        shrinkTowards = Alignment.End
+                    ) + fadeOut(animationSpec = tween(300)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.Center)
+                ) {
+                    TextField(
+                        value = searchQuery,
+                        onValueChange = { viewModel.updateSearchQuery(it) },
+                        placeholder = { 
+                            Text(
+                                stringResource(R.string.search_hint),
+                                color = kianColors.muted,
+                                fontSize = 14.sp
+                            ) 
+                        },
+                        singleLine = true,
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = kianColors.panel,
+                            unfocusedContainerColor = kianColors.panel,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            focusedTextColor = kianColors.ink,
+                            unfocusedTextColor = kianColors.ink
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester),
+                        leadingIcon = {
                             Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Close",
+                                imageVector = Icons.Default.Search,
+                                contentDescription = stringResource(R.string.search),
                                 tint = kianColors.muted
                             )
+                        },
+                        trailingIcon = {
+                            IconButton(onClick = { viewModel.setIsSearchActive(false) }) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Close",
+                                    tint = kianColors.muted
+                                )
+                            }
                         }
-                    }
-                )
+                    )
+                }
+
                 LaunchedEffect(isSearchActive) {
                     if (isSearchActive) {
                         focusRequester.requestFocus()
                     }
                 }
             }
+
+            // Sort Chips
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(vertical = 12.dp)
+            ) {
+                items(sortOptions) { (key, labelId) ->
+                    KianChip(
+                        text = stringResource(labelId),
+                        selected = selectedSort == key,
+                        onClick = { viewModel.setSort(key) }
+                    )
+                }
+            }
+
+            if (selectedSort == "Top Rated") {
+                Text(
+                    text = stringResource(R.string.sort_top_rated_desc),
+                    fontSize = 12.sp,
+                    color = kianColors.ink.copy(alpha = 0.6f),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+            }
+
+            if (selectedSort == "Verified") {
+                Text(
+                    text = stringResource(R.string.sort_verified_desc),
+                    fontSize = 12.sp,
+                    color = kianColors.ink.copy(alpha = 0.6f),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+            }
+
+            if (selectedSort == "Online") {
+                Text(
+                    text = stringResource(R.string.sort_online_desc),
+                    fontSize = 12.sp,
+                    color = kianColors.ink.copy(alpha = 0.6f),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+            }
+
+            if (selectedSort == "Nearest") {
+                if (userGeohash == null) {
+                    Text(
+                        text = stringResource(R.string.nearest_no_location),
+                        fontSize = 12.sp,
+                        color = kianColors.muted,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    )
+                } else {
+                    Text(
+                        text = stringResource(R.string.nearest_desc),
+                        fontSize = 12.sp,
+                        color = kianColors.ink.copy(alpha = 0.6f),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
+            if (isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = kianColors.accent)
+                }
+            } else if (merchants.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(text = stringResource(R.string.no_merchants_yet), color = kianColors.ink.copy(alpha = 0.5f))
+                }
+            } else {
+                // Merchant List
+                LazyColumn(
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(merchants) { merchant ->
+                        val ratingText = if (selectedSort == "Verified") {
+                            "${merchant.title} (${merchant.mutualFollows} follows)"
+                        } else {
+                            "${merchant.title} (${merchant.socialRating})"
+                        }
+                        
+                        MerchantCard(
+                            name = merchant.profile.displayName ?: merchant.profile.name ?: stringResource(R.string.unknown),
+                            bio = merchant.profile.about ?: stringResource(R.string.no_bio_yet),
+                            rating = ratingText,
+                            distance = if (merchant.distanceKm != null) {
+                                if (merchant.distanceKm < 1) "${(merchant.distanceKm * 1000).toInt()} m"
+                                else "${"%.1f".format(merchant.distanceKm)} km"
+                            } else stringResource(R.string.distance_unknown),
+                            pictureUrl = merchant.profile.picture,
+                            isOnline = merchant.isOnline,
+                            onClick = { onMerchantClick(merchant.pubkey) }
+                        )
+                    }
+                }
+            }
         }
 
-        if (isSearchActive) {
-            // Search Results Dropdown/Overlay
-            Box(
+        // Search Results Overlay Panel (Expands downward ONLY when searchQuery is NOT empty)
+        AnimatedVisibility(
+            visible = isSearchActive && searchQuery.isNotEmpty(),
+            enter = expandVertically(
+                animationSpec = tween(350),
+                expandFrom = Alignment.Top
+            ) + fadeIn(animationSpec = tween(300)),
+            exit = shrinkVertically(
+                animationSpec = tween(300),
+                shrinkTowards = Alignment.Top
+            ) + fadeOut(animationSpec = tween(250)),
+            modifier = Modifier
+                .padding(top = 64.dp)
+                .fillMaxSize()
+        ) {
+            Surface(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 16.dp)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = kianColors.background.copy(alpha = 0.96f),
+                shadowElevation = 8.dp,
+                tonalElevation = 4.dp
             ) {
-                val currentSearchResults = searchResults
-                if (searchQuery.isNotEmpty() && currentSearchResults == null) {
-                    // Loading State
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        CircularProgressIndicator(
-                            color = kianColors.accent,
-                            modifier = Modifier.size(24.dp),
-                            strokeWidth = 2.dp
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(text = stringResource(R.string.searching), color = kianColors.muted)
-                    }
-                } else if (currentSearchResults != null) {
-                    if (currentSearchResults.isEmpty() && searchQuery.isNotEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(12.dp)
+                ) {
+                    val currentSearchResults = searchResults
+                    if (currentSearchResults == null) {
+                        // Loading State
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            CircularProgressIndicator(
+                                color = kianColors.accent,
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(text = stringResource(R.string.searching), color = kianColors.muted)
+                        }
+                    } else if (currentSearchResults.isEmpty()) {
                         Text(
                             text = stringResource(R.string.no_results_found),
                             color = kianColors.muted,
@@ -191,7 +339,7 @@ fun HomeScreen(
                     } else {
                         LazyColumn(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
-                            contentPadding = PaddingValues(bottom = 80.dp)
+                            contentPadding = PaddingValues(bottom = 24.dp)
                         ) {
                             items(currentSearchResults) { profile ->
                                 ListItem(
@@ -241,6 +389,7 @@ fun HomeScreen(
                                     ),
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
                                         .clickable { onMerchantClick(profile.pubkey) }
                                 )
                             }
@@ -248,104 +397,7 @@ fun HomeScreen(
                     }
                 }
             }
-        } else {
-
-        // Sort Chips
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.padding(bottom = 16.dp)
-        ) {
-            items(sortOptions) { (key, labelId) ->
-                KianChip(
-                    text = stringResource(labelId),
-                    selected = selectedSort == key,
-                    onClick = { viewModel.setSort(key) }
-                )
-            }
-        }
-
-        if (selectedSort == "Top Rated") {
-            Text(
-                text = stringResource(R.string.sort_top_rated_desc),
-                fontSize = 12.sp,
-                color = kianColors.ink.copy(alpha = 0.6f),
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-            )
-        }
-
-        if (selectedSort == "Verified") {
-            Text(
-                text = stringResource(R.string.sort_verified_desc),
-                fontSize = 12.sp,
-                color = kianColors.ink.copy(alpha = 0.6f),
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-            )
-        }
-
-        if (selectedSort == "Online") {
-            Text(
-                text = stringResource(R.string.sort_online_desc),
-                fontSize = 12.sp,
-                color = kianColors.ink.copy(alpha = 0.6f),
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-            )
-        }
-
-        if (selectedSort == "Nearest") {
-            if (userGeohash == null) {
-                Text(
-                    text = stringResource(R.string.nearest_no_location),
-                    fontSize = 12.sp,
-                    color = kianColors.muted,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                )
-            } else {
-                Text(
-                    text = stringResource(R.string.nearest_desc),
-                    fontSize = 12.sp,
-                    color = kianColors.ink.copy(alpha = 0.6f),
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                )
-            }
-        }
-
-        if (isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = kianColors.accent)
-            }
-        } else if (merchants.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = stringResource(R.string.no_merchants_yet), color = kianColors.ink.copy(alpha = 0.5f))
-            }
-        } else {
-            // Merchant List
-            LazyColumn(
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(merchants) { merchant ->
-                    val ratingText = if (selectedSort == "Verified") {
-                        "${merchant.title} (${merchant.mutualFollows} follows)"
-                    } else {
-                        "${merchant.title} (${merchant.socialRating})"
-                    }
-                    
-                    MerchantCard(
-                        name = merchant.profile.displayName ?: merchant.profile.name ?: stringResource(R.string.unknown),
-                        bio = merchant.profile.about ?: stringResource(R.string.no_bio_yet),
-                        rating = ratingText,
-                        distance = if (merchant.distanceKm != null) {
-                            if (merchant.distanceKm < 1) "${(merchant.distanceKm * 1000).toInt()} m"
-                            else "${"%.1f".format(merchant.distanceKm)} km"
-                        } else stringResource(R.string.distance_unknown),
-                        pictureUrl = merchant.profile.picture,
-                        isOnline = merchant.isOnline,
-                        onClick = { onMerchantClick(merchant.pubkey) }
-                    )
-                }
-            }
-        }
         }
     }
 }
+
