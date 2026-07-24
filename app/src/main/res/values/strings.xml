@@ -257,10 +257,14 @@
     <string name="check_for_updates">Check for Updates</string>
     <string name="checking_updates">Checking for updates...</string>
     <string name="update_available">Update available: %1$s</string>
+    <string name="update_available_with_current">New version %1$s is available.\nCurrent version: %2$s</string>
     <string name="update_not_available">You are using the latest version.</string>
+    <string name="update_not_available_with_version">You are using the latest version (%1$s).</string>
     <string name="download_update">Download Update</string>
     <string name="update_failed">Failed to check for updates.</string>
     <string name="github_project">Project on GitHub</string>
+    <string name="app_version">Version %1$s</string>
+    <string name="current_version">Current version: %1$s</string>
     <string name="share_profile_message">Check out my profile on Kian!\n\n🔗 Open in Kian: https://github.com/ElyasMehraein/Kian/releases?pk=%1$s\n\n📥 Download Kian: https://github.com/ElyasMehraein/Kian/releases</string>
     <string name="scan_qr">Scan QR Code</string>
 

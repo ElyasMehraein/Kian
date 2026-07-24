@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.ely.kian.R
+import com.ely.kian.BuildConfig
 import com.ely.kian.services.GitHubUpdateManager
 import com.ely.kian.ui.theme.KianTheme
 
@@ -123,6 +124,7 @@ fun AppMenuDialog(
                     MenuItem(
                         icon = Icons.Default.SystemUpdate,
                         label = stringResource(R.string.check_for_updates),
+                        subtitle = stringResource(R.string.app_version, BuildConfig.VERSION_NAME),
                         onClick = { onCheckUpdate() }
                     )
 
@@ -228,9 +230,9 @@ fun AppMenuDialog(
                 text = {
                     Text(
                         if (result.isUpdateAvailable) 
-                            stringResource(R.string.update_available, result.latestVersion ?: "") 
+                            stringResource(R.string.update_available_with_current, result.latestVersion ?: "", BuildConfig.VERSION_NAME) 
                         else 
-                            stringResource(R.string.update_not_available)
+                            stringResource(R.string.update_not_available_with_version, BuildConfig.VERSION_NAME)
                     )
                 },
                 confirmButton = {
@@ -260,6 +262,7 @@ fun AppMenuDialog(
 fun MenuItem(
     icon: ImageVector,
     label: String,
+    subtitle: String? = null,
     destructive: Boolean = false,
     onClick: () -> Unit
 ) {
@@ -279,12 +282,22 @@ fun MenuItem(
             modifier = Modifier.size(20.dp)
         )
         Spacer(modifier = Modifier.width(12.dp))
-        Text(
-            text = label,
-            fontSize = 16.sp,
-            color = if (destructive) Color.Red else kianColors.ink,
-            fontWeight = FontWeight.Medium
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                fontSize = 16.sp,
+                color = if (destructive) Color.Red else kianColors.ink,
+                fontWeight = FontWeight.Medium
+            )
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    fontSize = 12.sp,
+                    color = kianColors.ink.copy(alpha = 0.5f),
+                    fontWeight = FontWeight.Normal
+                )
+            }
+        }
     }
 }
 

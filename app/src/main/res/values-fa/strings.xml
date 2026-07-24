@@ -256,10 +256,14 @@
     <string name="check_for_updates">بررسی بروزرسانی</string>
     <string name="checking_updates">در حال بررسی بروزرسانی...</string>
     <string name="update_available">بروزرسانی موجود است: %1$s</string>
+    <string name="update_available_with_current">نسخه جدید %1$s موجود است.\nنسخه فعلی: %2$s</string>
     <string name="update_not_available">شما از آخرین نسخه استفاده می‌کنید.</string>
+    <string name="update_not_available_with_version">شما از آخرین نسخه (%1$s) استفاده می‌کنید.</string>
     <string name="download_update">دانلود بروزرسانی</string>
     <string name="update_failed">خطا در بررسی بروزرسانی.</string>
     <string name="github_project">پروژه در گیت‌هاب</string>
+    <string name="app_version">نسخه %1$s</string>
+    <string name="current_version">نسخه فعلی: %1$s</string>
     <string name="share_profile_message">پروفایل من در کیان را مشاهده کنید!\n\n🔗 باز کردن در اپلیکیشن: https://github.com/ElyasMehraein/Kian/releases?pk=%1$s\n\n📥 دریافت اپلیکیشن: https://github.com/ElyasMehraein/Kian/releases</string>
     <string name="scan_qr">اسکن کد QR</string>
 
