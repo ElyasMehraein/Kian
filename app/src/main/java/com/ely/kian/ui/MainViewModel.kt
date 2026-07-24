@@ -84,23 +84,35 @@ class MainViewModel(
     var updateResult by mutableStateOf<GitHubUpdateManager.UpdateResult?>(null)
         private set
 
+    var hasUpdateAvailable by mutableStateOf(false)
+        private set
+
     var isCheckingUpdate by mutableStateOf(false)
         private set
 
     var updateError by mutableStateOf<String?>(null)
         private set
 
-    fun checkForUpdates() {
+    fun checkForUpdates(silent: Boolean = false) {
         viewModelScope.launch {
-            isCheckingUpdate = true
-            updateError = null
-            updateManager.checkForUpdates().onSuccess {
-                updateResult = it
-            }.onFailure {
-                Log.e("MainViewModel", "Update check failed", it)
-                updateError = it.message
+            if (!silent) {
+                isCheckingUpdate = true
+                updateError = null
             }
-            isCheckingUpdate = false
+            updateManager.checkForUpdates().onSuccess { result ->
+                hasUpdateAvailable = result.isUpdateAvailable
+                if (!silent) {
+                    updateResult = result
+                }
+            }.onFailure { e ->
+                Log.e("MainViewModel", "Update check failed", e)
+                if (!silent) {
+                    updateError = e.message
+                }
+            }
+            if (!silent) {
+                isCheckingUpdate = false
+            }
         }
     }
 
@@ -144,6 +156,9 @@ class MainViewModel(
                 }
             }
         }
+
+        // Automatically check for updates on launch (silent)
+        checkForUpdates(silent = true)
     }
 
     fun updateAccountMode(mode: String) {

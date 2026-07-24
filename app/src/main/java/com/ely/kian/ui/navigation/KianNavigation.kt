@@ -368,6 +368,7 @@ fun KianScaffold(
                     .align(Alignment.TopEnd)
                     .statusBarsPadding()
                     .padding(top = 18.dp, end = 20.dp),
+                hasUpdate = viewModel.hasUpdateAvailable,
                 onOpenMenu = { isMenuOpen = true }
             )
         }
@@ -379,6 +380,7 @@ fun KianScaffold(
             updateResult = viewModel.updateResult,
             updateError = viewModel.updateError,
             isCheckingUpdate = viewModel.isCheckingUpdate,
+            hasUpdateAvailable = viewModel.hasUpdateAvailable,
             onAccountModeChange = { mode -> viewModel.updateAccountMode(mode) },
             onLanguageChange = { lang ->
                 viewModel.updateLanguage(lang)

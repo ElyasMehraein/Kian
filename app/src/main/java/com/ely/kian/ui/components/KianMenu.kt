@@ -3,6 +3,7 @@ package com.ely.kian.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
@@ -29,6 +30,7 @@ import com.ely.kian.ui.theme.KianTheme
 @Composable
 fun AppMenuButton(
     modifier: Modifier = Modifier,
+    hasUpdate: Boolean = false,
     onOpenMenu: () -> Unit
 ) {
     val kianColors = KianTheme.colors
@@ -49,6 +51,17 @@ fun AppMenuButton(
             fontWeight = FontWeight.Bold,
             modifier = Modifier.offset(y = (-2).dp)
         )
+
+        if (hasUpdate) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(6.dp)
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFE53935))
+            )
+        }
     }
 }
 
@@ -60,6 +73,7 @@ fun AppMenuDialog(
     updateResult: GitHubUpdateManager.UpdateResult?,
     updateError: String?,
     isCheckingUpdate: Boolean,
+    hasUpdateAvailable: Boolean = false,
     onAccountModeChange: (String) -> Unit,
     onLanguageChange: (String) -> Unit,
     onCheckUpdate: () -> Unit,
@@ -125,6 +139,7 @@ fun AppMenuDialog(
                         icon = Icons.Default.SystemUpdate,
                         label = stringResource(R.string.check_for_updates),
                         subtitle = stringResource(R.string.app_version, BuildConfig.VERSION_NAME),
+                        hasBadge = hasUpdateAvailable,
                         onClick = { onCheckUpdate() }
                     )
 
@@ -264,6 +279,7 @@ fun MenuItem(
     label: String,
     subtitle: String? = null,
     destructive: Boolean = false,
+    hasBadge: Boolean = false,
     onClick: () -> Unit
 ) {
     val kianColors = KianTheme.colors
@@ -275,12 +291,23 @@ fun MenuItem(
             .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = if (destructive) Color.Red else kianColors.ink,
-            modifier = Modifier.size(20.dp)
-        )
+        Box(contentAlignment = Alignment.TopEnd) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (destructive) Color.Red else kianColors.ink,
+                modifier = Modifier.size(20.dp)
+            )
+            if (hasBadge) {
+                Box(
+                    modifier = Modifier
+                        .offset(x = 4.dp, y = (-2).dp)
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFE53935))
+                )
+            }
+        }
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -293,8 +320,8 @@ fun MenuItem(
                 Text(
                     text = subtitle,
                     fontSize = 12.sp,
-                    color = kianColors.ink.copy(alpha = 0.5f),
-                    fontWeight = FontWeight.Normal
+                    color = if (hasBadge) Color(0xFFE53935) else kianColors.ink.copy(alpha = 0.5f),
+                    fontWeight = if (hasBadge) FontWeight.SemiBold else FontWeight.Normal
                 )
             }
         }
