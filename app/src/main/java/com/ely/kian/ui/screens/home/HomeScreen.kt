@@ -303,7 +303,7 @@ fun HomeScreen(
                     .fillMaxSize()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 shape = RoundedCornerShape(16.dp),
-                color = kianColors.background.copy(alpha = 0.96f),
+                color = kianColors.canvas.copy(alpha = 0.96f),
                 shadowElevation = 8.dp,
                 tonalElevation = 4.dp
             ) {
