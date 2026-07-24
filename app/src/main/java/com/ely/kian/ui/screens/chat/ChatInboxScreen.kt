@@ -22,6 +22,7 @@ import com.ely.kian.data.local.entities.Conversation
 import com.ely.kian.ui.components.InitialAvatar
 import com.ely.kian.ui.components.ScreenHeader
 import com.ely.kian.ui.theme.KianTheme
+import com.ely.kian.crypto.KianKeys
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -144,9 +145,11 @@ fun ChatInboxScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        if (pubkeyInput.length == 64) {
+                        val trimmed = pubkeyInput.trim()
+                        if (trimmed.length == 64 || trimmed.startsWith("npub1")) {
                             showStartChatDialog = false
-                            onConversationClick(pubkeyInput)
+                            val hexKey = KianKeys.normalizePubkey(trimmed)
+                            onConversationClick(hexKey)
                         }
                     }
                 ) {

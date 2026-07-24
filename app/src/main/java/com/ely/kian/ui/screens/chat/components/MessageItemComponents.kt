@@ -1,6 +1,7 @@
 package com.ely.kian.ui.screens.chat.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -31,7 +32,8 @@ fun MessageContent(
     message: ChatMessage,
     viewModel: ChatViewModel,
     colors: KianColors,
-    onActionClick: () -> Unit
+    onActionClick: () -> Unit,
+    onReplyClick: (String) -> Unit = {}
 ) {
     val textColor = if (message.isMine) Color.White else colors.ink
     val metadata = remember(message.metadata) {
@@ -44,7 +46,7 @@ fun MessageContent(
 
     Column {
         if (message.replyTo != null) {
-            ReplyBubble(message.replyTo!!, viewModel, colors, message.isMine)
+            ReplyBubble(message.replyTo!!, viewModel, colors, message.isMine, onReplyClick)
         }
 
         if (metadata != null) {
@@ -107,7 +109,7 @@ fun MessageContent(
 }
 
 @Composable
-fun ReplyBubble(replyToId: String, viewModel: ChatViewModel, colors: KianColors, isMine: Boolean) {
+fun ReplyBubble(replyToId: String, viewModel: ChatViewModel, colors: KianColors, isMine: Boolean, onReplyClick: (String) -> Unit = {}) {
     var repliedMessage by remember { mutableStateOf<ChatMessage?>(null) }
     
     LaunchedEffect(replyToId) {
@@ -122,7 +124,7 @@ fun ReplyBubble(replyToId: String, viewModel: ChatViewModel, colors: KianColors,
         Surface(
             color = background,
             shape = RoundedCornerShape(8.dp),
-            modifier = Modifier.padding(bottom = 6.dp).fillMaxWidth()
+            modifier = Modifier.padding(bottom = 6.dp).fillMaxWidth().clickable { onReplyClick(replyToId) }
         ) {
             Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(modifier = Modifier.width(3.dp).height(24.dp).background(accentColor, RoundedCornerShape(2.dp)))

@@ -150,7 +150,12 @@ class ChatRepository(
         val reactionJson = json.encodeToString(reactionEvent)
         
         // 1. Update locally first (toggle mode for UI)
-        updateLocalReactions(messageId, myPubKey, emoji, toggle = true)
+        val wasRemoved = updateLocalReactions(messageId, myPubKey, emoji, toggle = true)
+        if (wasRemoved) {
+            // Note: To properly delete a reaction on relays, we'd need its Kind 7 event ID.
+            // Since we don't store it locally, we just avoid sending another Kind 7.
+            return
+        }
         
         // 2. Publish to recipient's inbox relays
         val giftWrapToRecipient = Nip59.giftWrap(reactionJson, myPrivKey, KianKeys.hexToBytes(contactPubkey), myPubKey)
@@ -166,8 +171,8 @@ class ChatRepository(
         nostrSyncManager.publishEvent(giftWrapToSelf, myOutbox)
     }
 
-    private suspend fun updateLocalReactions(messageId: String, senderPubkey: String, emoji: String, toggle: Boolean = false) {
-        val message = chatDao.getMessageById(messageId) ?: return
+    private suspend fun updateLocalReactions(messageId: String, senderPubkey: String, emoji: String, toggle: Boolean = false): Boolean {
+        val message = chatDao.getMessageById(messageId) ?: return false
         val existingReactionsJson = message.reactions
         
         val reactionsMap = if (existingReactionsJson != null) {
@@ -180,10 +185,12 @@ class ChatRepository(
             mutableMapOf()
         }
         
+        var wasRemoved = false
         val pubkeys = reactionsMap[emoji]?.toMutableList() ?: mutableListOf()
         if (toggle) {
             if (pubkeys.contains(senderPubkey)) {
                 pubkeys.remove(senderPubkey)
+                wasRemoved = true
             } else {
                 pubkeys.add(senderPubkey)
             }
@@ -201,6 +208,7 @@ class ChatRepository(
         
         val newJson = if (reactionsMap.isEmpty()) null else json.encodeToString(reactionsMap)
         chatDao.updateMessageReactions(messageId, newJson)
+        return wasRemoved
     }
 
     suspend fun handleReaction(event: NostrEvent) {
@@ -295,9 +303,10 @@ class ChatRepository(
                 
                 // Show notification only if app is in background
                 if (!isAppInForeground()) {
-                    val profile = userProfileDao.getProfile(contactPubkey)
+                    val actualSenderPubkey = if (contactPubkey == GLOBAL_CHAT_PUBKEY) event.pubkey else contactPubkey
+                    val profile = userProfileDao.getProfile(actualSenderPubkey)
                     notificationHelper.showChatNotification(
-                        senderPubkey = contactPubkey,
+                        senderPubkey = actualSenderPubkey,
                         senderName = profile?.displayName ?: profile?.name,
                         message = event.content
                     )
@@ -449,17 +458,19 @@ class ChatRepository(
         val targetIds = chatDao.getOwnMessageIdsForContact(contactPubkey, myPubKey)
         
         if (targetIds.isNotEmpty()) {
-            // 2. Create a single Kind 5 Deletion Event for ALL messages
-            val createdAt = System.currentTimeMillis() / 1000
-            val tags = targetIds.map { listOf("e", it) }
-            val content = "Deleting conversation"
-            val id = KianKeys.computeEventId(myPubKey, createdAt, 5, tags, content)
-            val sig = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(id), myPrivKey))
+            // 2. Batch into chunks of 100 to avoid relay size limits
+            targetIds.chunked(100).forEach { batch ->
+                val createdAt = System.currentTimeMillis() / 1000
+                val tags = batch.map { listOf("e", it) }
+                val content = "Deleting conversation"
+                val id = KianKeys.computeEventId(myPubKey, createdAt, 5, tags, content)
+                val sig = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(id), myPrivKey))
 
-            val deletionEvent = NostrEvent(id, myPubKey, createdAt, 5, tags, content, sig)
+                val deletionEvent = NostrEvent(id, myPubKey, createdAt, 5, tags, content, sig)
 
-            // 3. Publish
-            nostrSyncManager.publishEvent(deletionEvent)
+                // 3. Publish
+                nostrSyncManager.publishEvent(deletionEvent)
+            }
             
             // Record as deleted locally
             targetIds.forEach { id ->

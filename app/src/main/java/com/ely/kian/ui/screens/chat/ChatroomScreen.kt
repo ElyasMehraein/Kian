@@ -206,6 +206,12 @@ fun ChatroomScreen(
                             viewModel = viewModel,
                             colors = kianColors,
                             onActionClick = { 
+                            },
+                            onReplyClick = { replyId ->
+                                val index = messages.indexOfFirst { it.id == replyId }
+                                if (index != -1) {
+                                    scope.launch { listState.animateScrollToItem(index) }
+                                }
                             }
                         )
                     }
