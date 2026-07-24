@@ -25,16 +25,19 @@ interface VoucherDao {
     @Query("UPDATE voucher_utxos SET spent = 1 WHERE utxoId = :utxoId")
     suspend fun markSpent(utxoId: String)
 
+    @Query("UPDATE voucher_utxos SET isRedeeming = 1 WHERE utxoId = :utxoId")
+    suspend fun markRedeeming(utxoId: String)
+
     @Query("SELECT * FROM voucher_utxos WHERE owner = :pubkey ORDER BY createdAt DESC")
     fun getUtxosByOwner(pubkey: String): Flow<List<VoucherUtxo>>
 
     @Query("SELECT * FROM voucher_utxos WHERE owner = :pubkey OR (producer = :pubkey AND owner != :pubkey) ORDER BY createdAt DESC")
     fun getAllActivityUtxos(pubkey: String): Flow<List<VoucherUtxo>>
 
-    @Query("SELECT * FROM voucher_utxos WHERE owner = :pubkey AND (spent = 0 AND utxoId NOT IN (SELECT prevUtxoId FROM voucher_utxos WHERE prevUtxoId IS NOT NULL)) ORDER BY createdAt DESC")
+    @Query("SELECT * FROM voucher_utxos WHERE owner = :pubkey AND (spent = 0 AND isRedeeming = 0 AND utxoId NOT IN (SELECT prevUtxoId FROM voucher_utxos WHERE prevUtxoId IS NOT NULL)) ORDER BY createdAt DESC")
     fun getUnspentUtxosByOwner(pubkey: String): Flow<List<VoucherUtxo>>
 
-    @Query("UPDATE voucher_utxos SET spent = 0 WHERE utxoId = :utxoId")
+    @Query("UPDATE voucher_utxos SET spent = 0, isRedeeming = 0 WHERE utxoId = :utxoId")
     suspend fun unmarkSpent(utxoId: String)
 
     @Query("SELECT * FROM voucher_utxos WHERE utxoId = :utxoId LIMIT 1")

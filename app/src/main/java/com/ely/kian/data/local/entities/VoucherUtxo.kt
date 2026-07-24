@@ -32,5 +32,6 @@ data class VoucherUtxo(
     val amount: Long,
     val prevUtxoId: String?,
     val createdAt: Long,
-    val spent: Boolean = false
+    val spent: Boolean = false,
+    val isRedeeming: Boolean = false
 )

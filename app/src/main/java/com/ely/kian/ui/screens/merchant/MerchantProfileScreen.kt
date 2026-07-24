@@ -512,7 +512,7 @@ fun MerchantProfileScreen(
                                 Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
                                     ShowcaseTokenCard(
                                         token = token,
-                                        showAddToCart = !isOwnProfile,
+                                        showAddToCart = !isOwnProfile && token.producer != ownPubkey,
                                         onSendRequest = { qty, pos, img, spendingMsg, buyMsg ->
                                             flyingImage = img
                                             flyingStart = pos

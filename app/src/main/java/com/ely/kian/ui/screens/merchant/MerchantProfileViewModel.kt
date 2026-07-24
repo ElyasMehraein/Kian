@@ -141,6 +141,11 @@ class MerchantProfileViewModel(
     fun sendPurchaseRequest(token: BalanceItem, quantity: Long, spendingSummary: String, buySummary: String) {
         viewModelScope.launch {
             try {
+                val myPubkey = ownPubkey ?: return@launch
+                if (token.producer == myPubkey) {
+                    _syncErrorResId.value = R.string.error // Or whatever you want to show
+                    return@launch
+                }
                 val utxos = voucherRepository.getUtxos().first()
                 val availableUtxos = utxos.filter { it.assetRef == token.assetRef && !it.spent }
                 val totalAvailable = availableUtxos.sumOf { it.amount }

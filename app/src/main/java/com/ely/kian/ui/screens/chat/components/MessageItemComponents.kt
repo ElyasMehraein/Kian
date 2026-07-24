@@ -311,7 +311,8 @@ fun PurchaseRequestCard(
                 }
             }
 
-            if (!isMine && !isRejected && !isAccepted) {
+            val producer = metadata["producer"]?.jsonPrimitive?.content ?: ""
+            if (!isMine && !isRejected && !isAccepted && message.contactPubkey != producer) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),

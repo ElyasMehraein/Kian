@@ -111,6 +111,11 @@ class ChatViewModel(
                 val utxos = voucherRepository.getUtxos().first()
                 val availableUtxos = utxos.filter { it.assetRef == assetRef && !it.spent }
                 
+                if (availableUtxos.isNotEmpty() && contactPubkey == availableUtxos.first().producer) {
+                    // Cannot sell back to producer
+                    return@launch
+                }
+                
                 // For simplicity, find the first UTXO that covers the amount. 
                 // A better implementation would combine multiple UTXOs.
                 val suitableUtxo = availableUtxos.find { it.amount >= amount }

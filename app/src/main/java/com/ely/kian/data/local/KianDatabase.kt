@@ -24,7 +24,7 @@ import com.ely.kian.data.local.entities.*
         com.ely.kian.data.local.entities.Conversation::class,
         com.ely.kian.data.local.entities.DeletedEvent::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

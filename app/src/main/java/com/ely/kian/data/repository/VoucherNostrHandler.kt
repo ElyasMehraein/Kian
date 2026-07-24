@@ -146,6 +146,10 @@ class VoucherNostrHandler(
             val assetRef = contentObj["asset_ref"]?.jsonPrimitive?.content ?: return
             val isRedemption = contentObj["type"]?.jsonPrimitive?.content == "redemption"
 
+            val parsed = KianKeys.parseAssetRef(assetRef)
+            val definition = parsed?.let { voucherDao.getDefinition(it.assetId, myPubkey) }
+            val assetName = definition?.name ?: "Voucher"
+
             val existingUtxo = voucherDao.getUtxo(utxoId)
             if (existingUtxo == null || existingUtxo.producer != myPubkey) {
                 return
@@ -153,15 +157,17 @@ class VoucherNostrHandler(
             
             if (existingUtxo.spent) return
 
-            val parsed = KianKeys.parseAssetRef(assetRef)
-            val definition = parsed?.let { voucherDao.getDefinition(it.assetId, myPubkey) }
-            val assetName = definition?.name ?: "Voucher"
-
-            voucherDao.markSpent(utxoId)
+            if (existingUtxo.isRedeeming) {
+                val errorMsg = "شما قبلا این توکن رو برای دریافت محصول به تولید کننده ارسال کردید و باید منتظر دریافت محصول بمانید"
+                sendErrorMessage(event.pubkey, errorMsg, myPrivKey)
+                return
+            }
 
             if (isRedemption) {
+                voucherDao.markRedeeming(utxoId)
                 notifications.emit("🎁 Redemption request: $amount x $assetName from ${event.pubkey}")
             } else {
+                voucherDao.markSpent(utxoId)
                 issueRemint(recipient, assetRef, amount, utxoId, myPrivKey)
                 if (event.pubkey != recipient) {
                     notifySenderOfApproval(event.pubkey, recipient, assetRef, amount, utxoId, myPrivKey)
@@ -175,6 +181,17 @@ class VoucherNostrHandler(
         } catch (e: Exception) {
             Log.e(TAG, "Failed to handle transfer request", e)
         }
+    }
+
+    private suspend fun sendErrorMessage(senderPubkey: String, text: String, myPrivKey: ByteArray) {
+        val myPubkey = KianKeys.bytesToHex(KianKeys.getPubKey(myPrivKey))
+        val createdAt = System.currentTimeMillis() / 1000
+        val tags = listOf(listOf("p", senderPubkey))
+        val id = KianKeys.computeEventId(myPubkey, createdAt, 14, tags, text)
+        val sig = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(id), myPrivKey))
+        val event = NostrEvent(id, myPubkey, createdAt, 14, tags, text, sig)
+        val rumor = json.encodeToString(event)
+        syncManager.publishEvent(Nip59.giftWrap(rumor, myPrivKey, KianKeys.hexToBytes(senderPubkey), myPubkey), relayDao.getDmInboxRelayUrls(senderPubkey))
     }
 
     private suspend fun notifySenderOfApproval(
@@ -236,6 +253,12 @@ class VoucherNostrHandler(
         val myPubkey = keyDao.getKey()?.pubkey ?: return
         val pTag = event.tags.find { it.size >= 2 && it[0] == "p" }?.get(1)
         if (pTag != myPubkey) return
+        
+        val eTag = event.tags.find { it.size >= 2 && it[0] == "e" }?.get(1)
+        if (eTag != null) {
+            voucherDao.markSpent(eTag)
+        }
+        
         notifications.emit("Voucher receipt confirmed by ${event.pubkey}")
     }
 
@@ -302,9 +325,10 @@ class VoucherNostrHandler(
             newUtxoId
         } else {
             // I am NOT the producer, send a Transfer Request (Kind 1050) to the producer
+            val isRedemption = recipientPubkey == parsed.producer
             val createdAt = System.currentTimeMillis() / 1000
             val content = buildJsonObject {
-                put("type", "transfer")
+                put("type", if (isRedemption) "redemption" else "transfer")
                 put("utxo_id", utxoId)
                 put("amount", amount)
                 put("recipient", recipientPubkey)
