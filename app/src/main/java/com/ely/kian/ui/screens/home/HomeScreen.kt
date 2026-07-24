@@ -82,7 +82,7 @@ fun HomeScreen(
                 contentAlignment = Alignment.CenterStart
             ) {
                 // Title and Subtitle (fades out when search is active)
-                AnimatedVisibility(
+                androidx.compose.animation.AnimatedVisibility(
                     visible = !isSearchActive,
                     enter = fadeIn(animationSpec = tween(300)),
                     exit = fadeOut(animationSpec = tween(300)),
@@ -106,7 +106,7 @@ fun HomeScreen(
                 }
 
                 // Search Icon (visible when search is NOT active)
-                AnimatedVisibility(
+                androidx.compose.animation.AnimatedVisibility(
                     visible = !isSearchActive,
                     enter = fadeIn(animationSpec = tween(300)),
                     exit = fadeOut(animationSpec = tween(300)),
@@ -122,7 +122,7 @@ fun HomeScreen(
                 }
 
                 // Animated Expanding Search Input Bar (visible when search IS active)
-                AnimatedVisibility(
+                androidx.compose.animation.AnimatedVisibility(
                     visible = isSearchActive,
                     enter = expandHorizontally(
                         animationSpec = tween(400),
@@ -284,7 +284,7 @@ fun HomeScreen(
         }
 
         // Search Results Overlay Panel (Expands downward ONLY when searchQuery is NOT empty)
-        AnimatedVisibility(
+        androidx.compose.animation.AnimatedVisibility(
             visible = isSearchActive && searchQuery.isNotEmpty(),
             enter = expandVertically(
                 animationSpec = tween(350),
