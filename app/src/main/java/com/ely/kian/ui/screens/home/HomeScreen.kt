@@ -84,8 +84,8 @@ fun HomeScreen(
                 // Title and Subtitle (fades out when search is active)
                 androidx.compose.animation.AnimatedVisibility(
                     visible = !isSearchActive,
-                    enter = fadeIn(animationSpec = tween(300)),
-                    exit = fadeOut(animationSpec = tween(300)),
+                    enter = fadeIn(animationSpec = tween(1000)),
+                    exit = fadeOut(animationSpec = tween(1000)),
                     modifier = Modifier.align(Alignment.CenterStart)
                 ) {
                     Column {
@@ -108,8 +108,8 @@ fun HomeScreen(
                 // Search Icon (visible when search is NOT active)
                 androidx.compose.animation.AnimatedVisibility(
                     visible = !isSearchActive,
-                    enter = fadeIn(animationSpec = tween(300)),
-                    exit = fadeOut(animationSpec = tween(300)),
+                    enter = fadeIn(animationSpec = tween(1000)),
+                    exit = fadeOut(animationSpec = tween(1000)),
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
                         .padding(end = 56.dp)
@@ -127,13 +127,13 @@ fun HomeScreen(
                 androidx.compose.animation.AnimatedVisibility(
                     visible = isSearchActive,
                     enter = expandHorizontally(
-                        animationSpec = tween(400),
+                        animationSpec = tween(1000),
                         expandFrom = Alignment.End
-                    ) + fadeIn(animationSpec = tween(300)),
+                    ) + fadeIn(animationSpec = tween(1000)),
                     exit = shrinkHorizontally(
-                        animationSpec = tween(400),
+                        animationSpec = tween(1000),
                         shrinkTowards = Alignment.End
-                    ) + fadeOut(animationSpec = tween(300)),
+                    ) + fadeOut(animationSpec = tween(1000)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(end = 56.dp)
@@ -290,13 +290,13 @@ fun HomeScreen(
         androidx.compose.animation.AnimatedVisibility(
             visible = isSearchActive && searchQuery.isNotEmpty(),
             enter = expandVertically(
-                animationSpec = tween(350),
+                animationSpec = tween(1000),
                 expandFrom = Alignment.Top
-            ) + fadeIn(animationSpec = tween(300)),
+            ) + fadeIn(animationSpec = tween(1000)),
             exit = shrinkVertically(
-                animationSpec = tween(300),
+                animationSpec = tween(1000),
                 shrinkTowards = Alignment.Top
-            ) + fadeOut(animationSpec = tween(250)),
+            ) + fadeOut(animationSpec = tween(1000)),
             modifier = Modifier
                 .padding(top = 64.dp)
                 .fillMaxSize()
