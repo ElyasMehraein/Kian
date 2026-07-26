@@ -215,6 +215,12 @@
     <string name="process_event">پردازش رویداد</string>
     <string name="queue_for_sending">صف ارسال</string>
     <string name="no_pending_events">رویداد معلقی وجود ندارد</string>
+    <string name="cat_all">همه</string>
+    <string name="cat_transfers">ارسال حواله</string>
+    <string name="cat_requests">درخواست‌ها و پیام‌ها</string>
+    <string name="cat_profile">بروزرسانی پروفایل</string>
+    <string name="cat_other">سایر رویدادها</string>
+    <string name="filter_events">دسته‌بندی رویدادها</string>
     <string name="empty_content">(محتوای خالی)</string>
     <string name="copy_json">کپی JSON</string>
     <string name="send_token">ارسال حواله</string>

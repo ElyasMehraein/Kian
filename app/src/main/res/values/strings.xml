@@ -216,6 +216,12 @@
     <string name="process_event">Process Event</string>
     <string name="queue_for_sending">Queue for Sending</string>
     <string name="no_pending_events">No pending events</string>
+    <string name="cat_all">All</string>
+    <string name="cat_transfers">Voucher Transfers</string>
+    <string name="cat_requests">Requests &amp; Messages</string>
+    <string name="cat_profile">Profile Updates</string>
+    <string name="cat_other">Other Events</string>
+    <string name="filter_events">Filter by Category</string>
     <string name="empty_content">(Empty content)</string>
     <string name="copy_json">Copy JSON</string>
     <string name="send_token">Send Voucher</string>
