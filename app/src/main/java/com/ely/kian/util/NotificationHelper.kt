@@ -27,7 +27,7 @@ class NotificationHelper(private val context: Context) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_DEFAULT
+                NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "Notifications for new chat messages"
             }
@@ -50,7 +50,8 @@ class NotificationHelper(private val context: Context) {
             .setSmallIcon(R.drawable.ic_notification_k)
             .setContentTitle(senderName ?: "New Message")
             .setContentText(message)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .build()

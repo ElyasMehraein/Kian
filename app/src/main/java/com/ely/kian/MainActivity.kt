@@ -23,6 +23,7 @@ class MainActivity : ComponentActivity() {
         // Handle permission result if needed
     }
 
+    private var initialChatRoomIdState = mutableStateOf<String?>(null)
     private var initialPubkeyState = mutableStateOf<String?>(null)
 
     override fun attachBaseContext(newBase: Context) {
@@ -39,7 +40,7 @@ class MainActivity : ComponentActivity() {
             requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
 
-        val chatRoomId = intent.getStringExtra("chat_room_id")
+        initialChatRoomIdState.value = intent.getStringExtra("chat_room_id")
         initialPubkeyState.value = if (intent.action == android.content.Intent.ACTION_VIEW) {
             val uri = intent.data
             if (uri?.scheme == "nostr") {
@@ -52,7 +53,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             KianTheme {
                 KianScaffold(
-                    initialChatRoomId = chatRoomId,
+                    initialChatRoomId = initialChatRoomIdState.value,
                     initialPubkey = initialPubkeyState.value
                 )
             }
@@ -61,6 +62,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
+        val chatRoomId = intent.getStringExtra("chat_room_id")
+        if (chatRoomId != null) {
+            initialChatRoomIdState.value = chatRoomId
+        }
         if (intent.action == android.content.Intent.ACTION_VIEW) {
             val uri = intent.data
             val pk = if (uri?.scheme == "nostr") {

@@ -308,11 +308,17 @@ class ChatRepository(
                 
                 // Show notification only if app is in background
                 if (!isAppInForeground()) {
-                    val actualSenderPubkey = if (contactPubkey == GLOBAL_CHAT_PUBKEY) event.pubkey else contactPubkey
-                    val profile = userProfileDao.getProfile(actualSenderPubkey)
+                    val profile = userProfileDao.getProfile(event.pubkey)
+                    val senderDisplayName = profile?.displayName ?: profile?.name
+                    val title = if (contactPubkey == GLOBAL_CHAT_PUBKEY) {
+                        if (senderDisplayName != null) "Global Chat ($senderDisplayName)" else "Global Chat"
+                    } else {
+                        senderDisplayName ?: "New Message"
+                    }
+                    val roomToOpen = if (contactPubkey == GLOBAL_CHAT_PUBKEY) GLOBAL_CHAT_PUBKEY else contactPubkey
                     notificationHelper.showChatNotification(
-                        senderPubkey = actualSenderPubkey,
-                        senderName = profile?.displayName ?: profile?.name,
+                        senderPubkey = roomToOpen,
+                        senderName = title,
                         message = event.content
                     )
                 }
@@ -565,6 +571,17 @@ class ChatRepository(
             chatDao.insertMessage(message)
             chatDao.pruneMessagesForContact(GLOBAL_CHAT_PUBKEY, 50)
             updateConversation(GLOBAL_CHAT_PUBKEY, event.content, event.createdAt, incrementUnread = !isMine)
+
+            if (!isMine && !isAppInForeground()) {
+                val profile = userProfileDao.getProfile(event.pubkey)
+                val senderDisplayName = profile?.displayName ?: profile?.name
+                val title = if (senderDisplayName != null) "Global Chat ($senderDisplayName)" else "Global Chat"
+                notificationHelper.showChatNotification(
+                    senderPubkey = GLOBAL_CHAT_PUBKEY,
+                    senderName = title,
+                    message = event.content
+                )
+            }
 
             if (userProfileDao.getProfile(event.pubkey) == null) {
                 nostrSyncManager.requestProfiles(listOf(event.pubkey))

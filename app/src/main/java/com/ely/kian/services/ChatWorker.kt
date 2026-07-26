@@ -25,9 +25,9 @@ class ChatWorker(
             return Result.success()
         }
 
-        // Check if already syncing (likely in foreground)
-        if (syncManager.isSyncing()) {
-            Log.d("ChatWorker", "App is likely in foreground and already syncing, skipping")
+        // Check if app is in foreground
+        if (app.isAppInForeground) {
+            Log.d("ChatWorker", "App is in foreground, skipping background sync")
             return Result.success()
         }
 
