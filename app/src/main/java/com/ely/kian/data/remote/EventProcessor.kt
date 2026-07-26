@@ -117,17 +117,20 @@ class EventProcessor(
         val isTrader = event.tags.any { it.size >= 2 && it[0] == "t" && it[1] == "trader" }
         try {
             val content = json.parseToJsonElement(event.content).jsonObject
+            val parsedName = content["name"]?.jsonPrimitive?.contentOrNull?.trim()?.ifBlank { null }
+            val parsedDisplayName = content["display_name"]?.jsonPrimitive?.contentOrNull?.trim()?.ifBlank { null } ?: parsedName
+
             val profile = Profile(
                 pubkey = event.pubkey,
-                name = content["name"]?.jsonPrimitive?.contentOrNull,
-                displayName = content["display_name"]?.jsonPrimitive?.contentOrNull ?: content["name"]?.jsonPrimitive?.contentOrNull,
-                about = content["about"]?.jsonPrimitive?.contentOrNull,
-                picture = content["picture"]?.jsonPrimitive?.contentOrNull,
-                banner = content["banner"]?.jsonPrimitive?.contentOrNull,
-                website = content["website"]?.jsonPrimitive?.contentOrNull,
-                nip05 = content["nip05"]?.jsonPrimitive?.contentOrNull,
-                location = content["location"]?.jsonPrimitive?.contentOrNull,
-                geohash = content["geohash"]?.jsonPrimitive?.contentOrNull,
+                name = parsedName,
+                displayName = parsedDisplayName,
+                about = content["about"]?.jsonPrimitive?.contentOrNull?.trim()?.ifBlank { null },
+                picture = content["picture"]?.jsonPrimitive?.contentOrNull?.trim()?.ifBlank { null },
+                banner = content["banner"]?.jsonPrimitive?.contentOrNull?.trim()?.ifBlank { null },
+                website = content["website"]?.jsonPrimitive?.contentOrNull?.trim()?.ifBlank { null },
+                nip05 = content["nip05"]?.jsonPrimitive?.contentOrNull?.trim()?.ifBlank { null },
+                location = content["location"]?.jsonPrimitive?.contentOrNull?.trim()?.ifBlank { null },
+                geohash = content["geohash"]?.jsonPrimitive?.contentOrNull?.trim()?.ifBlank { null },
                 rawJson = event.content,
                 isTrader = isTrader,
                 createdAt = event.createdAt,

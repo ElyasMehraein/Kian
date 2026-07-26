@@ -21,15 +21,33 @@ class KianContainer(private val context: Context) {
 
     private val app = context.applicationContext as KianApp
 
-    val database: KianDatabase by lazy {
-        try {
-            val db = buildDatabase()
-            db.openHelper.writableDatabase
-            db
-        } catch (e: Exception) {
-            android.util.Log.e("KianContainer", "Database integrity check failed, wiping...", e)
-            context.deleteDatabase("kian_db")
-            buildDatabase()
+    @Volatile
+    private var _database: KianDatabase? = null
+
+    val database: KianDatabase
+        get() {
+            return _database ?: synchronized(this) {
+                _database ?: try {
+                    val db = buildDatabase()
+                    db.openHelper.writableDatabase
+                    db
+                } catch (e: Exception) {
+                    android.util.Log.e("KianContainer", "Database integrity check failed, wiping...", e)
+                    context.deleteDatabase("kian_db")
+                    buildDatabase()
+                }.also { _database = it }
+            }
+        }
+
+    fun resetDatabase(): KianDatabase {
+        synchronized(this) {
+            try {
+                _database?.close()
+            } catch (e: Exception) {
+                android.util.Log.e("KianContainer", "Error closing old DB instance during reset", e)
+            }
+            _database = null
+            return database
         }
     }
 

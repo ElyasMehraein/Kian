@@ -29,7 +29,7 @@ interface UserProfileDao {
     @Transaction
     suspend fun upsert(profile: Profile) {
         val existing = getProfile(profile.pubkey)
-        if (existing == null || profile.createdAt >= existing.createdAt) {
+        if (existing == null || profile.updatedAt >= existing.updatedAt || profile.createdAt >= existing.createdAt) {
             insert(profile)
         }
     }

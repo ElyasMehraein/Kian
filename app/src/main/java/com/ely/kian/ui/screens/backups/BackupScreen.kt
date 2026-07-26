@@ -203,7 +203,8 @@ fun BackupScreen(onBack: () -> Unit) {
                                 viewModel.restoreBackup(
                                     backup = backup,
                                     onSuccess = { 
-                                        showMessage("Data restored! Please restart the app.")
+                                        showMessage("Backup restored successfully!")
+                                        (context as? android.app.Activity)?.recreate()
                                     },
                                     onError = { error ->
                                         showMessage("Error: $error")

@@ -150,6 +150,13 @@ class BackupViewModel(
 
                 if (tempDbFile.exists()) tempDbFile.delete()
                 
+                // Re-open and reset database instance in KianContainer
+                try {
+                    (appContext as? com.ely.kian.KianApp)?.container?.resetDatabase()
+                } catch (e: Exception) {
+                    android.util.Log.e("BackupViewModel", "Failed to reset database container", e)
+                }
+
                 onSuccess()
             } catch (e: Exception) {
                 android.util.Log.e("BackupViewModel", "Restore failed", e)

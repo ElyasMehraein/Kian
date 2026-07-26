@@ -89,20 +89,23 @@ class ProfileEditViewModel(
         isSaving = true
         viewModelScope.launch {
             val now = System.currentTimeMillis() / 1000
+            val cleanName = name.trim().ifBlank { null }
+            val cleanDisplayName = displayName.trim().ifBlank { cleanName }
+
             val profile = Profile(
                 pubkey = currentPubkey,
-                name = name.ifBlank { null },
-                displayName = displayName.ifBlank { null },
-                about = about.ifBlank { null },
-                picture = picture.ifBlank { null },
-                banner = banner.ifBlank { null },
-                website = website.ifBlank { null },
-                nip05 = nip05.ifBlank { null },
-                location = location.ifBlank { null },
-                geohash = geohash.ifBlank { null },
+                name = cleanName,
+                displayName = cleanDisplayName,
+                about = about.trim().ifBlank { null },
+                picture = picture.trim().ifBlank { null },
+                banner = banner.trim().ifBlank { null },
+                website = website.trim().ifBlank { null },
+                nip05 = nip05.trim().ifBlank { null },
+                location = location.trim().ifBlank { null },
+                geohash = geohash.trim().ifBlank { null },
                 rawJson = existingProfile?.rawJson ?: "{}",
                 isTrader = existingProfile?.isTrader ?: false,
-                createdAt = existingProfile?.createdAt ?: now,
+                createdAt = now,
                 updatedAt = now
             )
             
@@ -115,15 +118,15 @@ class ProfileEditViewModel(
             profile.geohash?.let { tags.add(listOf("g", it)) }
             
             val contentObj = buildJsonObject {
-                put("name", profile.name ?: "")
-                put("display_name", profile.displayName ?: "")
-                put("about", profile.about ?: "")
-                put("picture", profile.picture ?: "")
-                put("banner", profile.banner ?: "")
-                put("website", profile.website ?: "")
-                put("nip05", profile.nip05 ?: "")
-                put("location", profile.location ?: "")
-                put("geohash", profile.geohash ?: "")
+                profile.name?.let { if (it.isNotBlank()) put("name", it) }
+                profile.displayName?.let { if (it.isNotBlank()) put("display_name", it) }
+                profile.about?.let { if (it.isNotBlank()) put("about", it) }
+                profile.picture?.let { if (it.isNotBlank()) put("picture", it) }
+                profile.banner?.let { if (it.isNotBlank()) put("banner", it) }
+                profile.website?.let { if (it.isNotBlank()) put("website", it) }
+                profile.nip05?.let { if (it.isNotBlank()) put("nip05", it) }
+                profile.location?.let { if (it.isNotBlank()) put("location", it) }
+                profile.geohash?.let { if (it.isNotBlank()) put("geohash", it) }
             }
             val content = contentObj.toString()
             
