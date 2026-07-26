@@ -95,6 +95,11 @@ class VoucherRepository(
         }
     }
 
+    fun getOwnPubkey(): String? {
+        val myPrivKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: return null
+        return KianKeys.bytesToHex(KianKeys.getPubKey(KianKeys.hexToBytes(myPrivKeyHex)))
+    }
+
     fun getUtxos(): Flow<List<VoucherUtxo>> {
         return keyDao.getKeyFlow().flatMapLatest { key ->
             val pubkey = key?.pubkey ?: return@flatMapLatest flowOf(emptyList())

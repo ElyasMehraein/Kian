@@ -10,6 +10,7 @@ import com.ely.kian.data.local.entities.Profile
 import com.ely.kian.data.repository.BalanceItem
 import com.ely.kian.data.repository.ChatRepository
 import com.ely.kian.data.repository.VoucherRepository
+import com.ely.kian.crypto.KianKeys
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.*
@@ -22,6 +23,7 @@ class ChatViewModel(
     private val json = Json { ignoreUnknownKeys = true }
 
     fun getUtxos() = voucherRepository.getUtxos()
+    fun getOwnPubkey(): String? = voucherRepository.getOwnPubkey()
 
     val conversations: StateFlow<List<Conversation>> = repository.getConversations()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -64,6 +66,11 @@ class ChatViewModel(
 
                 val summary = if (isToProducer) "🛒 $amount x $assetName" else "💸 $amount x $assetName"
                 repository.sendMessage(contactPubkey, summary, metadata)
+                
+                val myPubkey = voucherRepository.getOwnPubkey()
+                if (myPubkey != null && KianKeys.normalizePubkey(utxo.producer) == KianKeys.normalizePubkey(myPubkey)) {
+                    repository.updateMessageStatusByMetadata(utxoId, "delivered")
+                }
             } catch (e: Exception) {
                 android.util.Log.e("ChatViewModel", "Failed to send", e)
             }

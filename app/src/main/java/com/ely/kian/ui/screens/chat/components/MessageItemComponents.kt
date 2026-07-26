@@ -25,6 +25,7 @@ import com.ely.kian.data.local.entities.ChatMessage
 import com.ely.kian.ui.screens.chat.ChatViewModel
 import com.ely.kian.ui.screens.chat.formatTimestamp
 import com.ely.kian.ui.theme.KianColors
+import com.ely.kian.crypto.KianKeys
 import kotlinx.serialization.json.*
 
 @Composable
@@ -386,10 +387,18 @@ fun TokenMessageCard(
     val borderColor = if (isMine) colors.accent.copy(alpha = 0.4f) else colors.line
     
     val myUtxos by viewModel.getUtxos().collectAsState(initial = emptyList())
+    val producer = metadata["producer"]?.jsonPrimitive?.content ?: ""
+    val ownPubkey = remember { viewModel.getOwnPubkey() }
+    val isProducer = remember(producer, ownPubkey) {
+        producer.isNotEmpty() && ownPubkey != null && KianKeys.normalizePubkey(producer) == KianKeys.normalizePubkey(ownPubkey)
+    }
+
     val isConfirmed = remember(myUtxos, utxoId, transferEventId) {
         (utxoId != null && myUtxos.any { it.prevUtxoId == utxoId }) || 
         (transferEventId != null && myUtxos.any { it.utxoId == transferEventId })
     }
+
+    val isVerified = isConfirmed || message.status == "delivered" || message.status == "received" || type == "token_mint" || (isMine && isProducer)
 
     Surface(
         color = cardColor,
@@ -471,21 +480,21 @@ fun TokenMessageCard(
             
             val statusText = when {
                 message.status == "received" -> stringResource(R.string.order_completed)
-                isConfirmed || message.status == "delivered" -> stringResource(R.string.verified_by_producer)
+                isVerified -> stringResource(R.string.verified_by_producer)
                 type == "token_mint" -> stringResource(R.string.issued)
                 type == "token_redemption" -> if (isMine) stringResource(R.string.waiting_for_delivery) else stringResource(R.string.pending_delivery)
                 else -> stringResource(R.string.authenticating)
             }
             
             Row(verticalAlignment = Alignment.CenterVertically) {
-                if (!isConfirmed && message.status != "delivered" && message.status != "received" && type != "token_mint") {
+                if (!isVerified && type != "token_redemption") {
                     CircularProgressIndicator(
                         modifier = Modifier.size(12.dp),
                         strokeWidth = 2.dp,
                         color = colors.accent.copy(alpha = 0.6f)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                } else {
+                } else if (isVerified) {
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
                         contentDescription = null,
@@ -498,7 +507,7 @@ fun TokenMessageCard(
                     statusText,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
-                    color = if (isConfirmed || message.status == "delivered" || message.status == "received" || type == "token_mint") Color(0xFF4ADE80) else colors.muted
+                    color = if (isVerified) Color(0xFF4ADE80) else colors.muted
                 )
             }
 
