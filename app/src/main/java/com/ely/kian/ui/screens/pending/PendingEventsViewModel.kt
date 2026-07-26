@@ -57,10 +57,17 @@ class PendingEventsViewModel(
 
     private fun parseToItem(url: String, message: String): PendingEventItem? {
         return try {
-            val array = json.parseToJsonElement(message).jsonArray
-            if (array[0].jsonPrimitive.content != "EVENT") return null
+            val element = json.parseToJsonElement(message)
+            if (element !is JsonArray || element.isEmpty()) return null
+            if (element[0].jsonPrimitive.content != "EVENT") return null
             
-            val eventJson = array[2].toString()
+            val eventElement = if (element.size >= 3) element[2] else element[1]
+            val eventJson = if (eventElement is JsonPrimitive && eventElement.isString) {
+                eventElement.content
+            } else {
+                eventElement.toString()
+            }
+            
             val event = json.decodeFromString<NostrEvent>(eventJson)
             
             val category = getCategory(event)
