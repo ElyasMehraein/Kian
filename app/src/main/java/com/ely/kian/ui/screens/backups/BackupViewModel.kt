@@ -15,6 +15,9 @@ import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
+import androidx.sqlite.db.SimpleSQLiteQuery
+import com.ely.kian.data.local.KianDatabase
+
 data class BackupFile(
     val name: String,
     val size: String,
@@ -24,6 +27,7 @@ data class BackupFile(
 
 class BackupViewModel(
     context: Context,
+    private val database: KianDatabase,
     private val secureStorage: SecureStorage
 ) : ViewModel() {
     private val appContext = context.applicationContext
@@ -62,6 +66,13 @@ class BackupViewModel(
     fun createBackup() {
         viewModelScope.launch {
             try {
+                // Ensure all WAL changes (including updated user profile, messages, etc.) are flushed to kian_db
+                try {
+                    database.query(SimpleSQLiteQuery("PRAGMA wal_checkpoint(FULL)")).close()
+                } catch (e: Exception) {
+                    android.util.Log.e("BackupViewModel", "WAL Checkpoint failed before backup", e)
+                }
+
                 val dbFile = appContext.getDatabasePath("kian_db")
                 if (dbFile.exists()) {
                     val directory = File(backupFolderPath)
@@ -114,18 +125,30 @@ class BackupViewModel(
                 val tempDbFile = File(appContext.cacheDir, "restored_temp.db")
                 decryptFile(backup.file, tempDbFile, keyBytes)
                 
-                // If decryption succeeds, replace the main DB
                 val dbFile = appContext.getDatabasePath("kian_db")
                 
-                // IMPORTANT: In Room, we should close the database before replacing the file
-                // For this migration phase, we'll assume a restart or simple overwrite might work
-                // but ideally we'd trigger a full app restart.
+                // Flush WAL and close active database connection to prevent cached reads/overwrites
+                try {
+                    database.query(SimpleSQLiteQuery("PRAGMA wal_checkpoint(FULL)")).close()
+                    database.close()
+                } catch (e: Exception) {
+                    android.util.Log.e("BackupViewModel", "Failed to close database before restore", e)
+                }
                 
                 tempDbFile.inputStream().use { input ->
                     dbFile.outputStream().use { output ->
                         input.copyTo(output)
                     }
                 }
+                
+                // Clean up stale WAL and SHM files
+                val walFile = File(dbFile.path + "-wal")
+                if (walFile.exists()) walFile.delete()
+
+                val shmFile = File(dbFile.path + "-shm")
+                if (shmFile.exists()) shmFile.delete()
+
+                if (tempDbFile.exists()) tempDbFile.delete()
                 
                 onSuccess()
             } catch (e: Exception) {
@@ -173,10 +196,10 @@ class BackupViewModel(
     }
 
     companion object {
-        fun provideFactory(context: Context, secureStorage: SecureStorage): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+        fun provideFactory(context: Context, database: KianDatabase, secureStorage: SecureStorage): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return BackupViewModel(context, secureStorage) as T
+                return BackupViewModel(context, database, secureStorage) as T
             }
         }
     }

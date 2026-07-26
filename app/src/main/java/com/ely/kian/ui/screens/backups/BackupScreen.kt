@@ -39,7 +39,7 @@ fun BackupScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val app = context.applicationContext as KianApp
     val viewModel: BackupViewModel = viewModel(
-        factory = BackupViewModel.provideFactory(context, app.container.secureStorage)
+        factory = BackupViewModel.provideFactory(context, app.container.database, app.container.secureStorage)
     )
     val kianColors = KianTheme.colors
     

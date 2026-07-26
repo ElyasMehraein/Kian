@@ -270,6 +270,12 @@ class MainViewModel(
     fun backupDatabase(context: android.content.Context) {
         viewModelScope.launch {
             try {
+                try {
+                    database.query(androidx.sqlite.db.SimpleSQLiteQuery("PRAGMA wal_checkpoint(FULL)")).close()
+                } catch (e: Exception) {
+                    Log.e("MainViewModel", "WAL Checkpoint failed", e)
+                }
+
                 val dbFile = context.getDatabasePath("kian_db")
                 if (dbFile.exists()) {
                     val backupFile = java.io.File(context.cacheDir, "kian_backup_${System.currentTimeMillis()}.db")
