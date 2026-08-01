@@ -13,8 +13,8 @@ android {
         applicationId = "com.ely.kian"
         minSdk = 30
         targetSdk = 37
-        versionCode = 6
-        versionName = "1.0.6-alpha"
+        versionCode = 7
+        versionName = "1.0.7-alpha"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
