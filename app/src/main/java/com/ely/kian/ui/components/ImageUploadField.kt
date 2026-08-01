@@ -94,7 +94,7 @@ fun ImageUploadField(
                 )
             } else {
                 Text(
-                    text = if (isUploading) "Uploading to Blossom..." else "Tap to select and upload",
+                    text = if (isUploading) androidx.compose.ui.res.stringResource(com.ely.kian.R.string.uploading_to_blossom) else "Tap to select and upload",
                     color = kianColors.muted,
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.weight(1f)

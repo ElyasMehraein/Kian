@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
@@ -26,6 +27,8 @@ fun ChatInput(
     onTextChange: (String) -> Unit,
     onSend: () -> Unit,
     onActionClick: (() -> Unit)? = null,
+    onImageClick: (() -> Unit)? = null,
+    isUploading: Boolean = false,
     colors: KianColors
 ) {
     Surface(
@@ -43,6 +46,16 @@ fun ChatInput(
             if (onActionClick != null) {
                 IconButton(onClick = onActionClick) {
                     Icon(Icons.Default.ConfirmationNumber, contentDescription = "Send Voucher", tint = colors.accent)
+                }
+            }
+            
+            if (onImageClick != null) {
+                IconButton(onClick = onImageClick, enabled = !isUploading) {
+                    if (isUploading) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp, color = colors.accent)
+                    } else {
+                        Icon(Icons.Default.AddPhotoAlternate, contentDescription = stringResource(R.string.send_image), tint = colors.accent)
+                    }
                 }
             }
 

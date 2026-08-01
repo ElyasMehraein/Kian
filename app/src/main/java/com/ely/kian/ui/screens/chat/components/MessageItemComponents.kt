@@ -128,13 +128,30 @@ fun MessageContent(
                 }
             }
         } else {
-            LinkifiedText(
-                text = if (message.status == "rejected") stringResource(R.string.request_rejected) else message.content,
-                color = if (message.status == "rejected") colors.muted else textColor,
-                fontSize = 16.sp,
-                lineHeight = 22.sp,
-                textDecoration = if (message.status == "rejected") androidx.compose.ui.text.style.TextDecoration.LineThrough else null
-            )
+            val imageExtensions = listOf(".jpg", ".jpeg", ".png", ".gif", ".webp")
+            val isImageUrl = message.content.trim().startsWith("http") && 
+                            imageExtensions.any { message.content.trim().lowercase().endsWith(it) || message.content.trim().contains("$it?") }
+
+            if (isImageUrl) {
+                AsyncImage(
+                    model = message.content.trim(),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(colors.panel),
+                    contentScale = ContentScale.FillWidth
+                )
+            } else {
+                LinkifiedText(
+                    text = if (message.status == "rejected") stringResource(R.string.request_rejected) else message.content,
+                    color = if (message.status == "rejected") colors.muted else textColor,
+                    fontSize = 16.sp,
+                    lineHeight = 22.sp,
+                    textDecoration = if (message.status == "rejected") androidx.compose.ui.text.style.TextDecoration.LineThrough else null
+                )
+            }
         }
 
         Row(

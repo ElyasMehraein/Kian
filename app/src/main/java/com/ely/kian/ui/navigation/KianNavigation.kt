@@ -221,7 +221,8 @@ fun KianScaffold(
                         factory = ChatViewModel.provideFactory(
                             app.container.chatRepository,
                             app.container.userProfileDao,
-                            app.container.voucherRepository
+                            app.container.voucherRepository,
+                            app.container.secureStorage
                         )
                     )
                     ChatInboxScreen(
@@ -237,7 +238,8 @@ fun KianScaffold(
                         factory = ChatViewModel.provideFactory(
                             app.container.chatRepository,
                             app.container.userProfileDao,
-                            app.container.voucherRepository
+                            app.container.voucherRepository,
+                            app.container.secureStorage
                         )
                     )
                     ChatroomScreen(

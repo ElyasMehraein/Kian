@@ -80,6 +80,8 @@
     <string name="replying_to_yourself">Replying to yourself</string>
     <string name="replying_to">Replying to %1$s</string>
     <string name="type_message">Type a message...</string>
+    <string name="send_image">Send Image</string>
+    <string name="uploading_to_blossom">Uploading to Blossom...</string>
     <string name="genesis_mint">Genesis Mint</string>
     <string name="product_redemption">Voucher Redemption</string>
     <string name="token_transfer">Voucher Transfer</string>

@@ -79,6 +79,8 @@
     <string name="replying_to_yourself">در حال پاسخ به خودتان</string>
     <string name="replying_to">در حال پاسخ به %1$s</string>
     <string name="type_message">پیامی بنویسید...</string>
+    <string name="send_image">ارسال تصویر</string>
+    <string name="uploading_to_blossom">در حال آپلود در بلاسم...</string>
     <string name="genesis_mint">صدور حواله اولیه</string>
     <string name="product_redemption">بازخرید حواله</string>
     <string name="token_transfer">انتقال حواله</string>

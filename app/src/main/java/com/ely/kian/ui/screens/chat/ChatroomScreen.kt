@@ -69,6 +69,14 @@ fun ChatroomScreen(
         contactPubkey == com.ely.kian.data.repository.ChatRepository.GLOBAL_CHAT_PUBKEY
     }
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val imageLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()
+    ) { uri: android.net.Uri? ->
+        uri?.let { viewModel.uploadImage(context, it, contactPubkey, replyingTo?.id) }
+        replyingTo = null
+    }
+
     LaunchedEffect(contactPubkey) {
         if (!isGlobalChat) {
             val profile = viewModel.getProfile(contactPubkey)
@@ -144,6 +152,14 @@ fun ChatroomScreen(
                         }
                     },
                     onActionClick = if (isGlobalChat) null else { { showVoucherPicker = true } },
+                    onImageClick = {
+                        imageLauncher.launch(
+                            androidx.activity.result.PickVisualMediaRequest(
+                                androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly
+                            )
+                        )
+                    },
+                    isUploading = viewModel.isUploadingImage,
                     colors = kianColors
                 )
             }

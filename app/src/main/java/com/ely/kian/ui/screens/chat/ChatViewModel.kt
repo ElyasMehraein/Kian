@@ -1,5 +1,8 @@
 package com.ely.kian.ui.screens.chat
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -11,6 +14,8 @@ import com.ely.kian.data.repository.BalanceItem
 import com.ely.kian.data.repository.ChatRepository
 import com.ely.kian.data.repository.VoucherRepository
 import com.ely.kian.crypto.KianKeys
+import com.ely.kian.crypto.SecureStorage
+import com.ely.kian.services.BlossomUploader
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.*
@@ -18,9 +23,13 @@ import kotlinx.serialization.json.*
 class ChatViewModel(
     private val repository: ChatRepository,
     private val userProfileDao: UserProfileDao,
-    val voucherRepository: VoucherRepository
+    val voucherRepository: VoucherRepository,
+    private val secureStorage: SecureStorage
 ) : ViewModel() {
     private val json = Json { ignoreUnknownKeys = true }
+
+    var isUploadingImage by mutableStateOf(false)
+        private set
 
     fun getUtxos() = voucherRepository.getUtxos()
     fun getOwnPubkey(): String? = voucherRepository.getOwnPubkey()
@@ -167,6 +176,24 @@ class ChatViewModel(
     }
 
 
+    fun uploadImage(context: android.content.Context, uri: android.net.Uri, contactPubkey: String, replyToId: String? = null) {
+        viewModelScope.launch {
+            try {
+                isUploadingImage = true
+                val privKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: return@launch
+                val privKey = KianKeys.hexToBytes(privKeyHex)
+                val pubKey = KianKeys.bytesToHex(KianKeys.getPubKey(privKey))
+                
+                val url = BlossomUploader.uploadImage(context, uri, privKey, pubKey)
+                sendMessage(contactPubkey, url, replyToId)
+            } catch (e: Exception) {
+                android.util.Log.e("ChatViewModel", "Failed to upload image", e)
+            } finally {
+                isUploadingImage = false
+            }
+        }
+    }
+
     fun sendMessage(contactPubkey: String, content: String, replyToId: String? = null) {
         viewModelScope.launch {
             repository.sendMessage(contactPubkey, content, replyToId = replyToId)
@@ -212,11 +239,12 @@ class ChatViewModel(
         fun provideFactory(
             repository: ChatRepository,
             userProfileDao: UserProfileDao,
-            voucherRepository: VoucherRepository
+            voucherRepository: VoucherRepository,
+            secureStorage: SecureStorage
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return ChatViewModel(repository, userProfileDao, voucherRepository) as T
+                return ChatViewModel(repository, userProfileDao, voucherRepository, secureStorage) as T
             }
         }
     }
