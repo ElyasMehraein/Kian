@@ -101,10 +101,7 @@ class VoucherRepository(
     }
 
     fun getUtxos(): Flow<List<VoucherUtxo>> {
-        return keyDao.getKeyFlow().flatMapLatest { key ->
-            val pubkey = key?.pubkey ?: return@flatMapLatest flowOf(emptyList())
-            voucherDao.getUtxosByOwner(pubkey)
-        }
+        return voucherDao.getAllUtxosFlow()
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)

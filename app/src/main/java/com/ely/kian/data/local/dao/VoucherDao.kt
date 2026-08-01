@@ -28,6 +28,9 @@ interface VoucherDao {
     @Query("UPDATE voucher_utxos SET isRedeeming = 1 WHERE utxoId = :utxoId")
     suspend fun markRedeeming(utxoId: String)
 
+    @Query("SELECT * FROM voucher_utxos ORDER BY createdAt DESC")
+    fun getAllUtxosFlow(): Flow<List<VoucherUtxo>>
+
     @Query("SELECT * FROM voucher_utxos WHERE owner = :pubkey ORDER BY createdAt DESC")
     fun getUtxosByOwner(pubkey: String): Flow<List<VoucherUtxo>>
 

@@ -395,7 +395,7 @@ fun TokenMessageCard(
 
     val isConfirmed = remember(myUtxos, utxoId, transferEventId) {
         (utxoId != null && myUtxos.any { it.prevUtxoId == utxoId }) || 
-        (transferEventId != null && myUtxos.any { it.utxoId == transferEventId })
+        (transferEventId != null && myUtxos.any { it.utxoId == transferEventId || it.prevUtxoId == transferEventId })
     }
 
     val isVerified = isConfirmed || message.status == "delivered" || message.status == "received" || type == "token_mint" || (isMine && isProducer)
