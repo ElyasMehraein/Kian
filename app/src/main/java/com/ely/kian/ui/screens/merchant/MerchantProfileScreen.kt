@@ -170,7 +170,7 @@ fun MerchantProfileScreen(
                         onBack = onBack,
                         showBack = !isOwnProfile,
                         onShare = {
-                            val npub = KianKeys.toNpub(KianKeys.hexToBytes(pubkey))
+                            val npub = try { KianKeys.toNpub(KianKeys.hexToBytes(pubkey)) } catch(e: Exception) { pubkey }
                             val shareText = context.getString(R.string.share_profile_message, npub)
                             val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
                                 type = "text/plain"
@@ -577,8 +577,9 @@ fun MerchantProfileScreen(
     }
 
     if (showQrDialog) {
+        val npub = remember(pubkey) { try { KianKeys.toNpub(KianKeys.hexToBytes(pubkey)) } catch(e: Exception) { pubkey } }
         QrCodeDialog(
-            content = "https://github.com/ElyasMehraein/Kian/releases?pk=$pubkey",
+            content = "https://njump.me/$npub",
             title = profile?.displayName ?: profile?.name ?: stringResource(R.string.merchant),
             onDismiss = { showQrDialog = false }
         )

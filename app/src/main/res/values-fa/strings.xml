@@ -271,7 +271,7 @@
     <string name="github_project">پروژه در گیت‌هاب</string>
     <string name="app_version">نسخه %1$s</string>
     <string name="current_version">نسخه فعلی: %1$s</string>
-    <string name="share_profile_message">پروفایل من در کیان را مشاهده کنید!\n\n📱 اگر کیان نصب است روی لینک زیر بزنید:\nnostr:%1$s\n\n📥 اگر کیان را ندارید، از اینجا دانلود کنید:\nhttps://github.com/ElyasMehraein/Kian/releases</string>
+    <string name="share_profile_message">پروفایل کیان را مشاهده کنید:\n\nhttps://njump.me/%1$s</string>
     <string name="search">جستجو</string>
     <string name="searching">در حال جستجو...</string>
     <string name="search_hint">کلید عمومی، نام کاربری یا نام</string>
