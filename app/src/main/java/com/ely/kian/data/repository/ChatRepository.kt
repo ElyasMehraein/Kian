@@ -310,16 +310,15 @@ class ChatRepository(
                 if (!isAppInForeground()) {
                     val profile = userProfileDao.getProfile(event.pubkey)
                     val senderDisplayName = profile?.displayName ?: profile?.name
-                    val title = if (contactPubkey == GLOBAL_CHAT_PUBKEY) {
-                        if (senderDisplayName != null) "Global Chat ($senderDisplayName)" else "Global Chat"
-                    } else {
-                        senderDisplayName ?: "New Message"
-                    }
-                    val roomToOpen = if (contactPubkey == GLOBAL_CHAT_PUBKEY) GLOBAL_CHAT_PUBKEY else contactPubkey
+                    val isGlobal = contactPubkey == GLOBAL_CHAT_PUBKEY
+                    val roomToOpen = if (isGlobal) GLOBAL_CHAT_PUBKEY else contactPubkey
+
                     notificationHelper.showChatNotification(
-                        senderPubkey = roomToOpen,
-                        senderName = title,
-                        message = event.content
+                        roomPubkey = roomToOpen,
+                        senderPubkey = event.pubkey,
+                        senderName = senderDisplayName,
+                        message = event.content,
+                        isGlobal = isGlobal
                     )
                 }
             }
@@ -575,11 +574,12 @@ class ChatRepository(
             if (!isMine && !isAppInForeground()) {
                 val profile = userProfileDao.getProfile(event.pubkey)
                 val senderDisplayName = profile?.displayName ?: profile?.name
-                val title = if (senderDisplayName != null) "Global Chat ($senderDisplayName)" else "Global Chat"
                 notificationHelper.showChatNotification(
-                    senderPubkey = GLOBAL_CHAT_PUBKEY,
-                    senderName = title,
-                    message = event.content
+                    roomPubkey = GLOBAL_CHAT_PUBKEY,
+                    senderPubkey = event.pubkey,
+                    senderName = senderDisplayName,
+                    message = event.content,
+                    isGlobal = true
                 )
             }
 

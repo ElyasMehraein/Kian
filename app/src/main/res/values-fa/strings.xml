@@ -66,6 +66,7 @@
     <string name="checkout">تسویه حساب</string>
     <string name="qty">تعداد: %1$d</string>
     <string name="new_chat">گفتگوی جدید</string>
+    <string name="new_message">پیام جدید</string>
     <string name="start_chat">شروع گفتگو</string>
     <string name="enter_pubkey">کلید عمومی (hex) را وارد کنید</string>
     <string name="start">شروع</string>

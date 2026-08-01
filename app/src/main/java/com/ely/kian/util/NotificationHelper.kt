@@ -35,20 +35,33 @@ class NotificationHelper(private val context: Context) {
         }
     }
 
-    fun showChatNotification(senderPubkey: String, senderName: String?, message: String) {
+    fun showChatNotification(
+        roomPubkey: String,
+        senderPubkey: String,
+        senderName: String?,
+        message: String,
+        isGlobal: Boolean
+    ) {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            putExtra("chat_room_id", senderPubkey)
+            putExtra("chat_room_id", roomPubkey)
         }
         
         val pendingIntent = PendingIntent.getActivity(
-            context, senderPubkey.hashCode(), intent,
+            context, roomPubkey.hashCode(), intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val displayName = senderName ?: (senderPubkey.take(8) + "...")
+        val title = if (isGlobal) {
+            "${context.getString(R.string.global_chat_pinned)} ($displayName)"
+        } else {
+            displayName
+        }
+
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification_k)
-            .setContentTitle(senderName ?: "New Message")
+            .setContentTitle(title)
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
@@ -56,6 +69,6 @@ class NotificationHelper(private val context: Context) {
             .setAutoCancel(true)
             .build()
 
-        notificationManager.notify(senderPubkey.hashCode(), notification)
+        notificationManager.notify(roomPubkey.hashCode(), notification)
     }
 }

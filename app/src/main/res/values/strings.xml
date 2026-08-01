@@ -67,6 +67,7 @@
     <string name="checkout">Checkout</string>
     <string name="qty">Qty: %1$d</string>
     <string name="new_chat">New Chat</string>
+    <string name="new_message">New Message</string>
     <string name="start_chat">Start Chat</string>
     <string name="enter_pubkey">Enter Pubkey (hex)</string>
     <string name="start">Start</string>
