@@ -42,12 +42,7 @@ class MainActivity : ComponentActivity() {
 
         initialChatRoomIdState.value = intent.getStringExtra("chat_room_id")
         initialPubkeyState.value = if (intent.action == android.content.Intent.ACTION_VIEW) {
-            val uri = intent.data
-            if (uri?.scheme == "nostr") {
-                uri.schemeSpecificPart
-            } else {
-                uri?.getQueryParameter("npub") ?: uri?.getQueryParameter("pk")
-            }
+            extractNostrId(intent.data)
         } else null
 
         setContent {
@@ -67,15 +62,24 @@ class MainActivity : ComponentActivity() {
             initialChatRoomIdState.value = chatRoomId
         }
         if (intent.action == android.content.Intent.ACTION_VIEW) {
-            val uri = intent.data
-            val pk = if (uri?.scheme == "nostr") {
-                uri.schemeSpecificPart
-            } else {
-                uri?.getQueryParameter("npub") ?: uri?.getQueryParameter("pk")
-            }
+            val pk = extractNostrId(intent.data)
             if (pk != null) {
                 initialPubkeyState.value = pk
             }
         }
+    }
+
+    private fun extractNostrId(uri: android.net.Uri?): String? {
+        if (uri == null) return null
+        if (uri.scheme == "nostr") return uri.schemeSpecificPart
+        
+        val path = uri.path
+        if (path != null) {
+            val nostrIdRegex = "(n(pub|profile|ote|event)1[a-z0-9]+)".toRegex()
+            val match = nostrIdRegex.find(path)
+            if (match != null) return match.value
+        }
+        
+        return uri.getQueryParameter("npub") ?: uri.getQueryParameter("pk")
     }
 }

@@ -146,9 +146,9 @@ fun ChatInboxScreen(
                 TextButton(
                     onClick = {
                         val trimmed = pubkeyInput.trim()
-                        if (trimmed.length == 64 || trimmed.startsWith("npub1")) {
+                        val hexKey = KianKeys.normalizePubkey(trimmed)
+                        if (hexKey.length == 64) {
                             showStartChatDialog = false
-                            val hexKey = KianKeys.normalizePubkey(trimmed)
                             onConversationClick(hexKey)
                         }
                     }

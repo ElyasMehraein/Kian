@@ -21,6 +21,13 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.foundation.text.ClickableText
+import androidx.compose.ui.unit.TextUnit
 import coil.compose.AsyncImage
 import com.ely.kian.R
 import com.ely.kian.data.local.entities.ChatMessage
@@ -29,6 +36,55 @@ import com.ely.kian.ui.screens.chat.formatTimestamp
 import com.ely.kian.ui.theme.KianColors
 import com.ely.kian.crypto.KianKeys
 import kotlinx.serialization.json.*
+
+@Composable
+fun LinkifiedText(
+    text: String,
+    modifier: Modifier = Modifier,
+    color: Color = Color.Unspecified,
+    fontSize: TextUnit = TextUnit.Unspecified,
+    lineHeight: TextUnit = TextUnit.Unspecified,
+    textDecoration: TextDecoration? = null
+) {
+    val uriHandler = LocalUriHandler.current
+    val annotatedString = buildAnnotatedString {
+        val urlPattern = "(https?://[\\w-]+(\\.[\\w-]+)+(:\\d+)?(/\\S*)?|nostr:[\\w-]+|n(pub|profile|ote|event)1[a-z0-9]+)".toRegex()
+        var lastIndex = 0
+        urlPattern.findAll(text).forEach { match ->
+            append(text.substring(lastIndex, match.range.first))
+            val matchValue = match.value
+            val url = if (matchValue.startsWith("n") && !matchValue.startsWith("http")) "nostr:$matchValue" else matchValue
+            pushStringAnnotation(tag = "URL", annotation = url)
+            withStyle(style = SpanStyle(color = Color(0xFF60A5FA), textDecoration = TextDecoration.Underline)) {
+                append(matchValue)
+            }
+            pop()
+            lastIndex = match.range.last + 1
+        }
+        append(text.substring(lastIndex))
+    }
+
+    ClickableText(
+        text = annotatedString,
+        modifier = modifier,
+        style = LocalTextStyle.current.copy(
+            color = color,
+            fontSize = fontSize,
+            lineHeight = lineHeight,
+            textDecoration = textDecoration
+        ),
+        onClick = { offset ->
+            annotatedString.getStringAnnotations(tag = "URL", start = offset, end = offset)
+                .firstOrNull()?.let { annotation ->
+                    try {
+                        uriHandler.openUri(annotation.item)
+                    } catch (e: Exception) {
+                        // Ignore
+                    }
+                }
+        }
+    )
+}
 
 @Composable
 fun MessageContent(
@@ -72,7 +128,7 @@ fun MessageContent(
                 }
             }
         } else {
-            Text(
+            LinkifiedText(
                 text = if (message.status == "rejected") stringResource(R.string.request_rejected) else message.content,
                 color = if (message.status == "rejected") colors.muted else textColor,
                 fontSize = 16.sp,

@@ -51,15 +51,45 @@ object KianKeys {
     }
 
     fun normalizePubkey(pubkey: String): String {
-        return if (pubkey.startsWith("npub")) {
+        val trimmed = pubkey.removePrefix("nostr:").trim()
+        return if (trimmed.startsWith("npub")) {
             try {
-                bytesToHex(Bech32.decode(pubkey).second)
+                bytesToHex(Bech32.decode(trimmed).second)
             } catch (e: Exception) {
-                pubkey
+                trimmed
+            }
+        } else if (trimmed.startsWith("nprofile")) {
+            try {
+                val (hrp, data) = Bech32.decode(trimmed)
+                if (hrp == "nprofile") {
+                    parseTLV(data)[0.toByte()]?.let { bytesToHex(it) } ?: trimmed
+                } else {
+                    trimmed
+                }
+            } catch (e: Exception) {
+                trimmed
             }
         } else {
-            pubkey.lowercase()
+            trimmed.lowercase()
         }
+    }
+
+    private fun parseTLV(data: ByteArray): Map<Byte, ByteArray> {
+        val result = mutableMapOf<Byte, ByteArray>()
+        var i = 0
+        try {
+            while (i < data.size) {
+                val type = data[i++]
+                val length = data[i++].toInt() and 0xFF
+                if (i + length > data.size) break
+                val value = data.copyOfRange(i, i + length)
+                result[type] = value
+                i += length
+            }
+        } catch (e: Exception) {
+            // Ignore malformed TLV
+        }
+        return result
     }
 
     fun nsecToPrivKey(nsec: String): ByteArray {

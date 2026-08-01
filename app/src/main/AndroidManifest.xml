@@ -38,6 +38,19 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" />
+                <data android:host="njump.me" />
+                <data android:host="nostr.band" />
+                <data android:host="primal.net" />
+                <data android:host="snort.social" />
+                <data android:host="iris.to" />
+                <data android:host="coracle.social" />
+            </intent-filter>
+
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
                 <data android:host="github.com" />
                 <data android:pathPrefix="/ElyasMehraein/Kian/releases" />
             </intent-filter>

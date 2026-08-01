@@ -47,10 +47,7 @@ class HomeViewModel(
             if (query.isBlank()) {
                 flowOf(null)
             } else {
-                var actualQuery = query.trim()
-                if (actualQuery.startsWith("npub")) {
-                    actualQuery = KianKeys.normalizePubkey(actualQuery)
-                }
+                val actualQuery = KianKeys.normalizePubkey(query.trim())
                 userProfileDao.searchProfiles("%$actualQuery%")
             }
         }
