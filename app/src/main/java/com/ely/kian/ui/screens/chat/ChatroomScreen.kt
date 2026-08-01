@@ -193,7 +193,20 @@ fun ChatroomScreen(
                         isMine = message.isMine,
                         colors = kianColors,
                         onLongClick = { showMenu = true },
-                        onDoubleClick = { viewModel.toggleReaction(message.id, contactPubkey, "❤️") },
+                        onDoubleClick = { 
+                            if (!message.isMine) {
+                                val ownPubkey = viewModel.getOwnPubkey() ?: ""
+                                val isLiked = try {
+                                    message.reactions?.let {
+                                        val map = Json.decodeFromString<Map<String, List<String>>>(it)
+                                        map["❤️"]?.contains(ownPubkey) == true
+                                    } ?: false
+                                } catch (e: Exception) { false }
+                                
+                                viewModel.toggleReaction(message.id, contactPubkey, "❤️")
+                                !isLiked
+                            } else false
+                        },
                         onSwipeToReply = { replyingTo = message },
                         reactions = {
                             if (message.reactions != null) {

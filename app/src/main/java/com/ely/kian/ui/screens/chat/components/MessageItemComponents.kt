@@ -1,5 +1,7 @@
 package com.ely.kian.ui.screens.chat.components
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -160,25 +162,42 @@ fun MessageReactions(reactionsJson: String, colors: KianColors) {
         }
     }
 
-    if (reactions.isNotEmpty()) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
-            verticalAlignment = Alignment.CenterVertically
+    AnimatedVisibility(
+        visible = reactions.isNotEmpty(),
+        enter = scaleIn(animationSpec = spring(Spring.DampingRatioMediumBouncy)) + fadeIn(),
+        exit = scaleOut() + fadeOut()
+    ) {
+        Surface(
+            color = colors.panel,
+            shape = RoundedCornerShape(12.dp),
+            tonalElevation = 2.dp,
+            shadowElevation = 1.dp,
+            modifier = Modifier.padding(2.dp)
         ) {
-            reactions.forEach { (emoji, pubkeys) ->
-                Row(
-                    modifier = Modifier.padding(horizontal = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(text = emoji, fontSize = 16.sp)
-                    if (pubkeys.size > 1) {
+            Row(
+                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                reactions.forEach { (emoji, pubkeys) ->
+                    Row(
+                        modifier = Modifier.padding(horizontal = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(
-                            text = pubkeys.size.toString(), 
-                            fontSize = 10.sp, 
-                            fontWeight = FontWeight.Bold,
-                            color = colors.muted,
-                            modifier = Modifier.padding(top = 4.dp)
+                            text = emoji, 
+                            fontSize = 14.sp,
+                            modifier = Modifier.animateContentSize()
                         )
+                        if (pubkeys.size > 1) {
+                            Text(
+                                text = pubkeys.size.toString(), 
+                                fontSize = 10.sp, 
+                                fontWeight = FontWeight.Bold,
+                                color = colors.muted,
+                                modifier = Modifier.padding(start = 2.dp)
+                            )
+                        }
                     }
                 }
             }
