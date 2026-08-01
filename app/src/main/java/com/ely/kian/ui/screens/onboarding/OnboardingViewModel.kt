@@ -17,14 +17,6 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 
-data class GeneratedKeys(
-    val mnemonic: String,
-    val pubkey: String, // Hex
-    val npub: String,   // npub1...
-    val nsec: String,   // nsec1...
-    val privKey: ByteArray
-)
-
 class OnboardingViewModel(
     private val keyDao: KeyDao,
     private val userProfileDao: UserProfileDao,
@@ -50,9 +42,6 @@ class OnboardingViewModel(
         }
     }
 
-    var generatedKeys by mutableStateOf<GeneratedKeys?>(null)
-        private set
-
     var mnemonicInput by mutableStateOf("")
     var privateKeyInput by mutableStateOf("")
     
@@ -68,28 +57,43 @@ class OnboardingViewModel(
     init {
         viewModelScope.launch {
             savedKey = keyDao.getKey()
+            // Load persistent private key if it exists
+            val existingPrivKey = secureStorage.getSecret(SecureStorage.PRIVATE_KEY)
+            if (existingPrivKey != null) {
+                privateKeyInput = existingPrivKey
+            }
         }
     }
 
+    fun clearStoredPrivateKey() {
+        privateKeyInput = ""
+        secureStorage.deleteSecret(SecureStorage.PRIVATE_KEY)
+    }
+
     fun handleGenerate() {
+        if (isSaving) return
         viewModelScope.launch {
             try {
+                isSaving = true
                 val mnemonic = KianKeys.generateMnemonic()
                 val privKey = KianKeys.derivePrivKey(mnemonic)
                 val pubkeyBytes = KianKeys.getPubKey(privKey)
                 val pubkeyHex = KianKeys.bytesToHex(pubkeyBytes)
+
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    secureStorage.clearAll()
+                    database.clearAllTables()
+                }
+
+                secureStorage.saveSecret(SecureStorage.MNEMONIC, mnemonic)
+                secureStorage.saveSecret(SecureStorage.PRIVATE_KEY, KianKeys.bytesToHex(privKey))
                 
-                generatedKeys = GeneratedKeys(
-                    mnemonic = mnemonic,
-                    pubkey = pubkeyHex,
-                    npub = KianKeys.toNpub(pubkeyBytes),
-                    nsec = KianKeys.toNsec(privKey),
-                    privKey = privKey
-                )
-                mnemonicInput = ""
+                persistKeyPair(pubkeyHex, "New account created and logged in.")
             } catch (e: Exception) {
                 android.util.Log.e("OnboardingViewModel", "Generation failed", e)
                 _events.emit(OnboardingEvent.Error("Generation failed: ${e.message}"))
+            } finally {
+                isSaving = false
             }
         }
     }
@@ -160,20 +164,6 @@ class OnboardingViewModel(
 
         viewModelScope.launch {
             persistKeyPair(key.pubkey, "Logged back in with your saved keypair.")
-        }
-    }
-
-    fun saveGeneratedKeys() {
-        val keys = generatedKeys ?: return
-        viewModelScope.launch {
-            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                secureStorage.clearAll()
-                database.clearAllTables()
-            }
-
-            secureStorage.saveSecret(SecureStorage.MNEMONIC, keys.mnemonic)
-            secureStorage.saveSecret(SecureStorage.PRIVATE_KEY, KianKeys.bytesToHex(keys.privKey))
-            persistKeyPair(keys.pubkey, "Your keys were stored securely.")
         }
     }
 

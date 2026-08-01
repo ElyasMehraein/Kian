@@ -4,28 +4,24 @@ import android.widget.Toast
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ely.kian.R
 import com.ely.kian.ui.components.ButtonType
 import com.ely.kian.ui.components.KianButton
 import com.ely.kian.ui.components.KianInput
-import com.ely.kian.ui.theme.KianTheme
-
-import androidx.compose.ui.res.stringResource
-import com.ely.kian.R
 import com.ely.kian.ui.components.LanguageSelector
+import com.ely.kian.ui.theme.KianTheme
 
 @Composable
 fun OnboardingScreen(
@@ -37,7 +33,6 @@ fun OnboardingScreen(
     val kianColors = KianTheme.colors
     val context = LocalContext.current
     val scrollState = rememberScrollState()
-    val clipboardManager = LocalClipboardManager.current
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -79,68 +74,43 @@ fun OnboardingScreen(
             fontWeight = FontWeight.Bold,
             color = kianColors.ink
         )
-        
-        Text(
-            text = stringResource(R.string.onboarding_desc),
-            fontSize = 16.sp,
-            color = kianColors.muted,
-            lineHeight = 24.sp
-        )
 
-        // Saved Keypair Found Card
-        viewModel.savedKey?.let { key ->
-            OnboardingCard {
-                Text(
-                    text = stringResource(R.string.saved_keypair_found),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = kianColors.muted
-                )
-                Text(
-                    text = stringResource(R.string.saved_keypair_desc),
-                    fontSize = 14.sp,
-                    color = kianColors.muted,
-                    lineHeight = 20.sp
-                )
-                KianButton(
-                    text = if (viewModel.isSaving) stringResource(R.string.saving) else stringResource(R.string.log_back_in),
-                    onClick = { viewModel.handleLogBackIn() },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !viewModel.isSaving
-                )
-            }
-        }
-
-        // Generate Keypair Button
-        KianButton(
-            text = stringResource(R.string.generate_keypair),
-            onClick = { viewModel.handleGenerate() },
-            modifier = Modifier.fillMaxWidth(),
-            type = ButtonType.Primary
-        )
-
-        // Mnemonic Card
+        // 1. Private Key Card (Login with Private Key)
         OnboardingCard {
             Text(
-                text = stringResource(R.string.mnemonic),
+                text = stringResource(R.string.login_private_key),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = kianColors.muted
             )
-            val mnemonic = viewModel.generatedKeys?.mnemonic ?: stringResource(R.string.mnemonic_hint)
             Text(
-                text = mnemonic,
-                fontSize = 16.sp,
-                color = kianColors.ink,
-                lineHeight = 24.sp,
-                modifier = Modifier.clickable(enabled = viewModel.generatedKeys != null) {
-                    clipboardManager.setText(AnnotatedString(mnemonic))
-                    Toast.makeText(context, context.getString(R.string.mnemonic_copied), Toast.LENGTH_SHORT).show()
-                }
+                text = stringResource(R.string.private_key_login_desc),
+                fontSize = 14.sp,
+                color = kianColors.muted,
+                lineHeight = 20.sp
+            )
+            KianInput(
+                value = viewModel.privateKeyInput,
+                onValueChange = { viewModel.privateKeyInput = it },
+                placeholder = "nsec... or hex",
+                visualTransformation = PasswordVisualTransformation(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onFocusChanged { focusState ->
+                        if (focusState.isFocused && viewModel.privateKeyInput.isNotEmpty()) {
+                            viewModel.clearStoredPrivateKey()
+                        }
+                    }
+            )
+            KianButton(
+                text = if (viewModel.isSaving) stringResource(R.string.saving) else stringResource(R.string.login_private_key),
+                onClick = { viewModel.handleRestoreFromPrivateKey() },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = viewModel.privateKeyInput.isNotBlank() && !viewModel.isSaving
             )
         }
 
-        // Recovery Card
+        // 2. Recovery Card (Login with Recovery Words)
         OnboardingCard {
             Text(
                 text = stringResource(R.string.recovery),
@@ -169,41 +139,38 @@ fun OnboardingScreen(
             )
         }
 
-        // Private Key Card
-        OnboardingCard {
-            Text(
-                text = stringResource(R.string.login_private_key),
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = kianColors.muted
-            )
-            Text(
-                text = stringResource(R.string.private_key_login_desc),
-                fontSize = 14.sp,
-                color = kianColors.muted,
-                lineHeight = 20.sp
-            )
-            KianInput(
-                value = viewModel.privateKeyInput,
-                onValueChange = { viewModel.privateKeyInput = it },
-                placeholder = "nsec... or hex",
-                modifier = Modifier.fillMaxWidth()
-            )
-            KianButton(
-                text = if (viewModel.isSaving) stringResource(R.string.saving) else stringResource(R.string.login_private_key),
-                onClick = { viewModel.handleRestoreFromPrivateKey() },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = viewModel.privateKeyInput.isNotBlank() && !viewModel.isSaving
-            )
-        }
-
-        // Save Keys Button
+        // 3. Login with New Account Button
         KianButton(
-            text = if (viewModel.isSaving) stringResource(R.string.saving) else stringResource(R.string.save_keys),
-            onClick = { viewModel.saveGeneratedKeys() },
+            text = if (viewModel.isSaving) stringResource(R.string.saving) else stringResource(R.string.generate_keypair),
+            onClick = { viewModel.handleGenerate() },
             modifier = Modifier.fillMaxWidth(),
-            enabled = viewModel.generatedKeys != null && !viewModel.isSaving
+            type = ButtonType.Primary,
+            enabled = !viewModel.isSaving
         )
+
+        // Saved Keypair Found Card (Legacy, kept just in case but PK input handles most of it now)
+        viewModel.savedKey?.let { _ ->
+            OnboardingCard {
+                Text(
+                    text = stringResource(R.string.saved_keypair_found),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = kianColors.muted
+                )
+                Text(
+                    text = stringResource(R.string.saved_keypair_desc),
+                    fontSize = 14.sp,
+                    color = kianColors.muted,
+                    lineHeight = 20.sp
+                )
+                KianButton(
+                    text = if (viewModel.isSaving) stringResource(R.string.saving) else stringResource(R.string.log_back_in),
+                    onClick = { viewModel.handleLogBackIn() },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !viewModel.isSaving
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(24.dp))
     }

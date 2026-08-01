@@ -20,14 +20,14 @@
     <string name="persian">فارسی</string>
 
     <!-- Onboarding -->
-    <string name="create_wallet">ساخت کیف حواله کیان</string>
-    <string name="onboarding_desc">ایجاد کلیدها، پشتیبان‌گیری از کلمات بازیابی یا بازیابی حساب موجود.</string>
-    <string name="generate_keypair">ایجاد کلید</string>
+    <string name="create_wallet">ورود به نرم افزار</string>
+    <string name="onboarding_desc"></string>
+    <string name="generate_keypair">ورود با اکانت جدید</string>
     <string name="restore_wallet">بازیابی حساب</string>
     <string name="login_private_key">ورود با کلید خصوصی</string>
     <string name="save_keys">ذخیره کلیدها</string>
     <string name="mnemonic">کلمات بازیابی</string>
-    <string name="recovery">بازیابی</string>
+    <string name="recovery">ورود با کلمات بازیابی</string>
     <string name="enter_mnemonic">کلمات بازیابی را وارد کنید</string>
     <string name="saving">در حال ذخیره...</string>
     <string name="sending">در حال ارسال...</string>

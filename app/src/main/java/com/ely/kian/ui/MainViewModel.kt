@@ -241,9 +241,11 @@ class MainViewModel(
                 }
 
                 try {
-                    secureStorage.clearAll()
+                    // Delete mnemonic but keep private key as requested
+                    // This allows user to log back in without re-entering nsec
+                    secureStorage.deleteSecret(SecureStorage.MNEMONIC)
                 } catch (e: Exception) {
-                    Log.e("MainViewModel", "Failed to clear secure storage", e)
+                    Log.e("MainViewModel", "Failed to clear mnemonic", e)
                 }
                 
                 try {

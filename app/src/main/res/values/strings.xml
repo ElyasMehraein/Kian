@@ -20,14 +20,14 @@
     <string name="persian">فارسی</string>
 
     <!-- Onboarding -->
-    <string name="create_wallet">Create Kian Account</string>
-    <string name="onboarding_desc">Generate keys, back up the mnemonic, or restore from an existing one.</string>
-    <string name="generate_keypair">Generate keypair</string>
+    <string name="create_wallet">Login to Software</string>
+    <string name="onboarding_desc"></string>
+    <string name="generate_keypair">Login with New Account</string>
     <string name="restore_wallet">Restore Account</string>
     <string name="login_private_key">Login with Private Key</string>
     <string name="save_keys">Save keys</string>
     <string name="mnemonic">Mnemonic</string>
-    <string name="recovery">Recovery</string>
+    <string name="recovery">Login with Recovery Words</string>
     <string name="enter_mnemonic">Enter mnemonic phrase</string>
     <string name="saving">Saving...</string>
     <string name="sending">Sending...</string>
