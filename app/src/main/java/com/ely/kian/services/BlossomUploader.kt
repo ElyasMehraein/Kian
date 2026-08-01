@@ -40,19 +40,21 @@ object BlossomUploader {
         val sha256 = MessageDigest.getInstance("SHA-256").digest(bytes)
         val payloadHash = KianKeys.bytesToHex(sha256)
         
-        // Construct Kind 27235 event
+        // Construct Kind 24242 event (Blossom BUD-11 Auth)
         val createdAt = System.currentTimeMillis() / 1000
-        val kind = 27235
+        val expiration = createdAt + 3600 // 1 hour expiration
+        val kind = 24242
         val tags = listOf(
-            listOf("u", serverUrl),
-            listOf("method", "PUT"),
-            listOf("payload", payloadHash)
+            listOf("t", "upload"),
+            listOf("x", payloadHash),
+            listOf("expiration", expiration.toString())
         )
+        val content = "Upload Blob"
         
-        val id = KianKeys.computeEventId(pubkey = pubKey, createdAt = createdAt, kind = kind, tags = tags, content = "")
+        val id = KianKeys.computeEventId(pubkey = pubKey, createdAt = createdAt, kind = kind, tags = tags, content = content)
         val sig = KianKeys.bytesToHex(KianKeys.sign(KianKeys.hexToBytes(id), privKey))
         
-        // Note: Blossom NIP-98 auth expects the full event
+        // Note: Blossom BUD-11 auth expects the full event
         val authEventJson = JSONObject().apply {
             put("id", id)
             put("pubkey", pubKey)
@@ -66,11 +68,15 @@ object BlossomUploader {
                 tagsArray.put(tagArray)
             }
             put("tags", tagsArray)
-            put("content", "")
+            put("content", content)
             put("sig", sig)
         }
         
-        val authHeader = "Nostr ${Base64.encodeToString(authEventJson.toString().toByteArray(), Base64.NO_WRAP)}"
+        val base64Auth = Base64.encodeToString(
+            authEventJson.toString().toByteArray(Charsets.UTF_8), 
+            Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP
+        )
+        val authHeader = "Nostr $base64Auth"
         
         val mediaType = context.contentResolver.getType(uri)?.toMediaTypeOrNull() ?: "application/octet-stream".toMediaTypeOrNull()
         val requestBody = bytes.toRequestBody(mediaType)
@@ -79,6 +85,7 @@ object BlossomUploader {
             .url(serverUrl)
             .put(requestBody)
             .addHeader("Authorization", authHeader)
+            .addHeader("X-SHA-256", payloadHash)
             .build()
             
         val response = client.newCall(request).execute()
