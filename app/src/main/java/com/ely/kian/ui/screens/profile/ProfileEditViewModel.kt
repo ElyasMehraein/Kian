@@ -169,16 +169,23 @@ class ProfileEditViewModel(
     }
 
     fun uploadImage(context: android.content.Context, uri: android.net.Uri, isBanner: Boolean) {
-        val currentPubkey = pubkey ?: return
+        val currentPubkey = pubkey ?: run {
+            android.widget.Toast.makeText(context, "Pubkey not loaded yet. Try again in a moment.", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
         viewModelScope.launch {
             if (isBanner) isUploadingBanner = true else isUploadingPicture = true
             try {
-                val privKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: throw Exception("Private key not found")
+                val privKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) 
+                    ?: throw Exception("Private key not found in storage")
                 val privKey = KianKeys.hexToBytes(privKeyHex)
                 val url = com.ely.kian.services.BlossomUploader.uploadImage(context, uri, privKey, currentPubkey)
                 if (isBanner) banner = url else picture = url
+                android.widget.Toast.makeText(context, "Image uploaded successfully!", android.widget.Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 android.util.Log.e("ProfileEditViewModel", "Upload failed", e)
+                val msg = e.message ?: "Upload failed"
+                android.widget.Toast.makeText(context, "Upload Error: $msg", android.widget.Toast.LENGTH_LONG).show()
             } finally {
                 if (isBanner) isUploadingBanner = false else isUploadingPicture = false
             }

@@ -74,7 +74,7 @@ object BlossomUploader {
         
         val base64Auth = Base64.encodeToString(
             authEventJson.toString().toByteArray(Charsets.UTF_8), 
-            Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP
+            Base64.NO_WRAP
         )
         val authHeader = "Nostr $base64Auth"
         
