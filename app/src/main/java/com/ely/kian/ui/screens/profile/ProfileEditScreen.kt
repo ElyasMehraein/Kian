@@ -19,6 +19,7 @@ import com.ely.kian.ui.components.KianButton
 import com.ely.kian.ui.components.KianInput
 import com.ely.kian.ui.components.LocationPicker
 import com.ely.kian.ui.components.ScreenHeader
+import com.ely.kian.ui.components.ImageUploadField
 import com.ely.kian.ui.theme.KianTheme
 import androidx.compose.ui.Alignment
 import androidx.compose.material.icons.Icons
@@ -37,6 +38,7 @@ fun ProfileEditScreen(
     )
 ) {
     val scrollState = rememberScrollState()
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -86,17 +88,19 @@ fun ProfileEditScreen(
                 modifier = Modifier.heightIn(min = 100.dp)
             )
 
-            KianInput(
-                value = viewModel.picture,
-                onValueChange = { viewModel.picture = it },
-                placeholder = "https://...",
+            ImageUploadField(
+                url = viewModel.picture,
+                onUrlChange = { viewModel.picture = it },
+                isUploading = viewModel.isUploadingPicture,
+                onImageSelect = { uri -> viewModel.uploadImage(context, uri, false) },
                 label = stringResource(R.string.avatar_url)
             )
 
-            KianInput(
-                value = viewModel.banner,
-                onValueChange = { viewModel.banner = it },
-                placeholder = "https://...",
+            ImageUploadField(
+                url = viewModel.banner,
+                onUrlChange = { viewModel.banner = it },
+                isUploading = viewModel.isUploadingBanner,
+                onImageSelect = { uri -> viewModel.uploadImage(context, uri, true) },
                 label = stringResource(R.string.banner_url)
             )
 

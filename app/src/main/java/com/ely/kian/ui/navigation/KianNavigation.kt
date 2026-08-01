@@ -263,7 +263,8 @@ fun KianScaffold(
                     val voucherViewModel: VoucherViewModel = viewModel(
                         factory = VoucherViewModel.provideFactory(
                             app.container.voucherRepository,
-                            app.container.keyDao
+                            app.container.keyDao,
+                            app.container.secureStorage
                         )
                     )
                     VoucherCategoriesScreen(

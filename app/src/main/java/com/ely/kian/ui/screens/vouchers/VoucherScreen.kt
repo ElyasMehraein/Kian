@@ -31,6 +31,7 @@ import com.ely.kian.KianApp
 import com.ely.kian.data.repository.BalanceItem
 import com.ely.kian.ui.screens.vouchers.components.*
 import com.ely.kian.ui.theme.KianTheme
+import com.ely.kian.ui.components.ImageUploadField
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,7 +45,8 @@ fun VoucherScreen(
     val viewModel: VoucherViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
         factory = VoucherViewModel.provideFactory(
             app.container.voucherRepository,
-            app.container.keyDao
+            app.container.keyDao,
+            app.container.secureStorage
         )
     )
 
@@ -326,6 +328,10 @@ fun VoucherScreen(
                 viewModel.mintToken(name, desc, images, qty)
                 showMintDialog = false
             },
+            isUploadingImage = viewModel.isUploadingImage,
+            onImageUploadRequest = { uri, onSuccess ->
+                viewModel.uploadImage(context, uri, onSuccess)
+            },
             colors = kianColors
         )
     }
@@ -351,6 +357,8 @@ fun VoucherScreen(
 fun MintVoucherDialog(
     onDismiss: () -> Unit,
     onConfirm: (String, String, String, Long) -> Unit,
+    isUploadingImage: Boolean,
+    onImageUploadRequest: (android.net.Uri, (String) -> Unit) -> Unit,
     colors: com.ely.kian.ui.theme.KianColors
 ) {
     var name by remember { mutableStateOf("") }
@@ -409,19 +417,16 @@ fun MintVoucherDialog(
                     )
                 )
 
-                OutlinedTextField(
-                    value = images,
-                    onValueChange = { images = it },
-                    label = { Text(stringResource(R.string.hosted_images_desc)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 2,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = colors.accent,
-                        unfocusedBorderColor = colors.ink.copy(alpha = 0.3f),
-                        focusedLabelColor = colors.accent,
-                        unfocusedLabelColor = colors.ink.copy(alpha = 0.5f),
-                        cursorColor = colors.accent
-                    )
+                ImageUploadField(
+                    url = images,
+                    onUrlChange = { images = it },
+                    isUploading = isUploadingImage,
+                    onImageSelect = { uri -> 
+                        onImageUploadRequest(uri) { uploadedUrl ->
+                            images = if (images.isBlank()) uploadedUrl else "$images\n$uploadedUrl"
+                        }
+                    },
+                    label = stringResource(R.string.hosted_images_desc)
                 )
             }
         },

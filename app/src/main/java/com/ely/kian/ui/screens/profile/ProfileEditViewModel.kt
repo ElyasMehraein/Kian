@@ -40,6 +40,9 @@ class ProfileEditViewModel(
     var isSaving by mutableStateOf(false)
     var pubkey by mutableStateOf<String?>(null)
     
+    var isUploadingPicture by mutableStateOf(false)
+    var isUploadingBanner by mutableStateOf(false)
+    
     private var existingProfile: Profile? = null
 
     init {
@@ -161,6 +164,23 @@ class ProfileEditViewModel(
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 return ProfileEditViewModel(keyDao, userProfileDao, nostrSyncManager, secureStorage) as T
+            }
+        }
+    }
+
+    fun uploadImage(context: android.content.Context, uri: android.net.Uri, isBanner: Boolean) {
+        val currentPubkey = pubkey ?: return
+        viewModelScope.launch {
+            if (isBanner) isUploadingBanner = true else isUploadingPicture = true
+            try {
+                val privKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: throw Exception("Private key not found")
+                val privKey = KianKeys.hexToBytes(privKeyHex)
+                val url = com.ely.kian.services.BlossomUploader.uploadImage(context, uri, privKey, currentPubkey)
+                if (isBanner) banner = url else picture = url
+            } catch (e: Exception) {
+                android.util.Log.e("ProfileEditViewModel", "Upload failed", e)
+            } finally {
+                if (isBanner) isUploadingBanner = false else isUploadingPicture = false
             }
         }
     }

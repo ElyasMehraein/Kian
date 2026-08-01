@@ -18,19 +18,24 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
+import com.ely.kian.crypto.SecureStorage
+import com.ely.kian.crypto.KianKeys
+
 class VoucherViewModel(
     private val voucherRepository: VoucherRepository,
-    private val keyDao: KeyDao
+    private val keyDao: KeyDao,
+    private val secureStorage: SecureStorage
 ) : ViewModel() {
 
     companion object {
         fun provideFactory(
             voucherRepository: VoucherRepository,
-            keyDao: KeyDao
+            keyDao: KeyDao,
+            secureStorage: SecureStorage
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return VoucherViewModel(voucherRepository, keyDao) as T
+                return VoucherViewModel(voucherRepository, keyDao, secureStorage) as T
             }
         }
     }
@@ -63,6 +68,9 @@ class VoucherViewModel(
     val myPubkey: StateFlow<String?> = keyDao.getKeyFlow()
         .map { it?.pubkey }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    var isUploadingImage by mutableStateOf(false)
+        private set
 
     private val _uiEvent = MutableSharedFlow<UiEvent>()
     val uiEvent = _uiEvent.asSharedFlow()
@@ -167,5 +175,23 @@ class VoucherViewModel(
             ids.addAll(getBranchIds(child.id))
         }
         return ids
+    }
+
+    fun uploadImage(context: android.content.Context, uri: android.net.Uri, onSuccess: (String) -> Unit) {
+        val currentPubkey = myPubkey.value ?: return
+        viewModelScope.launch {
+            isUploadingImage = true
+            try {
+                val privKeyHex = secureStorage.getSecret(SecureStorage.PRIVATE_KEY) ?: throw Exception("Private key not found")
+                val privKey = KianKeys.hexToBytes(privKeyHex)
+                val url = com.ely.kian.services.BlossomUploader.uploadImage(context, uri, privKey, currentPubkey)
+                onSuccess(url)
+            } catch (e: Exception) {
+                android.util.Log.e("VoucherViewModel", "Upload failed", e)
+                _uiEvent.emit(UiEvent.Alert("Upload Error", e.message ?: "Failed to upload image"))
+            } finally {
+                isUploadingImage = false
+            }
+        }
     }
 }
